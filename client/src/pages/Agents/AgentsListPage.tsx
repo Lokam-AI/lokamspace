@@ -43,7 +43,7 @@ const AgentsListPage: React.FC = () => {
         <div className="bg-white border border-gray-200 rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow transform hover:-translate-y-1">
           <div className="flex items-center mb-4">
             <div className="flex-shrink-0">
-              <img src={sambaIcon} alt="SAMBA Icon" className="h-12 w-12 rounded-full" />
+              {/* <img src={sambaIcon} alt="SAMBA Icon" className="h-12 w-12 rounded-full" /> */}
             </div>
             <div className="ml-4">
               <h2 className="text-xl font-semibold text-gray-900">SAMBA - Social Media Marketing & Branding Agent</h2>
