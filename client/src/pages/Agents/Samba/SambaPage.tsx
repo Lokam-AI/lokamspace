@@ -127,7 +127,7 @@ const SambaPage: React.FC = () => {
             <p><span className="font-medium">Used by:</span> 1,234 users</p>
           </div>
           <div className="flex justify-end items-center mt-4">
-            <span className="text-sm text-gray-700 mr-2">Agent Flow</span>
+            <span className="text-sm text-gray-700 mr-2">Schedule Flow</span>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
