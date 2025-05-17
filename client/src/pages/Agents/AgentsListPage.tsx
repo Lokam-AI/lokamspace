@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import AgentLayout from './AgentLayout';
-import sambaIcon from '../../Assets/samba.png'; // Import the SAMBA image
+
 
 const AgentsListPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
