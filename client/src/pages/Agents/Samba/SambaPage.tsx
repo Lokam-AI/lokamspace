@@ -4,14 +4,11 @@ import AgentTaskSidebar from '../../../components/AgentTaskSidebar';
 import Tabs from '../../../components/Tabs';
 
 const SambaPage: React.FC = () => {
-  const [postType, setPostType] = useState('');
-  const [additionalInfo, setAdditionalInfo] = useState('');
   const [example1, setExample1] = useState('');
   const [example2, setExample2] = useState('');
   const [resourceLinks, setResourceLinks] = useState([{ url: '', enabled: false }]);
   const [contentTopics, setContentTopics] = useState<string[]>([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [showSchedulePopup, setShowSchedulePopup] = useState(false);
   const [isAgentFlowEnabled, setIsAgentFlowEnabled] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
 
@@ -33,19 +30,10 @@ const SambaPage: React.FC = () => {
     setShowSidebar(true);
   };
 
-  const handleSchedule = () => {
-    setShowSchedulePopup(true);
-    console.log('Schedule clicked');
-  };
-
   const handleViewHistory = () => {
     setShowHistory(!showHistory);
     console.log('History clicked');
     setShowSidebar(true);
-  };
-
-  const closeSchedulePopup = () => {
-    setShowSchedulePopup(false);
   };
 
   const handleResourceLinkChange = (index: number, value: string) => {
@@ -54,11 +42,6 @@ const SambaPage: React.FC = () => {
     setResourceLinks(newLinks);
   };
 
-  const handleResourceToggle = (index: number) => {
-    const newLinks = [...resourceLinks];
-    newLinks[index].enabled = !newLinks[index].enabled;
-    setResourceLinks(newLinks);
-  };
 
   const addResourceLink = () => {
     setResourceLinks([...resourceLinks, { url: '', enabled: false }]);
@@ -79,8 +62,6 @@ const SambaPage: React.FC = () => {
 
   const handleSaveConfiguration = () => {
     const configuration = {
-      postType,
-      additionalInfo,
       example1,
       example2,
       resourceLinks,
