@@ -1,0 +1,51 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        cd server
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Log in to Amazon ECR
+      env:
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      run: |
+        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+    - name: Build Docker image
+      run: |
+        cd server
+        docker build -t lokamspace-backend .
+
+    - name: Tag Docker image
+      env:
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      run: |
+        docker tag lokamspace-backend:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com.dkr.ecr.us-east-1.amazonaws.com/lokamspace/backend
+
+    - name: Push Docker image to ECR
+      env:
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      run: |
+        docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com.dkr.ecr.us-east-1.amazonaws.com/lokamspace/backend
