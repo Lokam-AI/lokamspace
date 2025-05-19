@@ -1,0 +1,109 @@
+{
+  "detailed_conversation_analysis": {
+    "question_by_question_analysis": {
+      "overall_service": {
+        "question": "How would you rate your overall service experience with us on a scale of 1 to 10, where 1 is extremely dissatisfied and 10 is extremely satisfied?",
+        "response": "I would rate it an eight.",
+        "rating": 8,
+        "sentiment": "positive",
+        "key_points": [
+          "Had a good experience"
+        ],
+        "tone": "satisfied",
+        "context_notes": "Customer had a positive experience overall."
+      },
+      "timeliness": {
+        "question": "Was the service completed on time? How would you rate that on the same scale of 1 to 10?",
+        "response": "I would take it man.",
+        "rating": 10,
+        "sentiment": "positive",
+        "key_points": [
+          "Service completed on time"
+        ],
+        "tone": "satisfied",
+        "context_notes": "Customer initially struggled to provide a rating but eventually rated it a 10 for timeliness."
+      },
+      "cleanliness": {
+        "question": "How would you rate the cleanliness of your vehicle after service on a scale of 1 to 10?",
+        "response": "Nine.",
+        "rating": 9,
+        "sentiment": "positive",
+        "key_points": [
+          "Vehicle cleanliness rated highly"
+        ],
+        "tone": "satisfied",
+        "context_notes": "Customer was very satisfied with the cleanliness of the vehicle."
+      },
+      "advisor_helpfulness": {
+        "question": "How would you rate the helpfulness and information provided by the service advisor, also on a scale of 1 to 10?",
+        "response": "I would rate it at 10.",
+        "rating": 10,
+        "sentiment": "positive",
+        "key_points": [
+          "Service advisor was very helpful"
+        ],
+        "tone": "satisfied",
+        "context_notes": "Customer had a great experience with the service advisor."
+      },
+      "work_quality": {
+        "question": "How would you rate the quality of the work performed on your vehicle? Please provide your rating on a scale of 1 to 10.",
+        "response": "I would rate it as seven.",
+        "rating": 7,
+        "sentiment": "neutral",
+        "key_points": [
+          "Rated quality as average"
+        ],
+        "tone": "neutral",
+        "context_notes": "Customer rated the quality as average and suggested areas for improvement."
+      },
+      "recommendation": {
+        "question": "How likely are you to recommend our dealership to others on a scale of 1 to 10?",
+        "response": "Nine.",
+        "rating": 9,
+        "sentiment": "positive",
+        "key_points": [
+          "Likely to recommend dealership"
+        ],
+        "tone": "satisfied",
+        "context_notes": "Customer expressed willingness to recommend the dealership."
+      }
+    },
+    "overall_analysis": {
+      "ratings_summary": {
+        "individual_ratings": {
+          "overall_service": 8,
+          "timeliness": 10,
+          "cleanliness": 9,
+          "advisor_helpfulness": 10,
+          "work_quality": 7,
+          "recommendation": 9
+        },
+        "average_rating": 8.83
+      },
+      "feedback": {
+        "positive_points": [
+          "Timeliness, cleanliness, advisor helpfulness rated highly"
+        ],
+        "areas_for_improvement": [
+          "Quality of work performed"
+        ]
+      },
+      "customer_tone": {
+        "overall": "positive",
+        "progression": "started positive, neutral on work quality, ended positive",
+        "notable_moments": [
+          "Struggled to provide a rating for timeliness"
+        ]
+      },
+      "sentiment": {
+        "overall": "positive",
+        "explanation": "Customer had mostly positive feedback with some neutral points and suggestions for improvement.",
+        "confidence": "medium"
+      }
+    },
+    "recommendations_for_staff": [
+      "Continue providing excellent timeliness, cleanliness, and advisor support. Focus on improving communication about work being done."
+    ],
+    "conversation_summary": "The customer had a mostly positive experience with high ratings for timeliness, cleanliness, advisor helpfulness, and likelihood to recommend. They rated work quality lower and suggested improving communication about work being done."
+  }
+}
