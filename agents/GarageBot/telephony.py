@@ -66,26 +66,6 @@ class TelephonyManager:
                 logger.error(f"Error metadata: {e.metadata}")
             return None
 
-    async def end_call(self, room_name: str):
-        """End a call for a specific room"""
-        try:
-            logger.info(f"Ending call for room: {room_name}")
-            
-            # Remove room from active rooms
-            if room_name in self.active_rooms:
-                del self.active_rooms[room_name]
-            
-            # Close the room
-            await self.lkapi.room.delete_room(room_name)
-            logger.info(f"Successfully ended call for room: {room_name}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error ending call: {str(e)}")
-            if hasattr(e, 'metadata'):
-                logger.error(f"Error metadata: {e.metadata}")
-            return False
-
     async def create_sip_participant(self, room_name: str, phone_number: str):
         """Create a SIP participant for the call"""
         try:
@@ -121,6 +101,26 @@ class TelephonyManager:
                 if hasattr(e, 'metadata'):
                     logger.error(f"Error metadata: {e.metadata}")
                 return "error"
+
+    async def end_call(self, room_name: str):
+        """End a call for a specific room"""
+        try:
+            logger.info(f"Ending call for room: {room_name}")
+            
+            # Remove room from active rooms
+            if room_name in self.active_rooms:
+                del self.active_rooms[room_name]
+            
+            # Close the room
+            await self.lkapi.room.delete_room(room_name)
+            logger.info(f"Successfully ended call for room: {room_name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error ending call: {str(e)}")
+            if hasattr(e, 'metadata'):
+                logger.error(f"Error metadata: {e.metadata}")
+            return False
 
     async def close(self):
         """Close the API connection and end all active calls"""
@@ -175,7 +175,7 @@ async def make_call(phone_number: str):
         logger.error(f"Error making call: {str(e)}")
         return "error"
     finally:
-        pass
+        await telephony.close()
 
 if __name__ == "__main__":
     # Get phone number from command line argument or use default

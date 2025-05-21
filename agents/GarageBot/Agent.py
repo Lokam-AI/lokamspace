@@ -196,19 +196,31 @@ class CarServiceReviewAgent(Agent):
         raise
 
     @function_tool()
-    async def end_call(self, ctx: RunContext):
-        """Called when the user wants to end the call"""
+    async def end_call(self, ctx: RunContext) -> None:
+        """End the call when requested by the user."""
         logger.info("Ending the call")
 
-        # let the agent finish speaking
-        current_speech = ctx.session.current_speech
-        if current_speech:
+        # Let the agent finish any current speech
+        if current_speech := ctx.session.current_speech:
             await current_speech.wait_for_playout()
 
-        # Store the session from the context if not already stored
+        # Store the session from context if not already stored
         if not self._sess:
             self._sess = ctx.session
             logger.info("Stored session from context")
+
+        # Send a warm farewell message
+        farewell_message = (
+            "Thank you for taking the time to provide your valuable feedback. "
+            "Have a wonderful day, and we look forward to serving you again!"
+        )
+        
+        try:
+            await ctx.session.say(farewell_message)
+            # Wait for the message to be delivered
+            await asyncio.sleep(2)
+        except Exception as e:
+            logger.error(f"Error sending farewell message: {str(e)}")
 
         self.update_call_status("completed", "user_ended")
         await self.hangup()
@@ -350,7 +362,7 @@ async def entrypoint(ctx: JobContext):
             room=ctx.room,
             agent=agent,
             room_input_options=RoomInputOptions(
-                noise_cancellation=None  # noise_cancellation.BVCTelephony(), 
+                #noise_cancellation==None  # noise_cancellation.BVCTelephony(), 
             )
         )
         logger.info("Agent session started")
