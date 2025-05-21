@@ -14,7 +14,8 @@ from livekit.plugins import (
     elevenlabs,
     silero,
     deepgram,
-    noise_cancellation
+    noise_cancellation,
+    cartesia
 )
 from livekit.agents.metrics import LLMMetrics, STTMetrics, EOUMetrics, TTSMetrics
 
@@ -33,6 +34,7 @@ class CarServiceReviewAgent(Agent):
     def __init__(self,ctx: JobContext) -> None:
         logger.info("Initializing Car Service Review Agent...")
         
+        #
         # Store the job context
         self.ctx = ctx
         
@@ -49,13 +51,20 @@ class CarServiceReviewAgent(Agent):
         }
         
         # Configure LLM with specific role and questionnaire
-        llm = openai.LLM(model="gpt-4o-mini")
+        llm = 
+        #llm = openai.LLM.with_cerebras(model="llama3.1-8b", temperature=0.7 )
         
         # Configure STT for clear voice recognition
         stt = deepgram.STT(model="nova-3")
         
+        #tts = deepgram.TTS(model="aura-2-andromeda-en")
         # Configure TTS with a friendly, professional voice
-        tts = deepgram.TTS(model="aura-2-andromeda-en")
+        tts = cartesia.TTS(
+            model="sonic-2",
+            voice="1998363b-e108-4736-bc5b-1449fa2b096a",
+            speed=0.5,
+            emotion=["curiosity:highest", "positivity:high"]
+        )
         
         # Voice activity detection
         silero_vad = silero.VAD.load()
@@ -362,10 +371,9 @@ async def entrypoint(ctx: JobContext):
             room=ctx.room,
             agent=agent,
             room_input_options=RoomInputOptions(
-                #noise_cancellation==None  # noise_cancellation.BVCTelephony(), 
+                noise_cancellation.BVCTelephony(), 
             )
         )
-        logger.info("Agent session started")
         
     except Exception as e:
         logger.error(f"Error in entrypoint: {str(e)}")
@@ -378,3 +386,6 @@ if __name__ == "__main__":
         agent_name="CarServiceReviewAgent"
     )
     agents.cli.run_app(worker_options)
+
+
+        

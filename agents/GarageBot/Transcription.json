@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "id": "item_943d37ac2b38",
+      "type": "message",
+      "role": "user",
+      "content": [
+        "Hello?"
+      ],
+      "interrupted": false
+    }
+  ]
+}
