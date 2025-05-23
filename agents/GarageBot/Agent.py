@@ -8,15 +8,24 @@ from datetime import datetime
 import random
 from livekit import api
 from livekit import agents
-from livekit.agents import Agent, AgentSession, JobContext, WorkerOptions, RoomInputOptions,function_tool, RunContext, get_job_context
+from livekit.agents import Agent, AgentSession, JobContext, WorkerOptions, RoomInputOptions, function_tool, RunContext, get_job_context
 from livekit.plugins import (
     openai,
     elevenlabs,
     silero,
     deepgram,
-    noise_cancellation
+    noise_cancellation,
+    cartesia
 )
 from livekit.agents.metrics import LLMMetrics, STTMetrics, EOUMetrics, TTSMetrics
+from sqlalchemy.orm import Session
+import sys
+
+# Add the project root directory to Python path
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(project_root)
+
+from lokamspace.server.src.db.base import CallInteraction, Feedback
 
 
 # Load environment variables
@@ -30,11 +39,12 @@ logger.setLevel(logging.INFO)
 
 
 class CarServiceReviewAgent(Agent):
-    def __init__(self,ctx: JobContext) -> None:
+    def __init__(self, ctx: JobContext, db: Session = None) -> None:
         logger.info("Initializing Car Service Review Agent...")
         
-        # Store the job context
+        # Store the job context and database session
         self.ctx = ctx
+        self.db = db
         
         # Initialize session as None
         self._sess = None
@@ -48,14 +58,29 @@ class CarServiceReviewAgent(Agent):
             "disconnect_reason": None
         }
         
+        # Get call ID from metadata if available
+        self.call_id = None
+        if hasattr(ctx, 'metadata') and ctx.metadata:
+            try:
+                metadata = json.loads(ctx.metadata)
+                self.call_id = metadata.get('call_id')
+            except:
+                pass
+        
         # Configure LLM with specific role and questionnaire
         llm = openai.LLM(model="gpt-4o-mini")
         
         # Configure STT for clear voice recognition
         stt = deepgram.STT(model="nova-3")
         
+        #tts = deepgram.TTS(model="aura-2-andromeda-en")
         # Configure TTS with a friendly, professional voice
-        tts = deepgram.TTS(model="aura-2-andromeda-en")
+        tts = cartesia.TTS(
+            model="sonic-2",
+            voice="1998363b-e108-4736-bc5b-1449fa2b096a",
+            speed=0.5,
+            emotion=["curiosity:highest", "positivity:high"]
+        )
         
         # Voice activity detection
         silero_vad = silero.VAD.load()
@@ -111,6 +136,8 @@ class CarServiceReviewAgent(Agent):
             tts=tts,
             vad=silero_vad
         )
+        
+        # Set up metrics collection
         def llm_metrics_wrapper(metrics: LLMMetrics):
             asyncio.create_task(self.on_llm_metrics_collected(metrics))
         llm.on("metrics_collected", llm_metrics_wrapper)
@@ -127,88 +154,114 @@ class CarServiceReviewAgent(Agent):
             asyncio.create_task(self.on_tts_metrics_collected(metrics))
         tts.on("metrics_collected", tts_metrics_wrapper)
 
-
     async def on_session_start(self, session: AgentSession):
-        """
-        Called automatically by livekit-agents when the session begins.
-        """
+        """Called automatically by livekit-agents when the session begins."""
         logger.info("Session started, storing session reference")
         self._sess = session      # keep handle for later
         self.room = session.room  # convenience, identical to ctx.room
         logger.info(f"Session stored with room: {self.room.name}")
 
-    async def on_llm_metrics_collected(self, metrics: LLMMetrics) -> None:
-        print("\n--- LLM Metrics ---")
-        print(f"Prompt Tokens: {metrics.prompt_tokens}")
-        print(f"Completion Tokens: {metrics.completion_tokens}")
-        print(f"Tokens per second: {metrics.tokens_per_second:.4f}")
-        print(f"TTFT: {metrics.ttft:.4f}s")
-        print("------------------\n")
+        # Update call status
+        self.update_call_status("in_progress")
+        
+        # Update database if we have a call record
+        if self.db and self.call_id:
+            call_record = self.db.query(CallInteraction).filter(CallInteraction.id == self.call_id).first()
+            if call_record:
+                call_record.transcription = "Call started..."
+                self.db.commit()
 
-    async def on_stt_metrics_collected(self, metrics: STTMetrics) -> None:
-        print("\n--- STT Metrics ---")
-        print(f"Duration: {metrics.duration:.4f}s")
-        print(f"Audio Duration: {metrics.audio_duration:.4f}s")
-        print(f"Streamed: {'Yes' if metrics.streamed else 'No'}")
-        print("------------------\n")
-
-    async def on_eou_metrics_collected(self, metrics: EOUMetrics) -> None:
-        print("\n--- End of Utterance Metrics ---")
-        print(f"End of Utterance Delay: {metrics.end_of_utterance_delay:.4f}s")
-        print(f"Transcription Delay: {metrics.transcription_delay:.4f}s")
-        print("--------------------------------\n")
-
-    async def on_tts_metrics_collected(self, metrics: TTSMetrics) -> None:
-        print("\n--- TTS Metrics ---")
-        print(f"TTFB: {metrics.ttfb:.4f}s")
-        print(f"Duration: {metrics.duration:.4f}s")
-        print(f"Audio Duration: {metrics.audio_duration:.4f}s")
-        print(f"Streamed: {'Yes' if metrics.streamed else 'No'}")
-        print("------------------\n")
+    async def on_session_end(self, session: AgentSession):
+        """Called automatically by livekit-agents when the session ends."""
+        logger.info("Session ended")
+        
+        # Update call status
+        self.update_call_status("completed")
+        
+        # Update database if we have a call record
+        if self.db and self.call_id:
+            call_record = self.db.query(CallInteraction).filter(CallInteraction.id == self.call_id).first()
+            if call_record:
+                # Get the final transcript and summary
+                transcript = await self.get_final_transcript()
+                summary = await self.get_call_summary()
+                
+                call_record.transcription = transcript
+                call_record.summary = summary
+                
+                # Create feedback record
+                feedback = Feedback(
+                    call_id=self.call_id,
+                    score=await self.calculate_overall_score(),
+                    sentiment=await self.analyze_sentiment(),
+                    key_points=await self.extract_key_points(),
+                    tone=await self.analyze_tone(),
+                    comments=await self.get_final_comments()
+                )
+                self.db.add(feedback)
+                self.db.commit()
     
-    async def hangup(self) -> None:
-     """
-     Delete the LiveKit room to hang-up the call.
-     Ensures the gRPC payload is always a plain string.
-     """
-     # 1.  Sanity checks
-     if not hasattr(self, "ctx") or self.ctx is None:
-         logger.error("Job context is missing – cannot hang-up.")
-         return
-     if not getattr(self.ctx, "room", None):
-         logger.error("Room handle not present in context – cannot hang-up.")
-         return
+    async def get_final_transcript(self) -> str:
+        """Get the final transcript of the call"""
+        # This should be implemented to get the actual transcript
+        return "Call transcript will be updated here"
 
-     # 2.  String-ify the room name (it might be a MagicMock in tests)
-     room_name_obj = self.ctx.room.name
-     room_name: str = str(room_name_obj)
+    async def get_call_summary(self) -> str:
+        """Get a summary of the call"""
+        # This should be implemented to generate a summary
+        return "Call summary will be updated here"
 
-     logger.info(f"Attempting to end call for room: {room_name!r}")
+    async def calculate_overall_score(self) -> int:
+        """Calculate the overall satisfaction score"""
+        # This should be implemented to calculate the score
+        return 8
 
-     # 3.  Call the LiveKit API
-     try:
-        await self.ctx.api.room.delete_room(
-            api.DeleteRoomRequest(room=room_name)
-        )
-        logger.info(f"Successfully ended call for room: {room_name!r}")
-     except Exception as exc:
-        logger.exception("Error ending call via LiveKit")
-        raise
+    async def analyze_sentiment(self) -> str:
+        """Analyze the sentiment of the call"""
+        # This should be implemented to analyze sentiment
+        return "Positive"
+
+    async def extract_key_points(self) -> str:
+        """Extract key points from the call"""
+        # This should be implemented to extract key points
+        return "Key points will be updated here"
+
+    async def analyze_tone(self) -> str:
+        """Analyze the tone of the call"""
+        # This should be implemented to analyze tone
+        return "Satisfied"
+
+    async def get_final_comments(self) -> str:
+        """Get final comments about the call"""
+        # This should be implemented to get final comments
+        return "Final comments will be updated here"
 
     @function_tool()
-    async def end_call(self, ctx: RunContext):
-        """Called when the user wants to end the call"""
+    async def end_call(self, ctx: RunContext) -> None:
+        """End the call when requested by the user."""
         logger.info("Ending the call")
 
-        # let the agent finish speaking
-        current_speech = ctx.session.current_speech
-        if current_speech:
+        # Let the agent finish any current speech
+        if current_speech := ctx.session.current_speech:
             await current_speech.wait_for_playout()
 
-        # Store the session from the context if not already stored
+        # Store the session from context if not already stored
         if not self._sess:
             self._sess = ctx.session
             logger.info("Stored session from context")
+
+        # Send a warm farewell message
+        farewell_message = (
+            "Thank you for taking the time to provide your valuable feedback. "
+            "Have a wonderful day, and we look forward to serving you again!"
+        )
+        
+        try:
+            await ctx.session.say(farewell_message)
+            # Wait for the message to be delivered
+            await asyncio.sleep(2)
+        except Exception as e:
+            logger.error(f"Error sending farewell message: {str(e)}")
 
         self.update_call_status("completed", "user_ended")
         await self.hangup()
@@ -228,57 +281,125 @@ class CarServiceReviewAgent(Agent):
         elif status in ["completed", "unanswered"]:
             self.call_status["end_time"] = datetime.now()
             if self.call_status["start_time"]:
-                self.call_status["duration"] = (self.call_status["end_time"] - self.call_status["start_time"]).total_seconds()
+                duration = (self.call_status["end_time"] - self.call_status["start_time"]).total_seconds()
+                self.call_status["duration"] = duration
             self.call_status["disconnect_reason"] = disconnect_reason
 
     async def get_call_status(self) -> dict:
-        """
-        Get the current call status based on SIP participant attributes.
-        Returns a dictionary with call status information.
-        """
-        if not self._sess:
-            return self.call_status
-
-        # Get all participants in the room
-        participants = await self.room.list_participants()
-        
-        # Find SIP participants
-        sip_participants = [p for p in participants if p.kind == "SIP"]
-        
-        if not sip_participants:
-            return self.call_status
-
-        # Get the first SIP participant's attributes
-        sip_attrs = sip_participants[0].attributes
-        
-        # Map LiveKit SIP status to our status
-        status_mapping = {
-            "active": "active",
-            "automation": "active",
-            "dialing": "dialing",
-            "hangup": "completed",
-            "ringing": "ringing",
-            "no-answer": "unanswered",
-            "busy": "unanswered",
-            "failed": "unanswered"
-        }
-        
-        # Get the current status from SIP attributes
-        current_status = sip_attrs.get("sip.callStatus", "unknown")
-        mapped_status = status_mapping.get(current_status, "unknown")
-        
-        # Check for unanswered call timeout (if call has been ringing for too long)
-        if mapped_status == "ringing" and self.call_status["start_time"]:
-            ring_duration = (datetime.now() - self.call_status["start_time"]).total_seconds()
-            if ring_duration > 60:  # 60 seconds timeout for unanswered calls
-                mapped_status = "unanswered"
-                self.update_call_status(mapped_status, "timeout")
-                return self.call_status
-        
-        # Update our call status
-        self.update_call_status(mapped_status)
-        
+        """Get the current call status"""
         return self.call_status
+
+    async def hangup(self) -> None:
+        """Delete the LiveKit room to hang-up the call."""
+        if not hasattr(self, "ctx") or self.ctx is None:
+            logger.error("Job context is missing – cannot hang-up.")
+            return
+        if not getattr(self.ctx, "room", None):
+            logger.error("Room handle not present in context – cannot hang-up.")
+            return
+
+        room_name = str(self.ctx.room.name)
+        logger.info(f"Attempting to end call for room: {room_name!r}")
+
+        try:
+            await self.ctx.api.room.delete_room(
+                api.DeleteRoomRequest(room=room_name)
+            )
+            logger.info(f"Successfully ended call for room: {room_name!r}")
+        except Exception as exc:
+            logger.exception("Error ending call via LiveKit")
+            raise
+
+    async def on_llm_metrics_collected(self, metrics: LLMMetrics) -> None:
+        """Log LLM metrics and store them in the database"""
+        logger.info("\n--- LLM Metrics ---")
+        logger.info(f"Prompt Tokens: {metrics.prompt_tokens}")
+        logger.info(f"Completion Tokens: {metrics.completion_tokens}")
+        logger.info(f"Tokens per second: {metrics.tokens_per_second:.4f}")
+        logger.info(f"TTFT: {metrics.ttft:.4f}s")
+        logger.info("------------------\n")
+        
+        # Store metrics in database if we have a call record
+        if self.db and self.call_id:
+            call_record = self.db.query(CallInteraction).filter(CallInteraction.id == self.call_id).first()
+            if call_record:
+                # Add metrics to the transcription field as JSON
+                metrics_data = {
+                    "llm_metrics": {
+                        "prompt_tokens": metrics.prompt_tokens,
+                        "completion_tokens": metrics.completion_tokens,
+                        "tokens_per_second": metrics.tokens_per_second,
+                        "ttft": metrics.ttft
+                    }
+                }
+                call_record.transcription = json.dumps(metrics_data)
+                self.db.commit()
+
+    async def on_stt_metrics_collected(self, metrics: STTMetrics) -> None:
+        """Log STT metrics and store them in the database"""
+        logger.info("\n--- STT Metrics ---")
+        logger.info(f"Duration: {metrics.duration:.4f}s")
+        logger.info(f"Audio Duration: {metrics.audio_duration:.4f}s")
+        logger.info(f"Streamed: {'Yes' if metrics.streamed else 'No'}")
+        logger.info("------------------\n")
+        
+        # Store metrics in database if we have a call record
+        if self.db and self.call_id:
+            call_record = self.db.query(CallInteraction).filter(CallInteraction.id == self.call_id).first()
+            if call_record:
+                # Add metrics to the transcription field as JSON
+                metrics_data = json.loads(call_record.transcription) if call_record.transcription else {}
+                metrics_data["stt_metrics"] = {
+                    "duration": metrics.duration,
+                    "audio_duration": metrics.audio_duration,
+                    "streamed": metrics.streamed
+                }
+                call_record.transcription = json.dumps(metrics_data)
+                self.db.commit()
+
+    async def on_eou_metrics_collected(self, metrics: EOUMetrics) -> None:
+        """Log End of Utterance metrics and store them in the database"""
+        logger.info("\n--- End of Utterance Metrics ---")
+        logger.info(f"End of Utterance Delay: {metrics.end_of_utterance_delay:.4f}s")
+        logger.info(f"Transcription Delay: {metrics.transcription_delay:.4f}s")
+        logger.info("--------------------------------\n")
+        
+        # Store metrics in database if we have a call record
+        if self.db and self.call_id:
+            call_record = self.db.query(CallInteraction).filter(CallInteraction.id == self.call_id).first()
+            if call_record:
+                # Add metrics to the transcription field as JSON
+                metrics_data = json.loads(call_record.transcription) if call_record.transcription else {}
+                metrics_data["eou_metrics"] = {
+                    "end_of_utterance_delay": metrics.end_of_utterance_delay,
+                    "transcription_delay": metrics.transcription_delay
+                }
+                call_record.transcription = json.dumps(metrics_data)
+                self.db.commit()
+
+    async def on_tts_metrics_collected(self, metrics: TTSMetrics) -> None:
+        """Log TTS metrics and store them in the database"""
+        logger.info("\n--- TTS Metrics ---")
+        logger.info(f"TTFB: {metrics.ttfb:.4f}s")
+        logger.info(f"Duration: {metrics.duration:.4f}s")
+        logger.info(f"Audio Duration: {metrics.audio_duration:.4f}s")
+        logger.info(f"Streamed: {'Yes' if metrics.streamed else 'No'}")
+        logger.info("------------------\n")
+        
+        # Store metrics in database if we have a call record
+        if self.db and self.call_id:
+            call_record = self.db.query(CallInteraction).filter(CallInteraction.id == self.call_id).first()
+            if call_record:
+                # Add metrics to the transcription field as JSON
+                metrics_data = json.loads(call_record.transcription) if call_record.transcription else {}
+                metrics_data["tts_metrics"] = {
+                    "ttfb": metrics.ttfb,
+                    "duration": metrics.duration,
+                    "audio_duration": metrics.audio_duration,
+                    "streamed": metrics.streamed
+                }
+                call_record.transcription = json.dumps(metrics_data)
+                self.db.commit()
 
 async def run_analysis(api_key: str):
     """
@@ -350,10 +471,9 @@ async def entrypoint(ctx: JobContext):
             room=ctx.room,
             agent=agent,
             room_input_options=RoomInputOptions(
-                noise_cancellation=None  # noise_cancellation.BVCTelephony(), 
+                noise_cancellation.BVCTelephony(), 
             )
         )
-        logger.info("Agent session started")
         
     except Exception as e:
         logger.error(f"Error in entrypoint: {str(e)}")
@@ -366,3 +486,6 @@ if __name__ == "__main__":
         agent_name="CarServiceReviewAgent"
     )
     agents.cli.run_app(worker_options)
+
+
+        
