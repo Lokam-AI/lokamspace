@@ -1,11 +1,11 @@
 {
   "items": [
     {
-      "id": "item_943d37ac2b38",
+      "id": "item_7f7251a23449",
       "type": "message",
       "role": "user",
       "content": [
-        "Hello?"
+        "Hi."
       ],
       "interrupted": false
     }

@@ -1,10 +1,13 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 import sys
 import os
 import json
 from datetime import datetime
+from sqlalchemy.orm import Session
+from lokamspace.server.src.db.base import CallInteraction, Feedback
+from lokamspace.server.src.db.base import get_db
 
 # Add the agents directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agents/GarageBot'))
@@ -95,3 +98,21 @@ async def get_all_feedback():
         raise HTTPException(status_code=500, detail="Error reading feedback file")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 
+
+@router.get("/{call_id}")
+async def get_feedback(call_id: int, db: Session = Depends(get_db)):
+    call = db.query(CallInteraction).filter(CallInteraction.id == call_id).first()
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found")
+    
+    feedback = db.query(Feedback).filter(Feedback.call_id == call_id).first()
+    if not feedback:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+    
+    return {
+        "score": feedback.score,
+        "sentiment": feedback.sentiment,
+        "key_points": feedback.key_points,
+        "tone": feedback.tone,
+        "comments": feedback.comments
+    } 

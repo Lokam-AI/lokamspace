@@ -58,8 +58,11 @@ class CallInteraction(Base):
     id = Column(Integer, primary_key=True)
     service_id = Column(Integer, ForeignKey("service_records.id"))
     call_started = Column(DateTime, default=datetime.utcnow)
+    call_ended = Column(DateTime)  # New field for call end time
     transcription = Column(Text)
     summary = Column(Text)
+    disconnect_reason = Column(String(50))  # New field for disconnect reason
+    metrics = Column(Text)  # New field for storing metrics as JSON
 
     service_record = relationship("ServiceRecord", back_populates="calls")
     feedback = relationship("Feedback", uselist=False,

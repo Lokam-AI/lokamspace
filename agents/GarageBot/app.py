@@ -1,6 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .route import feedback, phone, transcript
+from src.api.route import phone, transcript, feedback
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("garage-bot")
+logger.setLevel(logging.INFO)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -20,12 +26,6 @@ app.add_middleware(
 
 # Include routers
 app.include_router(
-    feedback.router,
-    prefix="/feedback",
-    tags=["Feedback"]
-)
-
-app.include_router(
     phone.router,
     prefix="/phone",
     tags=["Phone"]
@@ -35,6 +35,12 @@ app.include_router(
     transcript.router,
     prefix="/transcript",
     tags=["Transcript"]
+)
+
+app.include_router(
+    feedback.router,
+    prefix="/feedback",
+    tags=["Feedback"]
 )
 
 @app.get("/")
@@ -48,3 +54,7 @@ async def root():
             "transcript": "/transcript"
         }
     } 
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000) 

@@ -6,6 +6,9 @@ import logging
 from dotenv import load_dotenv
 from livekit import api
 from datetime import datetime
+from sqlalchemy.orm import Session
+
+from server.src.db.base import CallInteraction, Feedback
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -16,7 +19,7 @@ logger.setLevel(logging.INFO)
 load_dotenv()
 
 class TelephonyManager:
-    def __init__(self):
+    def __init__(self, db: Session = None):
         self.lkapi = api.LiveKitAPI(
             url=os.getenv("LIVEKIT_URL"),
             api_key=os.getenv("LIVEKIT_API_KEY"),
@@ -24,6 +27,7 @@ class TelephonyManager:
         )
         self.outbound_trunk_id = os.getenv("SIP_OUTBOUND_TRUNK_ID")
         self.active_rooms = {}  # Track active rooms
+        self.db = db
         
         # Load trunk configuration
         try:
@@ -34,7 +38,7 @@ class TelephonyManager:
             logger.error(f"Error loading trunk configuration: {str(e)}")
             self.trunk_config = None
 
-    async def create_dispatch(self, phone_number: str):
+    async def create_dispatch(self, phone_number: str, call_record: CallInteraction = None):
         """Create a dispatch request to initiate the call"""
         try:
             # Create a unique room name
@@ -45,7 +49,10 @@ class TelephonyManager:
             dispatch_request = api.CreateAgentDispatchRequest(
                 agent_name="CarServiceReviewAgent",
                 room=room_name,
-                metadata=json.dumps({"phone_number": phone_number})
+                metadata=json.dumps({
+                    "phone_number": phone_number,
+                    "call_id": call_record.id if call_record else None
+                })
             )
             
             # Send the dispatch request
@@ -55,7 +62,8 @@ class TelephonyManager:
             # Track the room
             self.active_rooms[room_name] = {
                 "phone_number": phone_number,
-                "start_time": datetime.now().isoformat()
+                "start_time": datetime.now().isoformat(),
+                "call_record": call_record
             }
             
             return room_name
@@ -102,10 +110,18 @@ class TelephonyManager:
                     logger.error(f"Error metadata: {e.metadata}")
                 return "error"
 
-    async def end_call(self, room_name: str):
-        """End a call for a specific room"""
+    async def end_call(self, room_name: str, disconnect_reason: str = None):
+        """End a call for a specific room and update database"""
         try:
             logger.info(f"Ending call for room: {room_name}")
+            
+            # Update database if we have a call record
+            if room_name in self.active_rooms and self.active_rooms[room_name].get("call_record"):
+                call_record = self.active_rooms[room_name]["call_record"]
+                if self.db:
+                    call_record.transcription = "Call transcript will be updated here"  # This should be updated with actual transcript
+                    call_record.summary = "Call summary will be updated here"  # This should be updated with actual summary
+                    self.db.commit()
             
             # Remove room from active rooms
             if room_name in self.active_rooms:
@@ -135,7 +151,7 @@ class TelephonyManager:
         except Exception as e:
             logger.error(f"Error during cleanup: {str(e)}")
 
-async def make_call(phone_number: str):
+async def make_call(phone_number: str, db: Session = None):
     """Main function to initiate a call"""
     # Validate phone number format
     if not phone_number.startswith('+'):
@@ -155,10 +171,21 @@ async def make_call(phone_number: str):
         logger.error("Phone number must be at least 11 digits long (including country code)")
         return "invalid_number"
 
-    telephony = TelephonyManager()
+    telephony = TelephonyManager(db)
     try:
+        # Create a new call record if we have a database session
+        call_record = None
+        if db:
+            call_record = CallInteraction(
+                call_started=datetime.utcnow(),
+                transcription="",
+                summary=""
+            )
+            db.add(call_record)
+            db.commit()
+
         # Create dispatch
-        room_name = await telephony.create_dispatch(phone_number)
+        room_name = await telephony.create_dispatch(phone_number, call_record)
         if not room_name:
             logger.error("Failed to create dispatch")
             return "dispatch_failed"
@@ -169,11 +196,11 @@ async def make_call(phone_number: str):
             return result  # Return the specific error status
 
         logger.info(f"Call initiated to {phone_number}")
-        return "success"
+        return {"status": "success", "call_id": call_record.id if call_record else None}
 
     except Exception as e:
         logger.error(f"Error making call: {str(e)}")
-        return "error"
+        return {"status": "error", "error": str(e)}
     finally:
         await telephony.close()
 
@@ -195,4 +222,4 @@ if __name__ == "__main__":
         "error": "An error occurred during the call"
     }
     
-    print(f"\nCall Result: {result_messages.get(result, 'Unknown status')}") 
+    print(f"\nCall Result: {result_messages.get(result.get('status', 'unknown'), 'Unknown status')}") 
