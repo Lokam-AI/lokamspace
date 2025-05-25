@@ -10,7 +10,6 @@ from lokamspace.server.src.db.base import CallInteraction, Feedback
 from lokamspace.server.src.db.base import get_db
 
 # Add the agents directory to the Python path
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agents/GarageBot'))
 from Agent import Agent
 
 router = APIRouter()

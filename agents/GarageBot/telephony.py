@@ -8,7 +8,7 @@ from livekit import api
 from datetime import datetime
 from sqlalchemy.orm import Session
 
-from server.src.db.base import CallInteraction, Feedback
+from src.db import CallInteraction, Feedback
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

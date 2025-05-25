@@ -5,15 +5,12 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 import os
 import sys
-# Add the project root directory to Python path
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-sys.path.append(project_root)
-from server.src.db.base import CallInteraction
-from server.src.db.base import get_db
+from src.db import CallInteraction
+from src.db import get_db
 import asyncio
 import json
-from agents.GarageBot.telephony import TelephonyManager
-from agents.GarageBot.Agent import CarServiceReviewAgent
+from telephony import TelephonyManager
+from GarageBot.Agent import CarServiceReviewAgent
 from livekit import agents
 
 router = APIRouter()

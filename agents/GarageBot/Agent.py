@@ -25,7 +25,7 @@ import sys
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(project_root)
 
-from lokamspace.server.src.db.base import CallInteraction, Feedback
+from src.db import CallInteraction, Feedback
 
 
 # Load environment variables
