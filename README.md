@@ -1,36 +1,12 @@
-# 🌌 LokamSpace
+# React + Vite
 
-**LokamSpace** is a modular, AI-powered platform designed to supercharge small and medium-sized businesses (SMBs) by deploying intelligent agents that automate and optimize key business functions — from marketing to operations.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## 🚀 Vision
+Currently, two official plugins are available:
 
-To democratize the power of AI by building a scalable ecosystem of agents that solve real-world SMB problems with minimal configuration.
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## 🧠 What is an AI Agent?
+## Expanding the ESLint configuration
 
-Each agent is a self-contained, task-specific AI service that can:
-- Automate repetitive business tasks
-- Integrate with existing tools (e.g., LinkedIn, email)
-- Continuously learn and optimize performance
-- Allow human-in-the-loop approval for trust and control
-
-## 🧩 Available Agents
-
-| Agent Name | Description |
-|------------|-------------|
-| [SAMBA](./agents/samba) | Social Media Marketing & Branding Agent — builds and publishes LinkedIn posts using scraped, summarized insights and visuals. |
-
-## 🛠️ Tech Stack
-
-- **Python** (FastAPI for backend services)
-- **LangChain / LlamaIndex** for agentic workflows
-- **Playwright / BeautifulSoup** for web scraping
-- **Pandas / NLTK / spaCy** for summarization & cleaning
-- **Hugging Face** (LLMs, Vision-Language models)
-- **MongoDB Atlas** for data storage
-- **Firebase / AWS S3** for image handling
-- **SMTP** + OAuth for email validation and post approval
-- **LinkedIn API** for publishing posts
-
-## 🧱 Architecture Overview
-
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
