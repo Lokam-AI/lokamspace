@@ -43,3 +43,5 @@ Connecting App Runner to RDS: With the VPC Connector from App Runner, your FastA
 aws.amazon.com
 . Double-check that the subnets chosen for the connector have network route to the DB (if in same VPC, routing is internal). If those subnets have no internet, ensure NAT Gateway is configured for egress if the app needs to call external services. (Alternatively, to simplify, you could allow RDS public access = Yes and have App Runner connect over the public endpoint, but secure it by restricting the DB SG to App Runner’s public egress IP range. However, using a private setup is more secure and recommended for production).
 Outcome: The FastAPI backend runs as a scalable container service (App Runner URL or custom domain). It queries the PostgreSQL RDS database over the private network. No EC2 servers are managed directly. The backend is ready to serve API requests from the frontend and can be easily scaled or updated via new Docker images.
+
+

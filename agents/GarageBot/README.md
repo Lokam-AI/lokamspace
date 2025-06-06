@@ -1,167 +1,121 @@
-# 🚘 GarageBot – The AI Service Assistant for Auto Centers
+# GarageBot Service
 
-**GarageBot** is an AI-powered voice assistant developed by **Lokam** to modernize customer interaction and feedback collection in the automotive service industry. It bridges intelligent voice conversations with data-driven analytics to enhance service operations at scale.
+A cloud microservice for automated car service feedback collection using LiveKit, OpenAI, Deepgram, and Cartesia.
 
----
+## Overview
 
-## 🧠 What is GarageBot?
+GarageBot is a stateless API service that manages automated feedback collection calls for car service centers. It uses:
+- LiveKit for real-time audio communication
+- Deepgram for Speech-to-Text
+- OpenAI GPT-4 for conversation understanding
+- Cartesia for Text-to-Speech
+- PostgreSQL for data storage
 
-**GarageBot** is a production-grade, end-to-end **Service AI Assistant** that:
+## Features
 
-- 📞 Initiates automated voice calls to customers via AI
-- ❓ Collects structured feedback using natural language prompts
-- 🧠 Processes and stores responses in a central database
-- 📊 Provides a real-time dashboard with operational insights
+- Automated outbound calls to customers
+- Natural conversation flow for feedback collection
+- Real-time transcription and response generation
+- Structured feedback storage
+- Call metrics and analytics
+- RESTful API interface
 
-> Built for **automobile service centers**, GarageBot helps streamline post-service engagement and drive operational excellence — using the power of AI.
+## Prerequisites
 
----
+- Python 3.9+
+- PostgreSQL
+- LiveKit server
+- API keys for:
+  - LiveKit
+  - OpenAI
+  - Deepgram
+  - Cartesia
 
-## ✨ Core Features
+## Installation
 
-- 🔗 **CRM Integration** with automobile service center systems
-- 🗣️ **AI-Driven Voice Calls** using natural conversation flow
-- 📥 **Automated Feedback Collection** with real-time processing
-- 🧮 **Scoring & Sentiment Analysis** from AI feedback
-- 📈 **Dashboard Interface** for business stakeholders
-- 🔐 **User Authentication & Role-Based Access**
-- 🚀 **Scalable, Containerized Microservices Architecture**
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd GarageBot
+```
 
----
+2. Create and activate a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-## ⚙️ Tech Stack
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-### 🧠 AI Service (Voice Assistant)
-- [FastAPI](https://fastapi.tiangolo.com/) microservice
-- Prompt-engineered LLM API integrations (OpenAI/custom)
-- Deployed via AWS Lambda (or ECS Fargate)
+4. Set up environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
 
-### 🔧 Backend (Dashboard + API)
-- FastAPI – handles core logic, authentication, and DB ops
-- PostgreSQL – persistent relational storage
-- Docker – containerized deployment
-- GitHub Actions – CI/CD for seamless deployment
-- Hosted on AWS – production-ready cloud infra
+5. Initialize the database:
+```bash
+# Create database in PostgreSQL
+createdb garagebot
 
-### 💻 Frontend
-- React.js + Next.js – modern SSR/SPA interface
-- Tailwind CSS – responsive utility-first styling
-- Role-based dashboard and feedback analytics view
+# The tables will be created automatically when the service starts
+```
 
----
+## Running the Service
 
-## 🌐 Deployment Architecture
+### Local Development
+```bash
+uvicorn src.api.app:app --reload
+```
 
-The entire platform is designed for modular scalability:
+### Production (Docker)
+```bash
+docker build -t garagebot .
+docker run -p 8000:8000 --env-file .env garagebot
+```
 
-```plaintext
-[ Customer ]
-    ⬇️
-[ AI Voice Call (LLM) ] <--> [ AI Microservice (FastAPI) ]
-    ⬇️
-[ Feedback Aggregator ] --> [ PostgreSQL DB ]
-    ⬇️
-[ Dashboard Backend API (FastAPI) ]
-    ⬇️
-[ React + Tailwind Frontend (Next.js) ]
-📂 Project Structure (High-level)
-bash
-Copy
-Edit
-/
-├── frontend/         # Next.js UI with Tailwind styling
-├── backend/          # FastAPI server for auth + dashboard API
-├── ai-service/       # FastAPI microservice handling voice AI
-├── infra/            # Docker configs, deployment scripts
-├── .github/          # GitHub Actions, issue templates
-└── README.md         # Project documentation
-📅 Roadmap
-✅ CRM Integration Framework
+## API Endpoints
 
-✅ AI-Driven Call & Feedback Engine
+### Start Feedback Call
+```http
+POST /feedback/start
+Content-Type: application/json
 
-✅ Dashboard MVP with Real-Time Stats
+{
+    "phone_number": "+1234567890",
+    "service_record_id": "service_123"
+}
+```
 
- Call Recording Storage to S3/GCS
+### Check Call Status
+```http
+GET /feedback/{session_id}/status
+```
 
- Sentiment Analysis & Scoring Logic
+## Environment Variables
 
- Admin Panel with Role Permissions
+See `.env.example` for all required environment variables.
 
- Multi-Language Support
+## Architecture
 
- Slack/Email Notification Hooks
+The service is composed of several components:
+- `api/`: FastAPI application and endpoints
+- `telephony/`: LiveKit SIP call management
+- `agent/`: Conversation agent implementation
+- `db/`: Database models and connection management
+- `config/`: Configuration and settings
 
-🚀 How to Get Started
-Clone the Repo
+## Contributing
 
-bash
-Copy
-Edit
-git clone https://github.com/Lokam-AI/garagebot.git
-cd garagebot
-Set Up Environment
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-Add .env files in backend/, ai-service/, and frontend/
+## License
 
-Include API keys, DB URL, and secrets
-
-Run Docker Compose (Optional)
-
-bash
-Copy
-Edit
-docker-compose up --build
-Run Frontend & Backend Locally
-
-Backend: uvicorn main:app --reload in backend/
-
-Frontend: npm run dev in frontend/
-
-📊 Dashboard Preview
-The GarageBot dashboard shows:
-
-Feedback response rates
-
-Sentiment heatmaps
-
-AI accuracy & scoring
-
-Service center-wise analytics
-
-(Screenshots coming soon!) 📷
-
-🤝 Contributing
-We welcome contributions, ideas, and issue reports!
-
-To contribute:
-
-Fork the repo
-
-Create a feature branch: git checkout -b feature/xyz
-
-Submit a pull request with context and description
-
-Check our CONTRIBUTING.md (coming soon) for code style and standards.
-
-📬 Contact & Support
-Lokam AI
-📧 hello@lokam.ai
-🌐 Coming soon: www.lokam.ai
-📍 GitHub: Lokam-AI
-
-🪪 License
-This project is licensed under the MIT License. See LICENSE for details.
-
-GarageBot – Talk less. Listen smart.
-
-Built with ❤️ by Lokam – AI, culture, and operational excellence.
-
----
-
-Would you like:
-- A matching logo & badge to place at the top?
-- A minimal version for internal docs?
-- GitHub repo description + tags to go with this?
-
-Let me know, and I’ll generate them for you!
+[MIT License](LICENSE) 
