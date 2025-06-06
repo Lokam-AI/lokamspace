@@ -1,10 +1,30 @@
-# Use AWS Lambda Python base image for Python 3.10
-FROM public.ecr.aws/lambda/python:3.10
+# Use Python 3.9 slim image
+FROM python:3.9-slim
 
-# Copy application code and install dependencies
-COPY ./app ${LAMBDA_TASK_ROOT}/app
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements file
 COPY requirements.txt .
-RUN pip install -r requirements.txt --target "${LAMBDA_TASK_ROOT}"
 
-# Set the Lambda entry point to FastAPI app (via Mangum handler)
-CMD ["app.main.handler"]
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# Expose port
+EXPOSE 8000
+
+# Run the application
+CMD ["uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000"] 

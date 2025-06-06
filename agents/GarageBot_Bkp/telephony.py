@@ -95,20 +95,9 @@ class TelephonyManager:
             return True
         except Exception as e:
             error_message = str(e)
-            if "not answered" in error_message.lower() or "no answer" in error_message.lower():
-                logger.error(f"Call to {phone_number} was not answered")
-                return "not_answered"
-            elif "busy" in error_message.lower():
-                logger.error(f"Call to {phone_number} was busy")
-                return "busy"
-            elif "invalid" in error_message.lower():
-                logger.error(f"Invalid phone number format: {phone_number}")
-                return "invalid_number"
-            else:
-                logger.error(f"Error creating SIP participant: {error_message}")
-                if hasattr(e, 'metadata'):
-                    logger.error(f"Error metadata: {e.metadata}")
-                return "error"
+            logger.error(f"{error_message}")
+            return "error"
+
 
     async def end_call(self, room_name: str, disconnect_reason: str = None):
         """End a call for a specific room and update database"""
@@ -222,4 +211,6 @@ if __name__ == "__main__":
         "error": "An error occurred during the call"
     }
     
-    print(f"\nCall Result: {result_messages.get(result.get('status', 'unknown'), 'Unknown status')}") 
+    # print(f"\nCall Result: {result_messages.get(result.get('status', 'unknown'), 'Unknown status')}") 
+
+    print(result)

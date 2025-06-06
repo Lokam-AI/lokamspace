@@ -1,7 +1,7 @@
 {
   "items": [
     {
-      "id": "item_63ee8d25b574",
+      "id": "item_98e136a8d352",
       "type": "message",
       "role": "user",
       "content": [
@@ -10,16 +10,16 @@
       "interrupted": false
     },
     {
-      "id": "item_99d27283e82b",
+      "id": "item_b318b9c72b8d",
       "type": "message",
       "role": "assistant",
       "content": [
-        ""
+        "Hello! This is Ema calling from the Mercedes-Benz dealership. How are you today? I'm here to help enhance your next car service experience!"
       ],
-      "interrupted": true
+      "interrupted": false
     },
     {
-      "id": "item_9a9422fdf7f9",
+      "id": "item_efc4375aa273",
       "type": "message",
       "role": "user",
       "content": [
@@ -28,146 +28,65 @@
       "interrupted": false
     },
     {
-      "id": "item_d21dcd892fdf",
+      "id": "item_d4e6d7f5b02a",
       "type": "message",
       "role": "assistant",
       "content": [
-        ""
-      ],
-      "interrupted": true
-    },
-    {
-      "id": "item_e03c33268d26",
-      "type": "message",
-      "role": "user",
-      "content": [
-        "Okay."
+        "I'm great, thank you for asking! I'm excited to chat with you today about your recent service experience. Shall we dive into some questions? I'd love to hear your feedback!"
       ],
       "interrupted": false
     },
     {
-      "id": "item_32f381a8a4e6",
+      "id": "item_5464c4301434",
+      "type": "message",
+      "role": "user",
+      "content": [
+        "Yeah. Sure."
+      ],
+      "interrupted": false
+    },
+    {
+      "id": "item_0d5ff260d899",
       "type": "message",
       "role": "assistant",
       "content": [
-        "That's great to hear! This is Ema calling from the Mercedes Benz dealership. I'm here to enhance your next car service experience. Do you have a moment to share your feedback on your recent service?"
+        "Awesome! Let's get started. \n\nFirst question: How would you rate your overall service experience on a scale of 1 to 10, where 1 is extremely dissatisfied and 10 is extremely satisfied?"
       ],
       "interrupted": false
     },
     {
-      "id": "item_c8bce87b3f6c",
+      "id": "item_df40570f216f",
       "type": "message",
       "role": "user",
       "content": [
-        "Okay."
+        "Second."
       ],
       "interrupted": false
     },
     {
-      "id": "item_b773cd6bd69a",
+      "id": "item_bea923cd3e24",
       "type": "message",
       "role": "assistant",
       "content": [
-        "Fantastic! Let's get started. \n\nFirst, how would you rate your overall service experience on a scale from 1 to 10, where 1 is extremely dissatisfied and 10 is extremely satisfied?"
+        "Thank you for your response! It sounds like you rated your overall service experience as a 2. I'm really sorry to hear that it wasn't satisfactory. Could you share some specific areas where you felt we could improve?"
       ],
       "interrupted": false
     },
     {
-      "id": "item_8df13537eb8a",
+      "id": "item_94e1fdae87d4",
       "type": "message",
       "role": "user",
       "content": [
-        "I can give you seven."
+        "Actually, I said ten. Not two."
       ],
       "interrupted": false
     },
     {
-      "id": "item_5f3c12c6784f",
+      "id": "item_a4497dc42084",
       "type": "message",
       "role": "assistant",
       "content": [
-        "Thank you for your feedback! A 7 is a good rating, but I always love to know how we can improve. Is there any specific area that you think we could have done better?"
-      ],
-      "interrupted": false
-    },
-    {
-      "id": "item_7121a3ecf678",
-      "type": "message",
-      "role": "user",
-      "content": [
-        "Think you could have improved your customer and your AI service who's calling me is very bad."
-      ],
-      "interrupted": false
-    },
-    {
-      "id": "item_5757b461637c",
-      "type": "message",
-      "role": "assistant",
-      "content": [
-        ""
-      ],
-      "interrupted": true
-    },
-    {
-      "id": "item_697a4075a3ab",
-      "type": "message",
-      "role": "user",
-      "content": [
-        "Why are you not saying anything?"
-      ],
-      "interrupted": false
-    },
-    {
-      "id": "item_043d119fb35a",
-      "type": "message",
-      "role": "assistant",
-      "content": [
-        "I apologize for not responding sooner. I appreciate your honesty, and I'm really sorry to hear that you had a negative experience with our service. Your feedback about our customer service will definitely help us improve. \n\nLet\u2019s move on to the next question: Was the service completed on time? How would you rate that on a scale from 1 to 10?"
-      ],
-      "interrupted": false
-    },
-    {
-      "id": "item_463b062792ac",
-      "type": "message",
-      "role": "user",
-      "content": [
-        "How are you?"
-      ],
-      "interrupted": false
-    },
-    {
-      "id": "item_4da6e8ae3d27",
-      "type": "message",
-      "role": "assistant",
-      "content": [
-        "I'm here to help you! Thank you for asking. I really appreciate you taking the time to provide feedback today. So, how would you rate whether the service was completed on time on a scale from 1 to 10?"
-      ],
-      "interrupted": false
-    },
-    {
-      "id": "item_4b220065c306",
-      "type": "message",
-      "role": "user",
-      "content": [
-        "Would say it was around 7.5."
-      ],
-      "interrupted": false
-    },
-    {
-      "id": "item_f66040f6678f",
-      "type": "message",
-      "role": "assistant",
-      "content": [
-        ""
-      ],
-      "interrupted": true
-    },
-    {
-      "id": "item_6682c18b2bfc",
-      "type": "message",
-      "role": "user",
-      "content": [
-        "Hello."
+        "Oh, my apologies for the mix-up! Thank you for clarifying that you rated your overall service experience as a 10! That's fantastic to hear! \n\nNow, moving on to the next question: Was the service completed on time? Please rate that on a scale of 1 to 10."
       ],
       "interrupted": false
     }
