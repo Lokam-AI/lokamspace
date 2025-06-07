@@ -13,6 +13,7 @@ class Organization(Base):
     address = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     users = relationship("User", back_populates="organization")
+    customers = relationship("Customer", back_populates="organization")
     is_active = Column(Boolean, default=True)
     survey_questions = relationship("SurveyQuestion", back_populates="organization")
 
@@ -39,27 +40,45 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
     name = Column(String(100), nullable=False)
-    email = Column(String(100))
-    phone = Column(String(20))
-    vehicle_number = Column(String(50), unique=True, nullable=False)  # Primary key for car
+    email = Column(String(100), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    salt = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
+    is_admin = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     organization = relationship("Organization", back_populates="users")
-    service_records = relationship("ServiceRecord", back_populates="user")
+
+
+class Customer(Base):
+    __tablename__ = "customers"
+    id = Column(Integer, primary_key=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+    name = Column(String(100), nullable=False)
+    email = Column(String(100))
+    phone = Column(String(20))
+    vehicle_number = Column(String(50), unique=True, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    organization = relationship("Organization", back_populates="customers")
+    service_records = relationship("ServiceRecord", back_populates="customer")
 
 
 class ServiceRecord(Base):
     __tablename__ = "service_records"
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
     vehicle_number = Column(String(50), nullable=False)
     service_date = Column(DateTime, nullable=False)
     service_details = Column(Text)
+    assigned_user_id = Column(Integer, ForeignKey("users.id"))  # Service advisor/staff member
     # Add more fields: type, advisor, etc.
 
-    user = relationship("User", back_populates="service_records")
+    customer = relationship("Customer", back_populates="service_records")
+    assigned_user = relationship("User")
     call_interactions = relationship("CallInteraction", back_populates="service_record")
+
 
 class CallInteraction(Base):
     __tablename__ = "call_interactions"

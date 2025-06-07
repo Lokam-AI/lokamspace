@@ -1,5 +1,5 @@
 # testing/suite/test_insert.py
-# Copyright (C) 2005-2025 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2024 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -492,11 +492,9 @@ class ReturningTest(fixtures.TablesTest):
                 t.c.value,
                 sort_by_parameter_order=bool(sort_by_parameter_order),
             ),
-            (
-                [{"value": value} for i in range(10)]
-                if multiple_rows
-                else {"value": value}
-            ),
+            [{"value": value} for i in range(10)]
+            if multiple_rows
+            else {"value": value},
         )
 
         if multiple_rows:
@@ -553,12 +551,6 @@ class ReturningTest(fixtures.TablesTest):
             uuid.uuid4(),
             testing.requires.uuid_data_type,
         ),
-        (
-            "generic_native_uuid_str",
-            Uuid(as_uuid=False, native_uuid=True),
-            str(uuid.uuid4()),
-            testing.requires.uuid_data_type,
-        ),
         ("UUID", UUID(), uuid.uuid4(), testing.requires.uuid_data_type),
         (
             "LargeBinary1",
@@ -604,11 +596,9 @@ class ReturningTest(fixtures.TablesTest):
                 t.c.value,
                 sort_by_parameter_order=bool(sort_by_parameter_order),
             ),
-            (
-                [{"value": value} for i in range(10)]
-                if multiple_rows
-                else {"value": value}
-            ),
+            [{"value": value} for i in range(10)]
+            if multiple_rows
+            else {"value": value},
         )
 
         if multiple_rows:

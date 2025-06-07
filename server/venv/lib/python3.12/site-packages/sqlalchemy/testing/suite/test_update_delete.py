@@ -1,5 +1,5 @@
 # testing/suite/test_update_delete.py
-# Copyright (C) 2005-2025 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2024 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -93,11 +93,9 @@ class SimpleUpdateDeleteTest(fixtures.TablesTest):
 
         eq_(
             connection.execute(t.select().order_by(t.c.id)).fetchall(),
-            (
-                [(1, "d1"), (2, "d2_new"), (3, "d3")]
-                if criteria.rows
-                else [(1, "d1"), (2, "d2"), (3, "d3")]
-            ),
+            [(1, "d1"), (2, "d2_new"), (3, "d3")]
+            if criteria.rows
+            else [(1, "d1"), (2, "d2"), (3, "d3")],
         )
 
     @testing.variation("criteria", ["rows", "norows", "emptyin"])
@@ -128,11 +126,9 @@ class SimpleUpdateDeleteTest(fixtures.TablesTest):
 
         eq_(
             connection.execute(t.select().order_by(t.c.id)).fetchall(),
-            (
-                [(1, "d1"), (3, "d3")]
-                if criteria.rows
-                else [(1, "d1"), (2, "d2"), (3, "d3")]
-            ),
+            [(1, "d1"), (3, "d3")]
+            if criteria.rows
+            else [(1, "d1"), (2, "d2"), (3, "d3")],
         )
 
 
