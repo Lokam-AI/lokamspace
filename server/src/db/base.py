@@ -23,15 +23,19 @@ class Organization(Base):
 
     def populate_default_questions(self):
         default_questions = [
-            "How would you rate your overall service experience?",
-            "Was the service completed on time?",
-            "How would you rate the cleanliness of your vehicle after service?",
-            "How would you rate the helpfulness and information provided by the service advisor?",
-            "How would you rate the quality of the work performed on your vehicle?",
-            "How likely are you to recommend our dealership to others?"
+            ("How would you rate your overall service experience?", "Overall Service"),
+            ("Was the service completed on time?", "Timeliness"),
+            ("How would you rate the cleanliness of your vehicle after service?", "Cleanliness"),
+            ("How would you rate the helpfulness and information provided by the service advisor?", "Advisor Helpfulness"),
+            ("How would you rate the quality of the work performed on your vehicle?", "Work Quality"),
+            ("How likely are you to recommend our dealership to others?", "Recommendation")
         ]
-        for question_text in default_questions:
-            question = SurveyQuestion(question_text=question_text, organization=self)
+        for question_text, section in default_questions:
+            question = SurveyQuestion(
+                question_text=question_text,
+                section=section,
+                organization=self
+            )
             self.survey_questions.append(question)
 
 

@@ -1,10 +1,12 @@
+'use client';
+
 import React, { useState } from 'react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
 const LoginForm = () => {
   const router = useRouter();
-  const { login } = useAuth();
+  const { signIn } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -16,7 +18,7 @@ const LoginForm = () => {
     setError('');
     
     try {
-      await login(formData.email, formData.password);
+      await signIn({ email: formData.email, password: formData.password });
       router.push('/dashboard');
     } catch (err) {
       setError('Invalid email or password');

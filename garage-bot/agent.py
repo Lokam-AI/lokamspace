@@ -67,7 +67,8 @@ async def entrypoint(ctx: agents.JobContext):
         room=ctx.room,
         agent=Assistant(),
         room_input_options=RoomInputOptions(
-            noise_cancellation=noise_cancellation.BVC()
+            # noise_cancellation=noise_cancellation.BCV()
+            noise_cancellation=noise_cancellation.BVCTelephony()
         ),
     )
     await session.generate_reply(
