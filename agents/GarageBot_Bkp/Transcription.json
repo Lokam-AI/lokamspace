@@ -1,92 +1,65 @@
 {
   "items": [
     {
-      "id": "item_98e136a8d352",
+      "id": "item_3de695c9d70e",
       "type": "message",
       "role": "user",
       "content": [
-        "Hello?"
+        "Hello."
       ],
       "interrupted": false
     },
     {
-      "id": "item_b318b9c72b8d",
+      "id": "item_b70d3657b693",
       "type": "message",
       "role": "assistant",
       "content": [
-        "Hello! This is Ema calling from the Mercedes-Benz dealership. How are you today? I'm here to help enhance your next car service experience!"
+        "Hi there! This is Ema calling from the Mercedes Benz dealership. How are you today? I'm here to enhance your next car service experience!"
       ],
       "interrupted": false
     },
     {
-      "id": "item_efc4375aa273",
+      "id": "item_46dd3d01e622",
       "type": "message",
       "role": "user",
       "content": [
-        "I'm good. How are you?"
+        "How are you?"
       ],
       "interrupted": false
     },
     {
-      "id": "item_d4e6d7f5b02a",
+      "id": "item_227061e72199",
       "type": "message",
       "role": "assistant",
       "content": [
-        "I'm great, thank you for asking! I'm excited to chat with you today about your recent service experience. Shall we dive into some questions? I'd love to hear your feedback!"
+        "I\u2019m doing great, thank you for asking! I'm excited to chat with you about your recent car service experience. Shall we dive into a few questions? It'll just take a minute!"
       ],
       "interrupted": false
     },
     {
-      "id": "item_5464c4301434",
+      "id": "item_db0a496af21d",
       "type": "message",
       "role": "user",
       "content": [
-        "Yeah. Sure."
+        "What can I do for you?"
       ],
       "interrupted": false
     },
     {
-      "id": "item_0d5ff260d899",
+      "id": "item_2ba9ee2bf3ae",
       "type": "message",
       "role": "assistant",
       "content": [
-        "Awesome! Let's get started. \n\nFirst question: How would you rate your overall service experience on a scale of 1 to 10, where 1 is extremely dissatisfied and 10 is extremely satisfied?"
+        "Thank you for asking! I'm reaching out to gather your feedback on your recent service experience with us. This will help us enhance our services in the future. If you're ready, I can start with a few quick questions!"
       ],
       "interrupted": false
     },
     {
-      "id": "item_df40570f216f",
+      "id": "item_3aa02fdb8645",
       "type": "message",
       "role": "user",
       "content": [
-        "Second."
-      ],
-      "interrupted": false
-    },
-    {
-      "id": "item_bea923cd3e24",
-      "type": "message",
-      "role": "assistant",
-      "content": [
-        "Thank you for your response! It sounds like you rated your overall service experience as a 2. I'm really sorry to hear that it wasn't satisfactory. Could you share some specific areas where you felt we could improve?"
-      ],
-      "interrupted": false
-    },
-    {
-      "id": "item_94e1fdae87d4",
-      "type": "message",
-      "role": "user",
-      "content": [
-        "Actually, I said ten. Not two."
-      ],
-      "interrupted": false
-    },
-    {
-      "id": "item_a4497dc42084",
-      "type": "message",
-      "role": "assistant",
-      "content": [
-        "Oh, my apologies for the mix-up! Thank you for clarifying that you rated your overall service experience as a 10! That's fantastic to hear! \n\nNow, moving on to the next question: Was the service completed on time? Please rate that on a scale of 1 to 10."
+        "The problem is with Cartesian."
       ],
       "interrupted": false
     }

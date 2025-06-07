@@ -1,0 +1,10 @@
+{
+    "trunk": {
+      "name": "Garagebot",
+      "address": "garagebot.pstn.twilio.com",
+      "numbers": ["+16073054583"],
+      "auth_username": "LokamGarageBot",
+      "auth_password": "Harley@Lokam@7007"
+    }
+  }
+  
