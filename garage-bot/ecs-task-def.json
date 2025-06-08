@@ -5,6 +5,7 @@
     "cpu": "512",
     "memory": "2048",
     "executionRoleArn": "arn:aws:iam::968874455777:role/ecsTaskExecutionRole",
+    "taskRoleArn": "arn:aws:iam::968874455777:role/ecsTaskRole",
     "containerDefinitions": [
       {
         "name": "survey-agent",
