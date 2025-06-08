@@ -34,6 +34,18 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
+      - name: Process task definition
+        run: |
+          # Replace placeholders with actual secrets
+          sed -i "s|\${{ secrets.LIVEKIT_URL }}|${{ secrets.LIVEKIT_URL }}|g" ${{ env.ECS_TASK_DEF_TEMPLATE }}
+          sed -i "s|\${{ secrets.SIP_OUTBOUND_TRUNK_ID }}|${{ secrets.SIP_OUTBOUND_TRUNK_ID }}|g" ${{ env.ECS_TASK_DEF_TEMPLATE }}
+          sed -i "s|\${{ secrets.LIVEKIT_API_KEY }}|${{ secrets.LIVEKIT_API_KEY }}|g" ${{ env.ECS_TASK_DEF_TEMPLATE }}
+          sed -i "s|\${{ secrets.LIVEKIT_API_SECRET }}|${{ secrets.LIVEKIT_API_SECRET }}|g" ${{ env.ECS_TASK_DEF_TEMPLATE }}
+          sed -i "s|\${{ secrets.DEEPGRAM_API_KEY }}|${{ secrets.DEEPGRAM_API_KEY }}|g" ${{ env.ECS_TASK_DEF_TEMPLATE }}
+          sed -i "s|\${{ secrets.OPENAI_API_KEY }}|${{ secrets.OPENAI_API_KEY }}|g" ${{ env.ECS_TASK_DEF_TEMPLATE }}
+          sed -i "s|\${{ secrets.CARTESIA_API_KEY }}|${{ secrets.CARTESIA_API_KEY }}|g" ${{ env.ECS_TASK_DEF_TEMPLATE }}
+          sed -i "s|\${{ secrets.ELEVEN_API_KEY }}|${{ secrets.ELEVEN_API_KEY }}|g" ${{ env.ECS_TASK_DEF_TEMPLATE }}
+
       - name: Build and push Docker image
         id: build
         env:
