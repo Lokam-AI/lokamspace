@@ -62,3 +62,9 @@
         └── seed.py              # optional: initial seed data
 
         
+
+
+Adding Seed Data:
+```
+cd /Users/raoofmac/Documents/lokam/lokamspace/server && python -c "from src.db.seed import create_seed_data; create_seed_data()"
+```
