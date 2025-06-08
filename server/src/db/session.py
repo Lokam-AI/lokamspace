@@ -1,6 +1,5 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
 from ..core.config import settings
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException, status
@@ -26,6 +25,3 @@ def get_db():
         )
     finally:
         db.close()
-
-# Create Base class for declarative models
-Base = declarative_base()

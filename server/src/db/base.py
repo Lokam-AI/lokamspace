@@ -17,11 +17,11 @@ class Organization(Base):
     is_active = Column(Boolean, default=True)
     survey_questions = relationship("SurveyQuestion", back_populates="organization")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.populate_default_questions()
-
-    def populate_default_questions(self):
+    def populate_default_questions(self, db_session=None):
+        """Populate default survey questions for this organization"""
+        if not db_session:
+            return  # Cannot create questions without a session
+            
         default_questions = [
             ("How would you rate your overall service experience?", "Overall Service"),
             ("Was the service completed on time?", "Timeliness"),
@@ -34,9 +34,9 @@ class Organization(Base):
             question = SurveyQuestion(
                 question_text=question_text,
                 section=section,
-                organization=self
+                organization_id=self.id
             )
-            self.survey_questions.append(question)
+            db_session.add(question)
 
 
 class User(Base):
