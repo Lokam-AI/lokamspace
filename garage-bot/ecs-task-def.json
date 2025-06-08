@@ -27,14 +27,14 @@
           }
         },
         "environment": [
-          { "name": "LIVEKIT_URL", "value": "${{ secrets.LIVEKIT_URL }}" },
-          { "name": "SIP_OUTBOUND_TRUNK_ID", "value": "${{ secrets.SIP_OUTBOUND_TRUNK_ID }}" },
-          { "name": "LIVEKIT_API_KEY", "value": "${{ secrets.LIVEKIT_API_KEY }}" },
-          { "name": "LIVEKIT_API_SECRET", "value": "${{ secrets.LIVEKIT_API_SECRET }}" },
-          { "name": "DEEPGRAM_API_KEY", "value": "${{ secrets.DEEPGRAM_API_KEY }}" },
-          { "name": "OPENAI_API_KEY", "value": "${{ secrets.OPENAI_API_KEY }}" },
-          { "name": "CARTESIA_API_KEY", "value": "${{ secrets.CARTESIA_API_KEY }}" },
-          { "name": "ELEVEN_API_KEY", "value": "${{ secrets.ELEVEN_API_KEY }}" }
+          { "name": "LIVEKIT_URL", "value": "${LIVEKIT_URL}" },
+          { "name": "SIP_OUTBOUND_TRUNK_ID", "value": "${SIP_OUTBOUND_TRUNK_ID}" },
+          { "name": "LIVEKIT_API_KEY", "value": "${LIVEKIT_API_KEY}" },
+          { "name": "LIVEKIT_API_SECRET", "value": "${LIVEKIT_API_SECRET}" },
+          { "name": "DEEPGRAM_API_KEY", "value": "${DEEPGRAM_API_KEY}" },
+          { "name": "OPENAI_API_KEY", "value": "${OPENAI_API_KEY}" },
+          { "name": "CARTESIA_API_KEY", "value": "${CARTESIA_API_KEY}" },
+          { "name": "ELEVEN_API_KEY", "value": "${ELEVEN_API_KEY}" }
         ]
       }
     ]
