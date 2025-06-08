@@ -1,69 +1,5 @@
-
-.cursor
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-.python-version
-celerybeat-schedule
-*.sage.py
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.nox/
-.coverage.*
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-
-# Node.js
-node_modules/
-dist/
-dist-ssr/
-*.local
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-.pnpm-store/
-.npm
-.env.local
-.env.*.local
-.cache
-
-# IDEs and editors
+# IDE and Editor files
+.cursor/
 .idea/
 .vscode/*
 !.vscode/extensions.json
@@ -87,31 +23,88 @@ lerna-debug.log*
 ehthumbs.db
 Thumbs.db
 
-# Project specific
-/agents/**/logs/
-/agents/**/__pycache__/
-/server/alembic/versions/*.py
-/infrastructure/.terraform/
-/infrastructure/terraform.tfstate
-/infrastructure/terraform.tfstate.backup
-/infrastructure/.terraform.lock.hcl
-/client/.nuxt
-/client/.output
-/client/coverage
+# Environment and secrets
+.env
+.env.local
+.env.*
+!.env.example
+
+notes.md
+
+# Python - Server & Garage-bot
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+.env
+.venv
+env/
+env.bak/
+venv.bak/
+.python-version
+*.egg-info/
+.installed.cfg
+*.egg
+.coverage
+htmlcov/
+.pytest_cache/
+.coverage.*
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# Database and Migrations
+*.sqlite3
+*.db
+server/alembic/versions/*.py
+server/alembic.ini
+
+# Node.js - Client
+node_modules/
+.next/
+dist/
+dist-ssr/
+*.local
+.nuxt/
+.output/
+coverage/
+
+# Logs and debugging
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build outputs
+build/
+dist/
+out/
+
+# Cache
+.cache/
+.npm/
+.pnpm-store/
+
+# Project specific - Garage Bot
+garage-bot/KMS/*
+!garage-bot/KMS/.gitkeep
+garage-bot/logs/
+
+# Infrastructure (if any)
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+.terraform.lock.hcl
 
 # Temporary files
 *.tmp
 *.temp
 *.swp
 *~
-
-# Database
-*.sqlite3
-*.db
-
-# Compiled output
-*.class
-*.dll
-*.exe
-*.o
-*.so

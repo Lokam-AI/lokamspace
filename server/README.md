@@ -60,3 +60,5 @@
         ├── base.py              # base class for models
         ├── session.py           # SQLAlchemy session management
         └── seed.py              # optional: initial seed data
+
+        
