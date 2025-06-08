@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'garage-bot/**'
 
 env:
   AWS_REGION: us-east-1
@@ -11,7 +13,7 @@ env:
   ECS_CLUSTER: garage-cluster
   ECS_SERVICE: garage-agent-service
   CONTAINER_NAME: survey-agent
-  ECS_TASK_DEF_TEMPLATE: ecs-task-def.json
+  ECS_TASK_DEF_TEMPLATE: garage-bot/ecs-task-def.json
 
 jobs:
   deploy:
