@@ -92,16 +92,6 @@ class CallInteraction(Base):
     status = Column(String(50))  # e.g. 'completed', 'failed', 'in-progress'
     duration_seconds = Column(Integer)
     transcription = Column(Text)
-    # Add more call metrics as needed
-
-    service_record = relationship("ServiceRecord", back_populates="call_interactions")
-    survey = relationship("Survey", back_populates="call_interaction", uselist=False)
-
-
-class Survey(Base):
-    __tablename__ = "surveys"
-    id = Column(Integer, primary_key=True)
-    call_interaction_id = Column(Integer, ForeignKey("call_interactions.id"), unique=True, nullable=False)
     overall_feedback = Column(Text)
     overall_score = Column(Float)
     timeliness_score = Column(Float)
@@ -112,8 +102,8 @@ class Survey(Base):
     action_items = Column(Text)
     completed_at = Column(DateTime, default=datetime.utcnow)
 
-    call_interaction = relationship("CallInteraction", back_populates="survey")
-    responses = relationship("SurveyResponse", back_populates="survey")
+    service_record = relationship("ServiceRecord", back_populates="call_interactions")
+    responses = relationship("SurveyResponse", back_populates="call_interaction")
 
 
 class SurveyQuestion(Base):
@@ -132,10 +122,10 @@ class SurveyQuestion(Base):
 class SurveyResponse(Base):
     __tablename__ = "survey_responses"
     id = Column(Integer, primary_key=True)
-    survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=False)
+    call_interaction_id = Column(Integer, ForeignKey("call_interactions.id"), nullable=False)
     question_id = Column(Integer, ForeignKey("survey_questions.id"), nullable=False)
     response = Column(Text)
     score = Column(Float)
 
-    survey = relationship("Survey", back_populates="responses")
+    call_interaction = relationship("CallInteraction", back_populates="responses")
     question = relationship("SurveyQuestion", back_populates="responses")

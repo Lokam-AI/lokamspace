@@ -108,3 +108,4 @@ terraform.tfstate.backup
 *.temp
 *.swp
 *~
+*.pyc

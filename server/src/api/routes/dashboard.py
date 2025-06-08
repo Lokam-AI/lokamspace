@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta
 from typing import List
-from ...db.base import User, Customer, ServiceRecord, CallInteraction, Survey
+from ...db.base import User, Customer, ServiceRecord, CallInteraction
 from ...db.session import get_db
 from pydantic import BaseModel
 from ..dependencies import get_current_user
@@ -49,34 +49,25 @@ async def get_dashboard_stats(
         CallInteraction.call_date >= one_month_ago
     ).all()
     
-    # Get surveys
-    surveys = db.query(Survey).join(
-        CallInteraction
-    ).join(
-        ServiceRecord
-    ).join(
-        Customer
-    ).filter(
-        Customer.organization_id == current_user.organization_id,
-        Survey.completed_at >= one_month_ago
-    ).all()
+    # Get completed calls (previously surveys)
+    completed_calls_list = [c for c in calls if c.status == 'completed' and c.completed_at and c.completed_at >= one_month_ago]
     
     # Calculate statistics
     total_calls = len(calls)
     completed_calls = len([c for c in calls if c.status == 'completed'])
     
     # Calculate average rating and detractors
-    ratings = [s.overall_score for s in surveys if s.overall_score is not None]
+    ratings = [c.overall_score for c in completed_calls_list if c.overall_score is not None]
     average_rating = sum(ratings) / len(ratings) if ratings else 0
     detractors = len([r for r in ratings if r <= 6])  # Assuming NPS scale
     
     # Service feedback breakdown
     feedback_breakdown = {
-        'timeliness': sum(s.timeliness_score for s in surveys if s.timeliness_score) / len(surveys) if surveys else 0,
-        'cleanliness': sum(s.cleanliness_score for s in surveys if s.cleanliness_score) / len(surveys) if surveys else 0,
-        'advisor_helpfulness': sum(s.advisor_helpfulness_score for s in surveys if s.advisor_helpfulness_score) / len(surveys) if surveys else 0,
-        'work_quality': sum(s.work_quality_score for s in surveys if s.work_quality_score) / len(surveys) if surveys else 0,
-        'recommendation': sum(s.recommendation_score for s in surveys if s.recommendation_score) / len(surveys) if surveys else 0
+        'timeliness': sum(c.timeliness_score for c in completed_calls_list if c.timeliness_score) / len(completed_calls_list) if completed_calls_list else 0,
+        'cleanliness': sum(c.cleanliness_score for c in completed_calls_list if c.cleanliness_score) / len(completed_calls_list) if completed_calls_list else 0,
+        'advisor_helpfulness': sum(c.advisor_helpfulness_score for c in completed_calls_list if c.advisor_helpfulness_score) / len(completed_calls_list) if completed_calls_list else 0,
+        'work_quality': sum(c.work_quality_score for c in completed_calls_list if c.work_quality_score) / len(completed_calls_list) if completed_calls_list else 0,
+        'recommendation': sum(c.recommendation_score for c in completed_calls_list if c.recommendation_score) / len(completed_calls_list) if completed_calls_list else 0
     }
     
     # Count customers ready for call

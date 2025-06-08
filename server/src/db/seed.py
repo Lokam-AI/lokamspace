@@ -4,7 +4,7 @@ import random
 from .session import SessionLocal
 from .base import (
     Organization, User, Customer, ServiceRecord, 
-    CallInteraction, Survey, SurveyQuestion, SurveyResponse
+    CallInteraction, SurveyQuestion, SurveyResponse
 )
 from ..core.security import get_password_hash
 import logging
@@ -122,35 +122,24 @@ def create_seed_data():
                     call_date=call_date,
                     status=call_status,
                     duration_seconds=random.randint(120, 480),  # 2-8 minutes
-                    transcription=f"Customer satisfaction call for {customer.name}. Discussed {service_record.service_details.split(' - ')[0].lower()} service experience."
+                    transcription=f"Customer satisfaction call for {customer.name}. Discussed {service_record.service_details.split(' - ')[0].lower()} service experience.",
+                    # Survey fields
+                    overall_feedback=f"Great service experience at Lokam.ai. The {service_record.service_details.split(' - ')[0].lower()} was handled professionally." if call_status == "completed" else None,
+                    overall_score=round(random.uniform(3.5, 5.0), 1) if call_status == "completed" else None,
+                    timeliness_score=round(random.uniform(3.0, 5.0), 1) if call_status == "completed" else None,
+                    cleanliness_score=round(random.uniform(3.2, 5.0), 1) if call_status == "completed" else None,
+                    advisor_helpfulness_score=round(random.uniform(3.8, 5.0), 1) if call_status == "completed" else None,
+                    work_quality_score=round(random.uniform(3.5, 5.0), 1) if call_status == "completed" else None,
+                    recommendation_score=round(random.uniform(3.0, 5.0), 1) if call_status == "completed" else None,
+                    action_items="Follow up on warranty information" if call_status == "completed" and random.random() < 0.3 else None,
+                    completed_at=call_date + timedelta(minutes=random.randint(5, 30)) if call_status == "completed" else None
                 )
                 db.add(call_interaction)
                 db.flush()
                 
                 # Create Survey for completed calls
                 if call_status == "completed":
-                    # Generate realistic scores
-                    overall_score = random.uniform(3.5, 5.0)
-                    timeliness_score = random.uniform(3.0, 5.0)
-                    cleanliness_score = random.uniform(3.2, 5.0)
-                    advisor_score = random.uniform(3.8, 5.0)
-                    work_quality_score = random.uniform(3.5, 5.0)
-                    recommendation_score = random.uniform(3.0, 5.0)
-                    
-                    survey = Survey(
-                        call_interaction_id=call_interaction.id,
-                        overall_feedback=f"Great service experience at Lokam.ai. The {service_record.service_details.split(' - ')[0].lower()} was handled professionally.",
-                        overall_score=round(overall_score, 1),
-                        timeliness_score=round(timeliness_score, 1),
-                        cleanliness_score=round(cleanliness_score, 1),
-                        advisor_helpfulness_score=round(advisor_score, 1),
-                        work_quality_score=round(work_quality_score, 1),
-                        recommendation_score=round(recommendation_score, 1),
-                        action_items="Follow up on warranty information" if random.random() < 0.3 else None,
-                        completed_at=call_date + timedelta(minutes=random.randint(5, 30))
-                    )
-                    db.add(survey)
-                    surveys.append(survey)
+                    surveys.append(call_interaction)
         
         db.flush()
         logger.info(f"Created service records and call interactions")
@@ -168,7 +157,7 @@ def create_seed_data():
                     response_text = "Very satisfied with the overall service quality"
                     score = survey.overall_score
                 elif "timeliness" in question.section.lower():
-                    response_text = "Service was completed on time" if survey.timeliness_score >= 4 else "Service took longer than expected"
+                    response_text = "Service was completed on time" if survey.timeliness_score and survey.timeliness_score >= 4 else "Service took longer than expected"
                     score = survey.timeliness_score
                 elif "cleanliness" in question.section.lower():
                     response_text = "Vehicle was returned in clean condition"
@@ -180,14 +169,14 @@ def create_seed_data():
                     response_text = "Work quality met my expectations"
                     score = survey.work_quality_score
                 elif "recommendation" in question.section.lower():
-                    response_text = "Would recommend to others" if survey.recommendation_score >= 4 else "Might recommend with some reservations"
+                    response_text = "Would recommend to others" if survey.recommendation_score and survey.recommendation_score >= 4 else "Might recommend with some reservations"
                     score = survey.recommendation_score
                 else:
                     response_text = "Good experience overall"
                     score = survey.overall_score
                 
                 survey_response = SurveyResponse(
-                    survey_id=survey.id,
+                    call_interaction_id=survey.id,
                     question_id=question.id,
                     response=response_text,
                     score=score
