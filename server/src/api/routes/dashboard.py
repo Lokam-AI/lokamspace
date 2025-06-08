@@ -31,7 +31,7 @@ async def get_dashboard_stats(
     db: Session = Depends(get_db)
 ):
     """Get dashboard statistics for the last month."""
-    one_month_ago = datetime.utcnow() - timedelta(days=30)
+    one_month_ago = datetime.utcnow() - timedelta(days=180)
     
     # Get organization's customers
     customers = db.query(Customer).filter(
@@ -48,7 +48,6 @@ async def get_dashboard_stats(
         Customer.organization_id == current_user.organization_id,
         CallInteraction.call_date >= one_month_ago
     ).all()
-    
     # Get completed calls (previously surveys)
     completed_calls_list = [c for c in calls if c.status == 'completed' and c.completed_at and c.completed_at >= one_month_ago]
     
@@ -57,6 +56,19 @@ async def get_dashboard_stats(
     completed_calls = len([c for c in calls if c.status == 'completed'])
     
     # Calculate average rating and detractors
+    # Calculate average rating and detractors, handling null values
+    ratings = [c.overall_score for c in completed_calls_list if c.overall_score is not None]
+    average_rating = sum(ratings) / len(ratings) if ratings else 0
+    detractors = len([r for r in ratings if r <= 6])  # Assuming NPS scale
+    
+    # Service feedback breakdown with null handling
+    feedback_breakdown = {
+        'timeliness': sum(c.timeliness_score for c in completed_calls_list if c.timeliness_score is not None) / len([c for c in completed_calls_list if c.timeliness_score is not None]) if any(c.timeliness_score is not None for c in completed_calls_list) else 0,
+        'cleanliness': sum(c.cleanliness_score for c in completed_calls_list if c.cleanliness_score is not None) / len([c for c in completed_calls_list if c.cleanliness_score is not None]) if any(c.cleanliness_score is not None for c in completed_calls_list) else 0,
+        'advisor_helpfulness': sum(c.advisor_helpfulness_score for c in completed_calls_list if c.advisor_helpfulness_score is not None) / len([c for c in completed_calls_list if c.advisor_helpfulness_score is not None]) if any(c.advisor_helpfulness_score is not None for c in completed_calls_list) else 0,
+        'work_quality': sum(c.work_quality_score for c in completed_calls_list if c.work_quality_score is not None) / len([c for c in completed_calls_list if c.work_quality_score is not None]) if any(c.work_quality_score is not None for c in completed_calls_list) else 0,
+        'recommendation': sum(c.recommendation_score for c in completed_calls_list if c.recommendation_score is not None) / len([c for c in completed_calls_list if c.recommendation_score is not None]) if any(c.recommendation_score is not None for c in completed_calls_list) else 0
+    }
     ratings = [c.overall_score for c in completed_calls_list if c.overall_score is not None]
     average_rating = sum(ratings) / len(ratings) if ratings else 0
     detractors = len([r for r in ratings if r <= 6])  # Assuming NPS scale
