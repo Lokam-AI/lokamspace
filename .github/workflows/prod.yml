@@ -1,9 +1,11 @@
-name: CI/CD Pipeline
+name: Deploy Garagebot Backend
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'server/**'
 
 jobs:
   build-and-deploy:
