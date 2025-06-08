@@ -144,3 +144,6 @@ local_settings.py
 # System files
 .DS_Store
 Thumbs.db
+
+# Don't ignore alembic migrations
+!alembic/versions/*.py
