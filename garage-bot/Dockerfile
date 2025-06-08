@@ -26,6 +26,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Download required models
+RUN python agent.py download-files
+
 # Set default environment variables (can be overridden at runtime)
 ENV LIVEKIT_URL="" \
     LIVEKIT_API_KEY="" \
