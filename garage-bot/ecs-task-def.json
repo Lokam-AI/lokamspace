@@ -1,0 +1,41 @@
+{
+    "family": "garage-agent-task",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "512",
+    "memory": "2048",
+    "executionRoleArn": "arn:aws:iam::968874455777:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
+      {
+        "name": "survey-agent",
+        "image": "968874455777.dkr.ecr.us-east-1.amazonaws.com/garage-bot:latest",
+        "essential": true,
+        "portMappings": [
+          {
+            "containerPort": 80,
+            "hostPort": 80,
+            "protocol": "tcp"
+          }
+        ],
+        "logConfiguration": {
+          "logDriver": "awslogs",
+          "options": {
+            "awslogs-group": "/ecs/garage-agent-task",
+            "awslogs-region": "us-east-1",
+            "awslogs-stream-prefix": "ecs"
+          }
+        },
+        "environment": [
+          { "name": "LIVEKIT_URL", "value": "${{ secrets.LIVEKIT_URL }}" },
+          { "name": "SIP_OUTBOUND_TRUNK_ID", "value": "${{ secrets.SIP_OUTBOUND_TRUNK_ID }}" },
+          { "name": "LIVEKIT_API_KEY", "value": "${{ secrets.LIVEKIT_API_KEY }}" },
+          { "name": "LIVEKIT_API_SECRET", "value": "${{ secrets.LIVEKIT_API_SECRET }}" },
+          { "name": "DEEPGRAM_API_KEY", "value": "${{ secrets.DEEPGRAM_API_KEY }}" },
+          { "name": "OPENAI_API_KEY", "value": "${{ secrets.OPENAI_API_KEY }}" },
+          { "name": "CARTESIA_API_KEY", "value": "${{ secrets.CARTESIA_API_KEY }}" },
+          { "name": "ELEVEN_API_KEY", "value": "${{ secrets.ELEVEN_API_KEY }}" }
+        ]
+      }
+    ]
+  }
+  
