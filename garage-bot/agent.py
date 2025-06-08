@@ -6,8 +6,7 @@ from livekit.plugins.turn_detector.multilingual import MultilingualModel
 from dotenv import load_dotenv 
 load_dotenv()        
 
-
-
+# Agent configuration for Mercedes Benz service survey
 class Assistant(Agent):
     def __init__(self):
         super().__init__(instructions="""
@@ -55,8 +54,8 @@ class Assistant(Agent):
             """)
 
 async def entrypoint(ctx: agents.JobContext):
-    # GOOD: define the session
-    await ctx.connect()                 # NEW ③ – actually join the room
+    # Initialize and connect to LiveKit
+    await ctx.connect()                 
 
     session = AgentSession(
         stt=deepgram.STT(model="nova-3"),
@@ -69,7 +68,6 @@ async def entrypoint(ctx: agents.JobContext):
         room=ctx.room,
         agent=Assistant(),
         room_input_options=RoomInputOptions(
-            # noise_cancellation=noise_cancellation.BCV()
             noise_cancellation=noise_cancellation.BVCTelephony()
         ),
     )
@@ -77,6 +75,6 @@ async def entrypoint(ctx: agents.JobContext):
         instructions="Greet the customer and start the survey."
     )
 
-# ▼▼ THIS launches the worker process ▼▼
+# Launch the worker process with updated configuration
 if __name__ == "__main__":
-    agents.cli.run_app(agents.WorkerOptions(entrypoint_fnc=entrypoint))  # NEW ④
+    agents.cli.run_app(agents.WorkerOptions(entrypoint_fnc=entrypoint))
