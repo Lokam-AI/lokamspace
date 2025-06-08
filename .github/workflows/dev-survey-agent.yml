@@ -29,6 +29,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Log in to Amazon ECR
+        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build and push Docker image
@@ -37,10 +38,9 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/${ECR_REPOSITORY}:$IMAGE_TAG ./garage-bot
-          docker push $ECR_REGISTRY/${ECR_REPOSITORY}:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/${ECR_REPOSITORY}:$IMAGE_TAG" >> $GITHUB_OUTPUT
-
+          docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} ./garage-bot
+          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+          echo "image=${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
       - name: Render ECS task definition
         id: render-task-def
@@ -48,7 +48,7 @@ jobs:
         with:
           task-definition: ${{ env.ECS_TASK_DEF_TEMPLATE }}
           container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ steps.build.outputs.IMAGE_URI }}
+          image: ${{ steps.build.outputs.image }}
 
       - name: Deploy to ECS Service
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
