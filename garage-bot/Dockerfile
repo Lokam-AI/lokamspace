@@ -17,6 +17,8 @@ RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     make \
+    postgresql-server-dev-all \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file
@@ -32,8 +34,6 @@ COPY . .
 # Download required models
 RUN python agent.py download-files
 
-# Set non-sensitive environment variables
-ENV MODEL_NAME="gpt-4-mini"
 
 # Run the agent in dev mode
 CMD ["python", "agent.py", "dev"]
