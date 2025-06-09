@@ -31,9 +31,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy application code
 COPY . .
 
-# Download required models
+# Download required models (skip database initialization)
+ENV SKIP_DB_INIT=true
 RUN python agent.py download-files
-
 
 # Run the agent in dev mode
 CMD ["python", "agent.py", "dev"]

@@ -3,6 +3,7 @@ from livekit.agents import AgentSession, RoomInputOptions, JobContext
 from livekit.plugins import deepgram, noise_cancellation, silero, cartesia, openai
 import logging
 from dotenv import load_dotenv
+import os
 
 from config.database import init_db, get_db
 from services.agent_service import ServiceAgent
@@ -15,8 +16,9 @@ logger = logging.getLogger("garage-bot")
 # Load environment variables
 load_dotenv()
 
-# Initialize database
-init_db()
+# Initialize database only if not skipped
+if not os.getenv("SKIP_DB_INIT"):
+    init_db()
 
 async def entrypoint(ctx: JobContext):
     """Main entrypoint for the agent"""
