@@ -33,9 +33,13 @@ RUN python agent.py download-files
 ENV LIVEKIT_URL="" \
     LIVEKIT_API_KEY="" \
     LIVEKIT_API_SECRET="" \
+    SIP_OUTBOUND_TRUNK_ID="" \
+    DATABASE_URL="" \
     OPENAI_API_KEY="" \
+    ELEVEN_API_KEY="" \
     DEEPGRAM_API_KEY="" \
-    MODEL_NAME="gpt-4o-mini"
+    CARTESIA_API_KEY="" \
+    MODEL_NAME="gpt-4-mini"
 
-# Run the agent in development mode
+# Run the agent in dev mode
 CMD ["python", "agent.py", "dev"]

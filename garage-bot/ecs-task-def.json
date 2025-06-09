@@ -34,7 +34,8 @@
           { "name": "DEEPGRAM_API_KEY", "value": "${DEEPGRAM_API_KEY}" },
           { "name": "OPENAI_API_KEY", "value": "${OPENAI_API_KEY}" },
           { "name": "CARTESIA_API_KEY", "value": "${CARTESIA_API_KEY}" },
-          { "name": "ELEVEN_API_KEY", "value": "${ELEVEN_API_KEY}" }
+          { "name": "ELEVEN_API_KEY", "value": "${ELEVEN_API_KEY}" },
+          { "name": "DATABASE_URL", "value": "${DATABASE_URL}" }
         ]
       }
     ]

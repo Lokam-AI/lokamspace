@@ -1,108 +1,67 @@
 from livekit import agents
-from livekit.agents import Agent, AgentSession, RoomInputOptions, JobContext
-from livekit.plugins import openai, cartesia, deepgram, noise_cancellation, silero
-from livekit.plugins.turn_detector.multilingual import MultilingualModel
-import json
-from datetime import datetime
+from livekit.agents import AgentSession, RoomInputOptions, JobContext
+from livekit.plugins import deepgram, noise_cancellation, silero, cartesia, openai
+import logging
+from dotenv import load_dotenv
 
-from dotenv import load_dotenv 
-load_dotenv()        
+from config.database import init_db, get_db
+from services.agent_service import ServiceAgent
+from models.database import ServiceRecord, CallInteraction
 
-# Agent configuration for Mercedes Benz service survey
-class Assistant(Agent):
-    def __init__(self, ctx: JobContext):
-        # Extract metadata from context
-        self.metadata = {}
-        if hasattr(ctx, 'metadata') and ctx.metadata:
-            try:
-                self.metadata = json.loads(ctx.metadata)
-            except:
-                pass
-                
-        # Store service information
-        self.service_record_id = self.metadata.get('service_record_id')
-        self.vehicle_number = self.metadata.get('vehicle_number')
-        self.service_date = self.metadata.get('service_date')
-        self.customer_name = getattr(ctx, 'customer_name', 'valued customer')
-        
-        super().__init__(instructions=f"""
-                You are a friendly and professional car service review collector. 
-                Your role is to conduct post-service reviews with car owners in a conversational and engaging manner.
-                
-                Customer and Service Details:
-                - Customer Name: {self.customer_name}
-                - Vehicle Number: {self.vehicle_number if self.vehicle_number else 'Not provided'}
-                - Service Date: {self.service_date if self.service_date else 'Not provided'}
-                
-                Key Guidelines:
-                1. Be enthusiastic and professional
-                2. Ask questions naturally, as if in a friendly conversation
-                3. Listen carefully to responses
-                4. Show empathy and understanding
-                5. Thank customers for their time
-                6. IMPORTANT: You MUST end the call when:
-                   - The user says goodbye, bye, thank you, or any other ending phrase
-                   - The user explicitly asks to end the call
-                   - The user says they need to go
-                   - The conversation has naturally concluded
-                   - The appointment details have been confirmed
-                   When any of these conditions are met, you MUST use the end_call tool to properly end the conversation.
-         
-                Initial Greeting:
-                Start by introducing yourself as Ema, calling from mercedes benz dealership. 
-                Address the customer by their name: "{self.customer_name}".
-                Reference their recent service visit for their vehicle (number: {self.vehicle_number}) on {self.service_date}.
-                Say that you are here to enhance their next car service experience.
-                
-                Review Questions and Rating System:
-                Tell the customers that For each question, ask the customer to rate their experience on a scale of 1 to 10, where:
-                - 1 is the lowest rating (extremely dissatisfied)
-                - 10 is the highest rating (extremely satisfied)
-                
-                Questions to Ask (in order):
-                1. "How would you rate your overall service experience? ."
-                2. "Was the service completed on time? "
-                3. "How would you rate the cleanliness of your vehicle after service? "
-                4. "How would you rate the helpfulness and information provided by the service advisor? "
-                5. "How would you rate the quality of the work performed on your vehicle? "
-                6. "How likely are you to recommend our dealership to others? "
-                
-                After the user answers each question:
-                - Say "Thank you for your feedback" or similar phrases
-                - If rating is 1-4: Show empathy, address them by name, and ask for specific areas of improvement
-                - Move on to the next question
-                
-                Always maintain a positive and professional tone while collecting honest feedback.
-                After completing all questions, thank the customer by their name for their time and valuable feedback.
-                After thanking the customer, say "Have a great day" or similar phrases and end the call.
-                
-                Remember: 
-                - Always address the customer as "{self.customer_name}" when appropriate
-                - When the user indicates they want to end the call (through any ending phrase or explicit request), you MUST use the end_call tool to properly end the conversation.
-            """)
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("garage-bot")
 
-async def entrypoint(ctx: agents.JobContext):
-    # Initialize and connect to LiveKit
-    await ctx.connect()                 
+# Load environment variables
+load_dotenv()
 
-    session = AgentSession(
-        stt=deepgram.STT(model="nova-3"),
-        llm=openai.LLM(model="gpt-4o-mini"),
-        tts=deepgram.TTS(),
-        vad=silero.VAD.load()
-    )
+# Initialize database
+init_db()
+
+async def entrypoint(ctx: JobContext):
+    """Main entrypoint for the agent"""
+    logger.info("Starting agent entrypoint")
     
-    await session.start(
-        room=ctx.room,
-        agent=Assistant(ctx),
-        room_input_options=RoomInputOptions(
-            noise_cancellation=noise_cancellation.BVCTelephony()
-        ),
-    )
-    await session.generate_reply(
-        instructions="Greet the customer and start the survey."
-    )
+    # Initialize and connect to LiveKit
+    await ctx.connect()
+    
+    # Get database session
+    db = next(get_db())
+    
+    try:
+        # Create agent session
+        session = AgentSession(
+            stt=deepgram.STT(model="nova-3"),
+            llm=openai.LLM(model="gpt-4o-mini"),
+            tts=cartesia.TTS(
+                model="sonic-2",
+                voice="1998363b-e108-4736-bc5b-1449fa2b096a",
+                speed=0.5,
+                emotion=["curiosity:highest", "positivity:high"]
+            ),
+            vad=silero.VAD.load()
+        )
+        
+        # Start the agent session
+        await session.start(
+            room=ctx.room,
+            agent=ServiceAgent(ctx, db),
+            room_input_options=RoomInputOptions(
+                noise_cancellation=noise_cancellation.BVCTelephony()
+            ),
+        )
+        
+        # Generate initial reply
+        await session.generate_reply(
+            instructions="Greet the customer with name and wait for his response to start survey."
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in entrypoint: {str(e)}")
+        raise
+    finally:
+        db.close()
 
-# Launch the worker process with updated configuration
+# Launch the worker process
 if __name__ == "__main__":
     agents.cli.run_app(agents.WorkerOptions(entrypoint_fnc=entrypoint))
