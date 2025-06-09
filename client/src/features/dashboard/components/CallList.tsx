@@ -1,5 +1,3 @@
-import CallListRow from "./CallListRow";
-
 interface Call {
   id: number;
   customer: string;

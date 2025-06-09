@@ -2,6 +2,7 @@ import React from 'react';
 import { Table } from '@/components/ui/table/Table';
 import { StatusPill } from '@/components/ui/status/StatusPill';
 import { Question } from '../types';
+import { Column } from '@/components/ui/table/Table';
 
 const SAMPLE_DATA: Question[] = [
   {
@@ -58,34 +59,36 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const columns = [
+const columns: Column<Question>[] = [
   {
     header: 'Question',
-    accessor: 'text' as keyof Question,
-    render: (value: string) => (
-      <div className="max-w-xl truncate" title={value}>
-        {value}
+    accessor: 'text',
+    render: (value: Question['text'] | string | number | boolean) => (
+      <div className="max-w-xl truncate" title={String(value)}>
+        {String(value)}
       </div>
     ),
   },
   {
     header: 'Section',
-    accessor: 'section' as keyof Question,
-    render: (value: string) => (
+    accessor: 'section',
+    render: (value: Question['section'] | string | number | boolean) => (
       <span className="px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-        {value}
+        {String(value)}
       </span>
     ),
   },
   {
     header: 'Created At',
-    accessor: 'createdAt' as keyof Question,
-    render: (value: string) => formatDate(value),
+    accessor: 'createdAt',
+    render: (value: Question['createdAt'] | string | number | boolean) => formatDate(String(value)),
   },
   {
     header: 'Status',
-    accessor: 'isActive' as keyof Question,
-    render: (value: boolean) => <StatusPill isActive={value} />,
+    accessor: 'isActive',
+    render: (value: Question['isActive'] | string | number | boolean) => (
+      <StatusPill isActive={Boolean(value)} />
+    ),
   },
 ];
 

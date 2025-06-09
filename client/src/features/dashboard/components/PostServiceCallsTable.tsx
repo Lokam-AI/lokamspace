@@ -87,7 +87,7 @@ export default function PostServiceCallsTable({ calls }: { calls: Call[] }) {
           </tr>
         </thead>
         <tbody>
-          {calls.map((call, idx) =>
+          {calls.map((call) =>
             call.call_interactions.map((interaction) => (
               <tr key={interaction.id} className="border-b border-[#F4F4F5] last:border-0">
                 <td className="py-2 pr-4 font-medium text-black">{call.customer_name}</td>

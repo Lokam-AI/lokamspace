@@ -2,6 +2,7 @@ import React from 'react';
 import { Table } from '@/components/ui/table/Table';
 import { StatusPill } from '@/components/ui/status/StatusPill';
 import { Customer } from '../types';
+import type { Column } from '@/components/ui/table/Table';
 
 const SAMPLE_DATA: Customer[] = [
     {
@@ -46,27 +47,29 @@ const SAMPLE_DATA: Customer[] = [
     }
   ];
 
-const columns = [
+const columns: Column<Customer>[] = [
   {
     header: 'Name',
-    accessor: 'name' as keyof Customer,
+    accessor: 'name',
   },
   {
     header: 'Email',
-    accessor: 'email' as keyof Customer,
+    accessor: 'email',
   },
   {
     header: 'Phone',
-    accessor: 'phone' as keyof Customer,
+    accessor: 'phone',
   },
   {
     header: 'Vehicle Number',
-    accessor: 'vehicle_number' as keyof Customer,
+    accessor: 'vehicle_number',
   },
   {
     header: 'Status',
-    accessor: 'is_active' as keyof Customer,
-    render: (value: boolean) => <StatusPill isActive={value} />,
+    accessor: 'is_active',
+    render: (value: Customer['is_active'] | string | number | boolean) => (
+      <StatusPill isActive={Boolean(value)} />
+    ),
   },
 ];
 

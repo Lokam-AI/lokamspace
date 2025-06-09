@@ -50,7 +50,7 @@ export default function SignUpForm() {
         organizationAddress: showNewOrgField ? formData.organizationAddress : ''
       });
       router.push('/dashboard');
-    } catch (err) {
+    } catch {
       setError('Failed to create account');
     }
   };

@@ -21,7 +21,7 @@ export default function SignInForm() {
       // TODO: Implement actual authentication logic here
       console.log('Sign in:', formData);
       router.push('/dashboard');
-    } catch (err) {
+    } catch {
       setError('Invalid email or password');
     }
   };
@@ -83,7 +83,7 @@ export default function SignInForm() {
       </form>
 
       <div className="mt-6 text-center text-sm text-[#71717A]">
-        Don't have an account?{' '}
+        Don&apos;t have an account?{' '}
         <Link href="/signup" className="text-[#F97316] hover:text-[#EA580C] font-semibold">
           Sign Up
         </Link>

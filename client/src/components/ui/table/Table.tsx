@@ -1,12 +1,14 @@
 import React from 'react';
 
+export type Column<T> = {
+  header: string;
+  accessor: keyof T;
+  render?: (value: T[keyof T] | string | number | boolean, item?: T) => React.ReactNode;
+};
+
 interface TableProps<T> {
   data: T[];
-  columns: {
-    header: string;
-    accessor: keyof T;
-    render?: (value: any, item: T) => React.ReactNode;
-  }[];
+  columns: Column<T>[];
 }
 
 export function Table<T>({ data, columns }: TableProps<T>) {
@@ -33,20 +35,23 @@ export function Table<T>({ data, columns }: TableProps<T>) {
                 key={rowIndex}
                 className={rowIndex === data.length - 1 ? 'last-row' : ''}
               >
-                {columns.map((column, colIndex) => (
-                  <td
-                    key={`${rowIndex}-${colIndex}`}
-                    className={`px-6 py-4 whitespace-nowrap text-sm text-gray-500
-                      ${rowIndex === data.length - 1 ? 'last-row' : ''}
-                      ${rowIndex === data.length - 1 && colIndex === 0 ? 'rounded-bl-xl' : ''}
-                      ${rowIndex === data.length - 1 && colIndex === columns.length - 1 ? 'rounded-br-xl' : ''}
-                    `}
-                  >
-                    {column.render
-                      ? column.render(item[column.accessor], item)
-                      : String(item[column.accessor])}
-                  </td>
-                ))}
+                {columns.map((column, colIndex) => {
+                  const value = item[column.accessor];
+                  return (
+                    <td
+                      key={`${rowIndex}-${colIndex}`}
+                      className={`px-6 py-4 whitespace-nowrap text-sm text-gray-500
+                        ${rowIndex === data.length - 1 ? 'last-row' : ''}
+                        ${rowIndex === data.length - 1 && colIndex === 0 ? 'rounded-bl-xl' : ''}
+                        ${rowIndex === data.length - 1 && colIndex === columns.length - 1 ? 'rounded-br-xl' : ''}
+                      `}
+                    >
+                      {column.render
+                        ? column.render(value, item)
+                        : String(value)}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
