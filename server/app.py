@@ -1,7 +1,7 @@
 # app.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.api.routes import auth, dashboard, customers, survey, service_records
+from src.api.routes import auth, dashboard, customers, survey, service_records, organizations
 from src.core.config import settings
 from src.db.init_db import init_db
 import logging
@@ -44,6 +44,7 @@ app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"]
 app.include_router(customers.router, prefix="/api/customers", tags=["customers"])
 app.include_router(survey.router, prefix="/api/survey", tags=["survey"])
 app.include_router(service_records.router, prefix="/api/service-records", tags=["service-records"])
+app.include_router(organizations.router, prefix="/api/organizations", tags=["organizations"])
 
 
 @app.get("/")

@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from typing import Optional
+from sqlalchemy.orm import Session, joinedload
+from typing import Optional, List
 from datetime import datetime
 
 from src.db.session import get_db
-from src.db.base import ServiceRecord, Customer
+from src.db.base import ServiceRecord, Customer, User
 from src.schemas.service_record import ServiceRecordCreate, ServiceRecordResponse
 from ..dependencies import get_current_user
-from src.db.base import User
 
 router = APIRouter()
 
@@ -75,10 +74,16 @@ async def get_service_record(
     """
     Get a specific service record by ID
     """
-    service_record = db.query(ServiceRecord).join(Customer).filter(
-        ServiceRecord.id == service_record_id,
-        Customer.organization_id == current_user.organization_id
-    ).first()
+    service_record = (
+        db.query(ServiceRecord)
+        .options(joinedload(ServiceRecord.call_interactions))
+        .join(Customer)
+        .filter(
+            ServiceRecord.id == service_record_id,
+            Customer.organization_id == current_user.organization_id
+        )
+        .first()
+    )
 
     if not service_record:
         raise HTTPException(
@@ -96,5 +101,41 @@ async def get_service_record(
         service_date=service_record.service_date,
         service_details=service_record.service_details,
         assigned_user_id=service_record.assigned_user_id,
-        created_at=service_record.service_date
+        created_at=service_record.service_date,
+        status=service_record.status,
+        call_interactions=service_record.call_interactions
     )
+
+@router.get("/", response_model=List[ServiceRecordResponse])
+async def get_all_service_records(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get all service records for the current user's organization
+    """
+    # Use joinedload to eagerly load call_interactions to avoid N+1 query problem
+    service_records = (
+        db.query(ServiceRecord)
+        .options(joinedload(ServiceRecord.call_interactions))
+        .join(Customer)
+        .filter(Customer.organization_id == current_user.organization_id)
+        .all()
+    )
+
+    return [
+        ServiceRecordResponse(
+            id=record.id,
+            customer_id=record.customer_id,
+            customer_name=record.customer.name,
+            customer_email=record.customer.email,
+            customer_phone=record.customer.phone,
+            vehicle_number=record.vehicle_number,
+            service_date=record.service_date,
+            service_details=record.service_details,
+            assigned_user_id=record.assigned_user_id,
+            created_at=record.service_date,
+            status=record.status,
+            call_interactions=record.call_interactions
+        ) for record in service_records
+    ]

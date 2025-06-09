@@ -77,7 +77,7 @@ class ServiceRecord(Base):
     service_date = Column(DateTime, nullable=False)
     service_details = Column(Text)
     assigned_user_id = Column(Integer, ForeignKey("users.id"))  # Service advisor/staff member
-    # Add more fields: type, advisor, etc.
+    status = Column(String(50), nullable=False, default="pending")  # Status of the service record
 
     customer = relationship("Customer", back_populates="service_records")
     assigned_user = relationship("User")
