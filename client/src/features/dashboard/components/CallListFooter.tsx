@@ -1,3 +1,5 @@
+import { FaPhoneAlt } from "react-icons/fa";
+
 interface CallListFooterProps {
   allSelected: boolean;
   onSelectAll: () => void;
@@ -18,11 +20,11 @@ export default function CallListFooter({ allSelected, onSelectAll, onCall, disab
         Select All
       </label>
       <button
-        className="bg-[#F97316] text-white font-semibold px-4 py-2 rounded shadow disabled:opacity-50"
+        className="bg-[#F97316] text-white font-semibold px-4 py-2 rounded shadow disabled:opacity-50 flex items-center gap-2"
         onClick={onCall}
         disabled={disabled}
       >
-        Call
+        <FaPhoneAlt /> Call
       </button>
     </div>
   );
