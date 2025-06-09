@@ -1,38 +1,17 @@
 from livekit import agents
-from livekit.agents import Agent, AgentSession, RoomInputOptions, JobContext
+from livekit.agents import Agent, AgentSession, RoomInputOptions
 from livekit.plugins import openai, cartesia, deepgram, noise_cancellation, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
-import json
-from datetime import datetime
 
 from dotenv import load_dotenv 
 load_dotenv()        
 
 # Agent configuration for Mercedes Benz service survey
 class Assistant(Agent):
-    def __init__(self, ctx: JobContext):
-        # Extract metadata from context
-        self.metadata = {}
-        if hasattr(ctx, 'metadata') and ctx.metadata:
-            try:
-                self.metadata = json.loads(ctx.metadata)
-            except:
-                pass
-                
-        # Store service information
-        self.service_record_id = self.metadata.get('service_record_id')
-        self.vehicle_number = self.metadata.get('vehicle_number')
-        self.service_date = self.metadata.get('service_date')
-        self.customer_name = getattr(ctx, 'customer_name', 'valued customer')
-        
-        super().__init__(instructions=f"""
+    def __init__(self):
+        super().__init__(instructions="""
                 You are a friendly and professional car service review collector. 
                 Your role is to conduct post-service reviews with car owners in a conversational and engaging manner.
-                
-                Customer and Service Details:
-                - Customer Name: {self.customer_name}
-                - Vehicle Number: {self.vehicle_number if self.vehicle_number else 'Not provided'}
-                - Service Date: {self.service_date if self.service_date else 'Not provided'}
                 
                 Key Guidelines:
                 1. Be enthusiastic and professional
@@ -49,10 +28,7 @@ class Assistant(Agent):
                    When any of these conditions are met, you MUST use the end_call tool to properly end the conversation.
          
                 Initial Greeting:
-                Start by introducing yourself as Ema, calling from mercedes benz dealership. 
-                Address the customer by their name: "{self.customer_name}".
-                Reference their recent service visit for their vehicle (number: {self.vehicle_number}) on {self.service_date}.
-                Say that you are here to enhance their next car service experience.
+                Start by introducing yourself as Ema, calling from mercedes benz dealership and greet the customer with the welcome message. Say that you are here to enhance their next car service experience.
                 
                 Review Questions and Rating System:
                 Tell the customers that For each question, ask the customer to rate their experience on a scale of 1 to 10, where:
@@ -67,18 +43,14 @@ class Assistant(Agent):
                 5. "How would you rate the quality of the work performed on your vehicle? "
                 6. "How likely are you to recommend our dealership to others? "
                 
-                After the user answers each question:
-                - Say "Thank you for your feedback" or similar phrases
-                - If rating is 1-4: Show empathy, address them by name, and ask for specific areas of improvement
-                - Move on to the next question
+                After the the user ansers each question, say "Thank you for your feedback" or similar phrases and move on to the next question.
+                - If rating is 1-4: Show empathy and ask for specific areas of improvement
                 
                 Always maintain a positive and professional tone while collecting honest feedback.
-                After completing all questions, thank the customer by their name for their time and valuable feedback.
+                After completing all questions, thank the customer by name for their time and valuable feedback.
                 After thanking the customer, say "Have a great day" or similar phrases and end the call.
                 
-                Remember: 
-                - Always address the customer as "{self.customer_name}" when appropriate
-                - When the user indicates they want to end the call (through any ending phrase or explicit request), you MUST use the end_call tool to properly end the conversation.
+                Remember: When the user indicates they want to end the call (through any ending phrase or explicit request), you MUST use the end_call tool to properly end the conversation.
             """)
 
 async def entrypoint(ctx: agents.JobContext):
@@ -90,11 +62,11 @@ async def entrypoint(ctx: agents.JobContext):
         llm=openai.LLM(model="gpt-4o-mini"),
         tts=deepgram.TTS(),
         vad=silero.VAD.load()
-    )
+         )
     
     await session.start(
         room=ctx.room,
-        agent=Assistant(ctx),
+        agent=Assistant(),
         room_input_options=RoomInputOptions(
             noise_cancellation=noise_cancellation.BVCTelephony()
         ),
