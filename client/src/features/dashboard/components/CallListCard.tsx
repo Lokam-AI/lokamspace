@@ -5,9 +5,8 @@ import CallList from "./CallList";
 import CallListFooter from "./CallListFooter";
 
 const mockCalls = [
-  { id: 1, customer: "John Doe", vehicleNumber: "AB123CD", serviceDate: "2024-06-01" },
-  { id: 2, customer: "Jane Smith", vehicleNumber: "XY987ZT", serviceDate: "2024-06-02" },
-  { id: 3, customer: "Mike Brown", vehicleNumber: "LM456OP", serviceDate: "2024-06-03" },
+  { id: 1, customer: "John Smith", email: "john.smith@email.com", phone: "9029897685", vehicleNumber: "ABC-1234", serviceDate: "2025-01-09", serviceDetails: "Tire Replacement - Completed routine maintenance and inspection", status: "pending" },
+  { id: 2, customer: "Jane Doe", email: "jane.doe@email.com", phone: "9876543210", vehicleNumber: "XYZ-5678", serviceDate: "2025-01-12", serviceDetails: "Oil Change - Routine oil and filter replacement", status: "pending" },
 ];
 
 export default function CallListCard() {
