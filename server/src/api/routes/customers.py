@@ -1,123 +1,147 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List, Optional
-from ...db.base import Customer, ServiceRecord, User
+from datetime import datetime
+
 from ...db.session import get_db
-from pydantic import BaseModel
+from ...db.base import ServiceRecord, User
 from ..dependencies import get_current_user
+from pydantic import BaseModel
 
-router = APIRouter()
+router = APIRouter(prefix="/customers", tags=["Customers"])
 
-class CustomerCreate(BaseModel):
+class CustomerBase(BaseModel):
     name: str
     email: Optional[str] = None
     phone: Optional[str] = None
-    vehicle_number: str
 
-class CustomerResponse(BaseModel):
+class CustomerResponse(CustomerBase):
     id: int
-    name: str
-    email: Optional[str]
-    phone: Optional[str]
-    vehicle_number: str
-    is_active: bool
+    total_services: int
+    last_service_date: Optional[datetime]
+    average_nps: Optional[float]
 
-class ServiceRecordCreate(BaseModel):
-    vehicle_number: str
-    service_date: str
-    service_details: str
-    assigned_user_id: Optional[int] = None
-
-@router.post("/", response_model=CustomerResponse)
-async def create_customer(
-    customer_data: CustomerCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Create a new customer."""
-    # Check if vehicle number already exists
-    existing = db.query(Customer).filter(
-        Customer.vehicle_number == customer_data.vehicle_number,
-        Customer.organization_id == current_user.organization_id
-    ).first()
-    
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Vehicle number already registered"
-        )
-    
-    customer = Customer(
-        **customer_data.dict(),
-        organization_id=current_user.organization_id
-    )
-    
-    db.add(customer)
-    db.commit()
-    db.refresh(customer)
-    
-    return customer
+    class Config:
+        from_attributes = True
 
 @router.get("/", response_model=List[CustomerResponse])
 async def get_customers(
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
     skip: int = 0,
-    limit: int = 100
+    limit: int = 100,
+    search: Optional[str] = None
 ):
-    """Get list of customers for the organization."""
-    customers = db.query(Customer).filter(
-        Customer.organization_id == current_user.organization_id
-    ).offset(skip).limit(limit).all()
+    """Get list of customers with their service statistics"""
     
-    return customers
-
-@router.post("/{customer_id}/service", response_model=dict)
-async def create_service_record(
-    customer_id: int,
-    service_data: ServiceRecordCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Create a new service record for a customer."""
-    # Verify customer belongs to organization
-    customer = db.query(Customer).filter(
-        Customer.id == customer_id,
-        Customer.organization_id == current_user.organization_id
-    ).first()
-    
-    if not customer:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Customer not found"
-        )
-    
-    service_record = ServiceRecord(
-        customer_id=customer_id,
-        **service_data.dict()
+    # Base query to get unique customers with their service counts
+    query = db.query(
+        ServiceRecord.customer_name,
+        ServiceRecord.email,
+        ServiceRecord.phone,
+        func.count(ServiceRecord.id).label('total_services'),
+        func.max(ServiceRecord.service_date).label('last_service_date'),
+        func.avg(ServiceRecord.nps_score).label('average_nps')
+    ).filter(
+        ServiceRecord.organization_id == current_user.organization_id
+    ).group_by(
+        ServiceRecord.customer_name,
+        ServiceRecord.email,
+        ServiceRecord.phone
     )
-    
-    db.add(service_record)
-    db.commit()
-    
-    return {"message": "Service record created successfully"}
 
-@router.get("/{customer_id}", response_model=CustomerResponse)
-async def get_customer(
-    customer_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Get customer details."""
-    customer = db.query(Customer).filter(
-        Customer.id == customer_id,
-        Customer.organization_id == current_user.organization_id
-    ).first()
-    
-    if not customer:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Customer not found"
+    # Apply search filter if provided
+    if search:
+        search = f"%{search}%"
+        query = query.filter(
+            (ServiceRecord.customer_name.ilike(search)) |
+            (ServiceRecord.email.ilike(search)) |
+            (ServiceRecord.phone.ilike(search))
         )
+
+    # Apply pagination
+    customers = query.offset(skip).limit(limit).all()
+
+    # Transform results to match response model
+    return [
+        CustomerResponse(
+            id=idx + 1,  # Generate a unique ID for each customer
+            name=customer.customer_name,
+            email=customer.email,
+            phone=customer.phone,
+            total_services=customer.total_services,
+            last_service_date=customer.last_service_date,
+            average_nps=round(customer.average_nps, 2) if customer.average_nps else None
+        )
+        for idx, customer in enumerate(customers)
+    ]
+
+@router.get("/{customer_name}", response_model=CustomerResponse)
+async def get_customer_details(
+    customer_name: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get detailed information about a specific customer"""
     
-    return customer 
+    customer = db.query(
+        ServiceRecord.customer_name,
+        ServiceRecord.email,
+        ServiceRecord.phone,
+        func.count(ServiceRecord.id).label('total_services'),
+        func.max(ServiceRecord.service_date).label('last_service_date'),
+        func.avg(ServiceRecord.nps_score).label('average_nps')
+    ).filter(
+        ServiceRecord.organization_id == current_user.organization_id,
+        ServiceRecord.customer_name == customer_name
+    ).group_by(
+        ServiceRecord.customer_name,
+        ServiceRecord.email,
+        ServiceRecord.phone
+    ).first()
+
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    return CustomerResponse(
+        id=1,  # Since we're using customer_name as identifier
+        name=customer.customer_name,
+        email=customer.email,
+        phone=customer.phone,
+        total_services=customer.total_services,
+        last_service_date=customer.last_service_date,
+        average_nps=round(customer.average_nps, 2) if customer.average_nps else None
+    )
+
+@router.get("/{customer_name}/services")
+async def get_customer_services(
+    customer_name: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    skip: int = 0,
+    limit: int = 10
+):
+    """Get service history for a specific customer"""
+    
+    services = db.query(ServiceRecord).filter(
+        ServiceRecord.organization_id == current_user.organization_id,
+        ServiceRecord.customer_name == customer_name
+    ).order_by(
+        ServiceRecord.service_date.desc()
+    ).offset(skip).limit(limit).all()
+
+    if not services:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    return [
+        {
+            "id": service.id,
+            "service_type": service.service_type,
+            "service_date": service.service_date,
+            "service_advisor_name": service.service_advisor_name,
+            "nps_score": service.nps_score,
+            "overall_feedback": service.overall_feedback
+        }
+        for service in services
+    ] 
