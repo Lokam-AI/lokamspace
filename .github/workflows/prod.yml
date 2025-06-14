@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
 
 jobs:
   build-and-deploy:
@@ -16,9 +17,9 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        aws-access-key-id: ${{ github.ref == 'refs/heads/main' && secrets.AWS_ACCESS_KEY_ID || secrets.AWS_ACCESS_KEY_ID_DEV }}
+        aws-secret-access-key: ${{ github.ref == 'refs/heads/main' && secrets.AWS_SECRET_ACCESS_KEY || secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+        aws-region: ${{ github.ref == 'refs/heads/main' && secrets.AWS_REGION || secrets.AWS_REGION_DEV }}
 
     - name: Set up Python
       uses: actions/setup-python@v2
@@ -31,31 +32,34 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Set environment variables
+      run: |
+        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          echo "AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}" >> $GITHUB_ENV
+          echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
+          echo "ENVIRONMENT=prod" >> $GITHUB_ENV
+        else
+          echo "AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID_DEV }}" >> $GITHUB_ENV
+          echo "AWS_REGION=${{ secrets.AWS_REGION_DEV }}" >> $GITHUB_ENV
+          echo "ENVIRONMENT=dev" >> $GITHUB_ENV
+        fi
+
     - name: Log in to Amazon ECR
-      env:
-        AWS_REGION: ${{ secrets.AWS_REGION }}
-        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
       run: |
         aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
     - name: Build Docker image
       run: |
         cd server
-        docker build -t lokamspace-backend .
+        docker build -t lokamspace-backend-$ENVIRONMENT .
 
     - name: Tag Docker image
-      env:
-        AWS_REGION: ${{ secrets.AWS_REGION }}
-        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
       run: |
-        docker tag lokamspace-backend:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/lokamspace/backend
+        docker tag lokamspace-backend-$ENVIRONMENT:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/lokamspace/backend-$ENVIRONMENT
 
     - name: Push Docker image to ECR
-      env:
-        AWS_REGION: ${{ secrets.AWS_REGION }}
-        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
       run: |
-        docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/lokamspace/backend
+        docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/lokamspace/backend-$ENVIRONMENT
 
   migrate:
     needs: build-and-deploy
@@ -64,10 +68,10 @@ jobs:
       - uses: actions/checkout@v3
       - uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+          registry: ${{ github.ref == 'refs/heads/main' && secrets.AWS_ACCOUNT_ID || secrets.AWS_ACCOUNT_ID_DEV }}.dkr.ecr.${{ github.ref == 'refs/heads/main' && secrets.AWS_REGION || secrets.AWS_REGION_DEV }}.amazonaws.com
       - name: Run migrations
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ github.ref == 'refs/heads/main' && secrets.DATABASE_URL || secrets.DATABASE_URL_DEV }}
         run: |
           pip install alembic psycopg2-binary
           alembic upgrade head
