@@ -3,6 +3,7 @@ from typing import Optional
 import jwt
 import bcrypt
 from passlib.context import CryptContext
+import os
 
 # JWT settings
 SECRET_KEY = "your-secret-key-here"  # In production, use environment variable
@@ -11,14 +12,17 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def verify_password(plain_password: str, hashed_password: str, salt: str) -> bool:
-    """Verify a password against a hash."""
-    return pwd_context.verify(plain_password + salt, hashed_password)
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash."""
+    return pwd_context.verify(plain_password, hashed_password)
 
-def get_password_hash(password: str) -> tuple[str, str]:
-    """Generate password hash and salt."""
-    salt = bcrypt.gensalt().decode()
-    return pwd_context.hash(password + salt), salt
+def get_password_hash(password: str) -> str:
+    """Generate password hash."""
+    return pwd_context.hash(password)
+
+def generate_salt() -> str:
+    """Generate a random salt."""
+    return os.urandom(32).hex()
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Create JWT access token."""
