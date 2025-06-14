@@ -9,7 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import logging
 
 from ...db.session import get_db
-from ...db.base import User, Organization
+from ...db.base import User, Organization, UserRole
 from ...core.security import verify_password, get_password_hash, create_access_token
 from ...core.config import settings
 
@@ -42,13 +42,14 @@ class UserCreate(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
-class UserCreate(BaseModel):
+
+class SignupRequest(BaseModel):
     name: str
     email: EmailStr
     password: str
-    role: str = "USER"
     organization_name: str
     location: str
+
 # Function to get current user from token
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
@@ -78,43 +79,65 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         )
 
 @router.post("/signup", response_model=Token)
-async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
+async def signup(user_data: SignupRequest, db: Session = Depends(get_db)):
     """Create new user and organization."""
-    # Check if email already exists
-    if db.query(User).filter(User.email == user_data.email).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
+    try:
+        # Check if email already exists
+        if db.query(User).filter(User.email == user_data.email).first():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        
+        # Create organization
+        org = Organization(
+            name=user_data.organization_name,
+            location=user_data.location
         )
-    
-    # Create organization
-    org = Organization(
-        name=user_data.organization_name,
-        address=user_data.organization_address
-    )
-    db.add(org)
-    db.flush()
-    
-    # Create user
-    password_hash, salt = get_password_hash(user_data.password)
-    user = User(
-        name=user_data.name,
-        email=user_data.email,
-        password_hash=password_hash,
-        salt=salt,
-        organization_id=org.id,
-        is_admin=True  # First user of organization is admin
-    )
-    
-    db.add(user)
-    db.commit()
-    
-    # Create access token
-    access_token = create_access_token(
-        data={"sub": user.email, "org": org.id}
-    )
-    
-    return {"access_token": access_token, "token_type": "bearer"}
+        db.add(org)
+        db.flush()
+        
+        # Create user
+        password_hash = get_password_hash(user_data.password)
+        user = User(
+            name=user_data.name,
+            email=user_data.email,
+            password_hash=password_hash,
+            organization_id=org.id,
+            role=UserRole.ADMIN,
+            is_active=True
+        )
+        
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        
+        # Create access token
+        access_token = create_access_token(
+            data={"sub": user.email, "org": org.id}
+        )
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "name": user.name,
+            "user_id": user.id,
+            "email": user.email,
+            "role": user.role.value
+        }
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error during signup: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error occurred during signup"
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error during signup: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during signup"
+        )
 
 @router.post("/register", response_model=Token)
 async def register_user(
@@ -151,6 +174,7 @@ async def register_user(
         return {
             "access_token": access_token,
             "token_type": "bearer",
+            "name": user.name,
             "user_id": user.id,
             "email": user.email,
             "role": user.role
@@ -195,7 +219,6 @@ async def login(
             )
         
         # Check if user is active
-        print(f"Usersss: {user.is_active}")
         if not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -205,13 +228,14 @@ async def login(
         
         # Create access token
         access_token = create_access_token(data={"sub": user.email})
+        
         return {
             "access_token": access_token,
             "token_type": "bearer",
-            "user_id": user.id,
             "name": user.name,
+            "user_id": user.id,
             "email": user.email,
-            "role": user.role
+            "role": user.role.value
         }
     except SQLAlchemyError as e:
         logger.error(f"Database error during login: {str(e)}")
@@ -237,7 +261,7 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
             "id": current_user.id,
             "email": current_user.email,
             "name": current_user.name,
-            "role": current_user.role,
+            "role": current_user.role.value,
             "organization_id": current_user.organization_id
         }
     except Exception as e:
