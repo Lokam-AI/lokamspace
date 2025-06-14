@@ -5,15 +5,16 @@ from src.api.routes import auth, dashboard, customers, survey, service_records
 from src.core.config import settings
 from src.db.init_db import init_db
 import logging
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title=settings.APP_TITLE,
-    description=settings.APP_DESCRIPTION,
-    debug=settings.DEBUG
+    title=os.getenv("APP_TITLE", "LokamSpace API"),
+    description=os.getenv("APP_DESCRIPTION", "API for LokamSpace platform"),
+    debug=os.getenv("DEBUG", "False").lower() == "true"
 )
 
 # Configure CORS
@@ -51,7 +52,7 @@ async def root():
     return {
         "message": "Welcome to LokamSpace API",
         "version": "1.0.0",
-        "environment": settings.ENV
+        "environment": os.getenv("ENV", "Production")
     }
 
 # Run with: uvicorn app:app --reload

@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case
 from datetime import datetime, timedelta
-from typing import List
-from ...db.base import User, Customer, ServiceRecord, CallInteraction
+from typing import List, Dict, Any
+from ...db.base import User, ServiceRecord, Call, OrganizationMetric, CallMetricScore
 from ...db.session import get_db
 from pydantic import BaseModel
 from ..dependencies import get_current_user
 
-router = APIRouter()
+router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 class DashboardStats(BaseModel):
     total_calls: int
@@ -24,6 +24,149 @@ class CustomerBase(BaseModel):
     email: str
     phone: str
     vehicle_number: str
+
+@router.get("/overview")
+async def get_dashboard_overview(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get overview statistics for the dashboard"""
+    
+    # Get total service records
+    total_services = db.query(func.count(ServiceRecord.id)).filter(
+        ServiceRecord.organization_id == current_user.organization_id
+    ).scalar()
+    
+    # Get total calls
+    total_calls = db.query(func.count(Call.id)).filter(
+        Call.organization_id == current_user.organization_id
+    ).scalar()
+    
+    # Get completed calls
+    completed_calls = db.query(func.count(Call.id)).filter(
+        Call.organization_id == current_user.organization_id,
+        Call.status == "COMPLETED"
+    ).scalar()
+    
+    # Get average NPS score
+    avg_nps = db.query(func.avg(ServiceRecord.nps_score)).filter(
+        ServiceRecord.organization_id == current_user.organization_id
+    ).scalar() or 0
+    
+    # Get recent service records
+    recent_services = db.query(ServiceRecord).filter(
+        ServiceRecord.organization_id == current_user.organization_id
+    ).order_by(ServiceRecord.service_date.desc()).limit(5).all()
+    
+    # Get metric scores
+    metric_scores = db.query(
+        OrganizationMetric.name,
+        func.avg(CallMetricScore.score).label('average_score')
+    ).join(
+        CallMetricScore,
+        OrganizationMetric.id == CallMetricScore.metric_id
+    ).join(
+        Call,
+        CallMetricScore.call_id == Call.id
+    ).filter(
+        Call.organization_id == current_user.organization_id
+    ).group_by(
+        OrganizationMetric.name
+    ).all()
+    
+    return {
+        "total_services": total_services,
+        "total_calls": total_calls,
+        "completed_calls": completed_calls,
+        "completion_rate": (completed_calls / total_calls * 100) if total_calls > 0 else 0,
+        "average_nps": round(avg_nps, 2),
+        "recent_services": [
+            {
+                "id": service.id,
+                "customer_name": service.customer_name,
+                "service_type": service.service_type,
+                "service_date": service.service_date,
+                "nps_score": service.nps_score
+            }
+            for service in recent_services
+        ],
+        "metric_scores": [
+            {
+                "metric": score.name,
+                "average_score": round(score.average_score, 2) if score.average_score else 0
+            }
+            for score in metric_scores
+        ]
+    }
+
+@router.get("/metrics")
+async def get_metrics(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get detailed metrics for the dashboard"""
+    
+    # Get metrics for the last 30 days
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    
+    # Daily service counts
+    daily_services = db.query(
+        func.date(ServiceRecord.service_date).label('date'),
+        func.count(ServiceRecord.id).label('count')
+    ).filter(
+        ServiceRecord.organization_id == current_user.organization_id,
+        ServiceRecord.service_date >= thirty_days_ago
+    ).group_by(
+        func.date(ServiceRecord.service_date)
+    ).all()
+    
+    # Daily call completion rates
+    daily_calls = db.query(
+        func.date(Call.call_started_at).label('date'),
+        func.count(Call.id).label('total'),
+        func.sum(case((Call.status == "COMPLETED", 1), else_=0)).label('completed')
+    ).filter(
+        Call.organization_id == current_user.organization_id,
+        Call.call_started_at >= thirty_days_ago
+    ).group_by(
+        func.date(Call.call_started_at)
+    ).all()
+    
+    # Service type distribution
+    service_types = db.query(
+        ServiceRecord.service_type,
+        func.count(ServiceRecord.id).label('count')
+    ).filter(
+        ServiceRecord.organization_id == current_user.organization_id
+    ).group_by(
+        ServiceRecord.service_type
+    ).all()
+    
+    return {
+        "daily_services": [
+            {
+                "date": str(day.date),
+                "count": day.count
+            }
+            for day in daily_services
+        ],
+        "daily_calls": [
+            {
+                "date": str(day.date),
+                "total": day.total,
+                "completed": day.completed,
+                "completion_rate": (day.completed / day.total * 100) if day.total > 0 else 0
+            }
+            for day in daily_calls
+        ],
+        "service_types": [
+            {
+                "type": st.service_type,
+                "count": st.count
+            }
+            for st in service_types
+        ]
+    }
 
 @router.get("/stats", response_model=DashboardStats)
 async def get_dashboard_stats(
