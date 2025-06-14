@@ -9,7 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import logging
 
 from ...db.session import get_db
-from ...db.base import User
+from ...db.base import User, Organization
 from ...core.security import verify_password, get_password_hash, create_access_token
 from ...core.config import settings
 
@@ -42,7 +42,13 @@ class UserCreate(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
-
+class UserCreate(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+    role: str = "USER"
+    organization_name: str
+    location: str
 # Function to get current user from token
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
@@ -70,6 +76,45 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Database error occurred"
         )
+
+@router.post("/signup", response_model=Token)
+async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
+    """Create new user and organization."""
+    # Check if email already exists
+    if db.query(User).filter(User.email == user_data.email).first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    # Create organization
+    org = Organization(
+        name=user_data.organization_name,
+        address=user_data.organization_address
+    )
+    db.add(org)
+    db.flush()
+    
+    # Create user
+    password_hash, salt = get_password_hash(user_data.password)
+    user = User(
+        name=user_data.name,
+        email=user_data.email,
+        password_hash=password_hash,
+        salt=salt,
+        organization_id=org.id,
+        is_admin=True  # First user of organization is admin
+    )
+    
+    db.add(user)
+    db.commit()
+    
+    # Create access token
+    access_token = create_access_token(
+        data={"sub": user.email, "org": org.id}
+    )
+    
+    return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/register", response_model=Token)
 async def register_user(
