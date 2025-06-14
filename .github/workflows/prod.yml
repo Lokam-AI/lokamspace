@@ -62,18 +62,3 @@ jobs:
     - name: Push Docker image to ECR
       run: |
         docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:latest
-
-  migrate:
-    needs: build-and-deploy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ github.ref == 'refs/heads/main' && secrets.AWS_ACCOUNT_ID || secrets.AWS_ACCOUNT_ID_DEV }}.dkr.ecr.${{ github.ref == 'refs/heads/main' && secrets.AWS_REGION || secrets.AWS_REGION_DEV }}.amazonaws.com
-      - name: Run migrations
-        env:
-          DATABASE_URL: ${{ github.ref == 'refs/heads/main' && secrets.DATABASE_URL || secrets.DATABASE_URL_DEV }}
-        run: |
-          pip install alembic psycopg2-binary
-          alembic upgrade head

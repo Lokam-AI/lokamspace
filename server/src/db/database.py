@@ -1,11 +1,12 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from ..core.config import get_settings
+from .env import get_database_url
 
-settings = get_settings()
+# Get database URL based on environment
+DATABASE_URL = get_database_url()
 
-engine = create_engine(settings.DATABASE_URL)
+engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
