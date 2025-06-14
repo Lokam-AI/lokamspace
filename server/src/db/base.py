@@ -1,43 +1,52 @@
 from sqlalchemy import (
-    Column, Integer, String, DateTime, ForeignKey, Numeric, Text, Boolean, Float
+    Column, Integer, String, DateTime, ForeignKey, Text, Boolean, Float, Enum
 )
 from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
+import enum
 
 Base = declarative_base()
+
+class UserRole(enum.Enum):
+    ADMIN = "ADMIN"
+    USER = "USER"
+
+class CampaignStatus(enum.Enum):
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+class ServiceStatus(enum.Enum):
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
 
 class Organization(Base):
     __tablename__ = "organizations"
     id = Column(Integer, primary_key=True)
     name = Column(String(255), unique=True, nullable=False)
-    address = Column(Text)
+    google_review_link = Column(String(255))
+    call_quota = Column(Integer)
+    location = Column(String(255))
+    total_minutes_completed = Column(Integer, default=0)
+    area_of_imp_1_title = Column(String(255))
+    area_of_imp_1_desc = Column(Text)
+    area_of_imp_2_title = Column(String(255))
+    area_of_imp_2_desc = Column(Text)
+    area_of_imp_3_title = Column(String(255))
+    area_of_imp_3_desc = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(Integer)
+    modified_at = Column(DateTime, onupdate=datetime.utcnow)
+    modified_by = Column(Integer)
+
     users = relationship("User", back_populates="organization")
-    customers = relationship("Customer", back_populates="organization")
-    is_active = Column(Boolean, default=True)
-    survey_questions = relationship("SurveyQuestion", back_populates="organization")
-
-    def populate_default_questions(self, db_session=None):
-        """Populate default survey questions for this organization"""
-        if not db_session:
-            return  # Cannot create questions without a session
-            
-        default_questions = [
-            ("How would you rate your overall service experience?", "Overall Service"),
-            ("Was the service completed on time?", "Timeliness"),
-            ("How would you rate the cleanliness of your vehicle after service?", "Cleanliness"),
-            ("How would you rate the helpfulness and information provided by the service advisor?", "Advisor Helpfulness"),
-            ("How would you rate the quality of the work performed on your vehicle?", "Work Quality"),
-            ("How likely are you to recommend our dealership to others?", "Recommendation")
-        ]
-        for question_text, section in default_questions:
-            question = SurveyQuestion(
-                question_text=question_text,
-                section=section,
-                organization_id=self.id
-            )
-            db_session.add(question)
-
+    campaigns = relationship("Campaign", back_populates="organization")
+    service_records = relationship("ServiceRecord", back_populates="organization")
+    calls = relationship("Call", back_populates="organization")
+    metrics = relationship("OrganizationMetric", back_populates="organization")
 
 class User(Base):
     __tablename__ = "users"
@@ -46,86 +55,104 @@ class User(Base):
     name = Column(String(100), nullable=False)
     email = Column(String(100), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
-    salt = Column(String(255), nullable=False)
+    role = Column(Enum(UserRole), nullable=False)
     is_active = Column(Boolean, default=True)
-    is_admin = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(Integer)
+    modified_at = Column(DateTime, onupdate=datetime.utcnow)
+    modified_by = Column(Integer)
 
     organization = relationship("Organization", back_populates="users")
 
-
-class Customer(Base):
-    __tablename__ = "customers"
+class Campaign(Base):
+    __tablename__ = "campaigns"
     id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
-    name = Column(String(100), nullable=False)
-    email = Column(String(100))
-    phone = Column(String(20))
-    vehicle_number = Column(String(50), unique=True, nullable=False)
-    is_active = Column(Boolean, default=True)
+    started_at = Column(DateTime)
+    completed_at = Column(DateTime)
+    status = Column(Enum(CampaignStatus), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(Integer)
+    modified_at = Column(DateTime, onupdate=datetime.utcnow)
+    modified_by = Column(Integer)
 
-    organization = relationship("Organization", back_populates="customers")
-    service_records = relationship("ServiceRecord", back_populates="customer")
-
+    organization = relationship("Organization", back_populates="campaigns")
+    calls = relationship("Call", back_populates="campaign")
 
 class ServiceRecord(Base):
     __tablename__ = "service_records"
     id = Column(Integer, primary_key=True)
-    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
-    vehicle_number = Column(String(50), nullable=False)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+    customer_name = Column(String(100), nullable=False)
+    phone = Column(String(20))
+    email = Column(String(100))
     service_date = Column(DateTime, nullable=False)
-    service_details = Column(Text)
-    assigned_user_id = Column(Integer, ForeignKey("users.id"))  # Service advisor/staff member
-    # Add more fields: type, advisor, etc.
+    service_type = Column(String(100))
+    service_advisor_name = Column(String(100))
+    status = Column(Enum(ServiceStatus), nullable=False)
+    attempts = Column(Integer, default=0)
+    retry_count = Column(Integer, default=0)
+    last_attempt_at = Column(DateTime)
+    duration_sec = Column(Integer)
+    nps_score = Column(Float)
+    overall_feedback = Column(Text)
+    transcript = Column(Text)
+    recording_url = Column(String(255))
+    review_opt_in = Column(Boolean, default=False)
+    review_sent_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(Integer)
+    modified_at = Column(DateTime, onupdate=datetime.utcnow)
+    modified_by = Column(Integer)
 
-    customer = relationship("Customer", back_populates="service_records")
-    assigned_user = relationship("User")
-    call_interactions = relationship("CallInteraction", back_populates="service_record")
+    organization = relationship("Organization", back_populates="service_records")
+    calls = relationship("Call", back_populates="service_record")
 
-
-class CallInteraction(Base):
-    __tablename__ = "call_interactions"
+class Call(Base):
+    __tablename__ = "calls"
     id = Column(Integer, primary_key=True)
     service_record_id = Column(Integer, ForeignKey("service_records.id"), nullable=False)
-    call_date = Column(DateTime, default=datetime.utcnow)
-    status = Column(String(50))  # e.g. 'completed', 'failed', 'in-progress'
-    duration_seconds = Column(Integer)
-    transcription = Column(Text)
-    overall_feedback = Column(Text)
-    overall_score = Column(Float)
-    timeliness_score = Column(Float)
-    cleanliness_score = Column(Float)
-    advisor_helpfulness_score = Column(Float)
-    work_quality_score = Column(Float)
-    recommendation_score = Column(Float)
-    action_items = Column(Text)
-    completed_at = Column(DateTime, default=datetime.utcnow)
-
-    service_record = relationship("ServiceRecord", back_populates="call_interactions")
-    responses = relationship("SurveyResponse", back_populates="call_interaction")
-
-
-class SurveyQuestion(Base):
-    __tablename__ = "survey_questions"
-    id = Column(Integer, primary_key=True)
-    question_text = Column(Text, nullable=False)
-    section = Column(String(50))  # e.g., 'timeliness', 'cleanliness'
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+    campaign_id = Column(Integer, ForeignKey("campaigns.id"))
+    status = Column(Enum(CampaignStatus), nullable=False)
+    call_started_at = Column(DateTime)
+    call_ended_at = Column(DateTime)
+    duration_sec = Column(Integer)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(Integer)
+    modified_at = Column(DateTime, onupdate=datetime.utcnow)
+    modified_by = Column(Integer)
 
-    organization = relationship("Organization", back_populates="survey_questions")
-    responses = relationship("SurveyResponse", back_populates="question")
+    service_record = relationship("ServiceRecord", back_populates="calls")
+    organization = relationship("Organization", back_populates="calls")
+    campaign = relationship("Campaign", back_populates="calls")
+    metric_scores = relationship("CallMetricScore", back_populates="call")
 
-
-class SurveyResponse(Base):
-    __tablename__ = "survey_responses"
+class OrganizationMetric(Base):
+    __tablename__ = "organization_metrics"
     id = Column(Integer, primary_key=True)
-    call_interaction_id = Column(Integer, ForeignKey("call_interactions.id"), nullable=False)
-    question_id = Column(Integer, ForeignKey("survey_questions.id"), nullable=False)
-    response = Column(Text)
-    score = Column(Float)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+    name = Column(String(100), nullable=False)  # e.g., Timeliness, Cleanliness, Punctuality
+    sort_order = Column(Integer)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(Integer)
+    modified_at = Column(DateTime, onupdate=datetime.utcnow)
+    modified_by = Column(Integer)
 
-    call_interaction = relationship("CallInteraction", back_populates="responses")
-    question = relationship("SurveyQuestion", back_populates="responses")
+    organization = relationship("Organization", back_populates="metrics")
+    call_metric_scores = relationship("CallMetricScore", back_populates="metric")
+
+class CallMetricScore(Base):
+    __tablename__ = "call_metric_scores"
+    id = Column(Integer, primary_key=True)
+    call_id = Column(Integer, ForeignKey("calls.id"), nullable=False)
+    metric_id = Column(Integer, ForeignKey("organization_metrics.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(Integer)
+    modified_at = Column(DateTime, onupdate=datetime.utcnow)
+    modified_by = Column(Integer)
+
+    call = relationship("Call", back_populates="metric_scores")
+    metric = relationship("OrganizationMetric", back_populates="call_metric_scores")

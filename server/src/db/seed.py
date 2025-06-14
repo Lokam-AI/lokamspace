@@ -3,8 +3,9 @@ from datetime import datetime, timedelta
 import random
 from .session import SessionLocal
 from .base import (
-    Organization, User, Customer, ServiceRecord, 
-    CallInteraction, SurveyQuestion, SurveyResponse
+    Organization, User, Campaign, ServiceRecord, 
+    Call, OrganizationMetric, CallMetricScore,
+    UserRole, CampaignStatus, ServiceStatus
 )
 from ..core.security import get_password_hash
 import logging
@@ -26,163 +27,143 @@ def create_seed_data():
         # 1. Create Organization
         organization = Organization(
             name="Lokam.ai",
-            address="123 Innovation Drive, Tech Park, Silicon Valley, CA 94043",
-            created_at=datetime.utcnow() - timedelta(days=365)
+            google_review_link="https://g.page/r/lokam-ai",
+            call_quota=1000,
+            location="Silicon Valley, CA",
+            total_minutes_completed=0,
+            area_of_imp_1_title="Customer Communication",
+            area_of_imp_1_desc="Improve follow-up communication with customers",
+            area_of_imp_2_title="Service Quality",
+            area_of_imp_2_desc="Enhance service quality metrics",
+            area_of_imp_3_title="Response Time",
+            area_of_imp_3_desc="Reduce average response time",
+            created_at=datetime.utcnow() - timedelta(days=365),
+            created_by=1
         )
         db.add(organization)
-        db.flush()  # Get the ID
-        
-        # Create default survey questions for the organization
-        organization.populate_default_questions(db)
         db.flush()
         
         logger.info(f"Created organization: {organization.name}")
         
         # 2. Create User (Admin)
-        password_hash, salt = get_password_hash("Lokam@7007")
+        password_hash = get_password_hash("123456")
         user = User(
             organization_id=organization.id,
-            name="Raoof Naushad",
-            email="raoofnaushad.7@gmail.com",
+            name="test",
+            email="test@gmail.com",
             password_hash=password_hash,
-            salt=salt,
+            role=UserRole.ADMIN,
             is_active=True,
-            is_admin=True,
-            created_at=datetime.utcnow() - timedelta(days=300)
+            created_at=datetime.utcnow() - timedelta(days=300),
+            created_by=1
         )
         db.add(user)
         db.flush()
         
         logger.info(f"Created admin user: {user.name}")
-        
-        # 3. Create Customers
-        customers_data = [
-            {
-                "name": "John Smith",
-                "email": "john.smith@email.com",
-                "vehicle_number": "ABC-1234"
-            },
-            {
-                "name": "Sarah Johnson",
-                "email": "sarah.johnson@gmail.com",
-                "vehicle_number": "XYZ-5678"
-            },
-            {
-                "name": "Michael Brown",
-                "email": "michael.brown@yahoo.com",
-                "vehicle_number": "DEF-9012"
-            }
+
+        # 3. Create Organization Metrics
+        metrics_data = [
+            {"name": "Timeliness", "sort_order": 1},
+            {"name": "Cleanliness", "sort_order": 2},
+            {"name": "Punctuality", "sort_order": 3},
+            {"name": "Service Quality", "sort_order": 4},
+            {"name": "Customer Satisfaction", "sort_order": 5}
         ]
-        
-        customers = []
-        for i, customer_data in enumerate(customers_data):
-            customer = Customer(
+
+        metrics = []
+        for metric_data in metrics_data:
+            metric = OrganizationMetric(
                 organization_id=organization.id,
-                name=customer_data["name"],
-                email=customer_data["email"],
-                phone="9029897685",
-                vehicle_number=customer_data["vehicle_number"],
-                is_active=True,
-                created_at=datetime.utcnow() - timedelta(days=200 - i*30)
+                name=metric_data["name"],
+                sort_order=metric_data["sort_order"],
+                created_at=datetime.utcnow(),
+                created_by=user.id
             )
-            customers.append(customer)
-            db.add(customer)
+            metrics.append(metric)
+            db.add(metric)
         
         db.flush()
-        logger.info(f"Created {len(customers)} customers")
+        logger.info(f"Created {len(metrics)} organization metrics")
+
+        # 4. Create Campaign
+        campaign = Campaign(
+            name="Q1 2024 Customer Satisfaction",
+            description="Customer satisfaction survey campaign for Q1 2024",
+            organization_id=organization.id,
+            started_at=datetime.utcnow() - timedelta(days=30),
+            status=CampaignStatus.IN_PROGRESS,
+            created_at=datetime.utcnow() - timedelta(days=30),
+            created_by=user.id
+        )
+        db.add(campaign)
+        db.flush()
         
-        # 4. Create Service Records and Call Interactions for each customer
-        call_statuses = ["completed", "failed", "in-progress"]
+        logger.info(f"Created campaign: {campaign.name}")
+
+        # 5. Create Service Records
         service_types = ["Oil Change", "Brake Service", "Tire Replacement", "Engine Diagnosis", "AC Repair"]
+        service_records = []
         
-        surveys = []
-        for i, customer in enumerate(customers):
-            # Create 2-3 service records per customer
-            num_services = random.randint(2, 3)
+        for i in range(10):  # Create 10 service records
+            service_date = datetime.utcnow() - timedelta(days=random.randint(1, 30))
+            service_type = random.choice(service_types)
             
-            for j in range(num_services):
-                service_date = datetime.utcnow() - timedelta(days=150 - (i*30) - (j*15))
-                
-                service_record = ServiceRecord(
-                    customer_id=customer.id,
-                    vehicle_number=customer.vehicle_number,
-                    service_date=service_date,
-                    service_details=f"{random.choice(service_types)} - Completed routine maintenance and inspection",
-                    assigned_user_id=user.id
-                )
-                db.add(service_record)
-                db.flush()
-                
-                # Create Call Interaction for this service record
-                call_status = call_statuses[j % len(call_statuses)]  # Rotate through statuses
-                call_date = service_date + timedelta(days=1)
-                
-                call_interaction = CallInteraction(
-                    service_record_id=service_record.id,
-                    call_date=call_date,
-                    status=call_status,
-                    duration_seconds=random.randint(120, 480),  # 2-8 minutes
-                    transcription=f"Customer satisfaction call for {customer.name}. Discussed {service_record.service_details.split(' - ')[0].lower()} service experience.",
-                    # Survey fields
-                    overall_feedback=f"Great service experience at Lokam.ai. The {service_record.service_details.split(' - ')[0].lower()} was handled professionally." if call_status == "completed" else None,
-                    overall_score=round(random.uniform(3.5, 5.0), 1) if call_status == "completed" else None,
-                    timeliness_score=round(random.uniform(3.0, 5.0), 1) if call_status == "completed" else None,
-                    cleanliness_score=round(random.uniform(3.2, 5.0), 1) if call_status == "completed" else None,
-                    advisor_helpfulness_score=round(random.uniform(3.8, 5.0), 1) if call_status == "completed" else None,
-                    work_quality_score=round(random.uniform(3.5, 5.0), 1) if call_status == "completed" else None,
-                    recommendation_score=round(random.uniform(3.0, 5.0), 1) if call_status == "completed" else None,
-                    action_items="Follow up on warranty information" if call_status == "completed" and random.random() < 0.3 else None,
-                    completed_at=call_date + timedelta(minutes=random.randint(5, 30)) if call_status == "completed" else None
-                )
-                db.add(call_interaction)
-                db.flush()
-                
-                # Create Survey for completed calls
-                if call_status == "completed":
-                    surveys.append(call_interaction)
+            service_record = ServiceRecord(
+                organization_id=organization.id,
+                customer_name=f"Customer {i+1}",
+                phone=f"9029897{str(i).zfill(3)}",
+                email=f"customer{i+1}@example.com",
+                service_date=service_date,
+                service_type=service_type,
+                service_advisor_name="John Advisor",
+                status=ServiceStatus.COMPLETED,
+                attempts=1,
+                duration_sec=random.randint(300, 900),
+                nps_score=random.randint(7, 10),
+                overall_feedback=f"Great service experience with {service_type}",
+                transcript=f"Customer was satisfied with the {service_type} service",
+                review_opt_in=True,
+                created_at=service_date,
+                created_by=user.id
+            )
+            service_records.append(service_record)
+            db.add(service_record)
         
         db.flush()
-        logger.info(f"Created service records and call interactions")
-        
-        # 5. Create Survey Responses for each survey
-        # Get the survey questions that were created for the organization
-        survey_questions = db.query(SurveyQuestion).filter(
-            SurveyQuestion.organization_id == organization.id
-        ).all()
-        
-        for survey in surveys:
-            for question in survey_questions:
-                # Generate responses based on question type
-                if "overall" in question.section.lower():
-                    response_text = "Very satisfied with the overall service quality"
-                    score = survey.overall_score
-                elif "timeliness" in question.section.lower():
-                    response_text = "Service was completed on time" if survey.timeliness_score and survey.timeliness_score >= 4 else "Service took longer than expected"
-                    score = survey.timeliness_score
-                elif "cleanliness" in question.section.lower():
-                    response_text = "Vehicle was returned in clean condition"
-                    score = survey.cleanliness_score
-                elif "helpfulness" in question.section.lower():
-                    response_text = "Service advisor was very helpful and informative"
-                    score = survey.advisor_helpfulness_score
-                elif "quality" in question.section.lower():
-                    response_text = "Work quality met my expectations"
-                    score = survey.work_quality_score
-                elif "recommendation" in question.section.lower():
-                    response_text = "Would recommend to others" if survey.recommendation_score and survey.recommendation_score >= 4 else "Might recommend with some reservations"
-                    score = survey.recommendation_score
-                else:
-                    response_text = "Good experience overall"
-                    score = survey.overall_score
-                
-                survey_response = SurveyResponse(
-                    call_interaction_id=survey.id,
-                    question_id=question.id,
-                    response=response_text,
-                    score=score
+        logger.info(f"Created {len(service_records)} service records")
+
+        # 6. Create Calls and Call Metric Scores
+        calls = []
+        for service_record in service_records:
+            call = Call(
+                service_record_id=service_record.id,
+                organization_id=organization.id,
+                campaign_id=campaign.id,
+                status=CampaignStatus.COMPLETED,
+                call_started_at=service_record.service_date + timedelta(days=1),
+                call_ended_at=service_record.service_date + timedelta(days=1, minutes=random.randint(5, 15)),
+                duration_sec=random.randint(300, 900),
+                created_at=service_record.service_date + timedelta(days=1),
+                created_by=user.id
+            )
+            calls.append(call)
+            db.add(call)
+            db.flush()
+
+            # Create metric scores for each call
+            for metric in metrics:
+                score = CallMetricScore(
+                    call_id=call.id,
+                    metric_id=metric.id,
+                    created_at=call.created_at,
+                    created_by=user.id
                 )
-                db.add(survey_response)
+                db.add(score)
         
+        db.flush()
+        logger.info(f"Created {len(calls)} calls with metric scores")
+
         # Commit all data
         db.commit()
         logger.info("Seed data created successfully!")
@@ -193,12 +174,10 @@ def create_seed_data():
         print("="*50)
         print(f"Organization: {organization.name}")
         print(f"Admin User: {user.name} ({user.email})")
-        print(f"Customers: {len(customers)}")
-        print(f"Service Records: {db.query(ServiceRecord).count()}")
-        print(f"Call Interactions: {db.query(CallInteraction).count()}")
-        print(f"Surveys: {len(surveys)}")
-        print(f"Survey Questions: {len(survey_questions)}")
-        print(f"Survey Responses: {db.query(SurveyResponse).count()}")
+        print(f"Organization Metrics: {len(metrics)}")
+        print(f"Campaign: {campaign.name}")
+        print(f"Service Records: {len(service_records)}")
+        print(f"Calls: {len(calls)}")
         print("="*50)
         
     except Exception as e:
