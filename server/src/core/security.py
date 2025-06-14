@@ -5,16 +5,35 @@ import bcrypt
 from passlib.context import CryptContext
 import os
 
+from .config import settings
+
 # JWT settings
 SECRET_KEY = "your-secret-key-here"  # In production, use environment variable
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+# Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        # First try with passlib context
+        if pwd_context.verify(plain_password, hashed_password):
+            # Check if password needs rehashing
+            if pwd_context.needs_update(hashed_password):
+                return False
+            return True
+    except Exception:
+        # Fallback to direct bcrypt verification if needed
+        try:
+            return bcrypt.checkpw(
+                plain_password.encode(),
+                hashed_password.encode()
+            )
+        except Exception:
+            return False
+    return False
 
 def get_password_hash(password: str) -> str:
     """Generate password hash."""
@@ -30,10 +49,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    
+        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
     return encoded_jwt
 
 def decode_token(token: str) -> dict:
