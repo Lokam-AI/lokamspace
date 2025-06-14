@@ -38,10 +38,12 @@ jobs:
           echo "AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}" >> $GITHUB_ENV
           echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
           echo "ENVIRONMENT=prod" >> $GITHUB_ENV
+          echo "REPO_NAME=lokamspace/backend" >> $GITHUB_ENV
         else
           echo "AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID_DEV }}" >> $GITHUB_ENV
           echo "AWS_REGION=${{ secrets.AWS_REGION_DEV }}" >> $GITHUB_ENV
           echo "ENVIRONMENT=dev" >> $GITHUB_ENV
+          echo "REPO_NAME=autopulse/dev" >> $GITHUB_ENV
         fi
 
     - name: Log in to Amazon ECR
@@ -51,15 +53,15 @@ jobs:
     - name: Build Docker image
       run: |
         cd server
-        docker build -t lokamspace-backend-$ENVIRONMENT .
+        docker build -t $REPO_NAME .
 
     - name: Tag Docker image
       run: |
-        docker tag lokamspace-backend-$ENVIRONMENT:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/lokamspace/backend-$ENVIRONMENT
+        docker tag $REPO_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:latest
 
     - name: Push Docker image to ECR
       run: |
-        docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/lokamspace/backend-$ENVIRONMENT
+        docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:latest
 
   migrate:
     needs: build-and-deploy
