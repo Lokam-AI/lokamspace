@@ -13,6 +13,7 @@ colorama==0.4.6
 coloredlogs==15.0.1
 distro==1.9.0
 docstring_parser==0.16
+email-validator
 eval_type_backport==0.2.2
 fastapi==0.115.12
 filelock==3.18.0
