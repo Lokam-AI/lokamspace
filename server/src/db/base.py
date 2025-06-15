@@ -88,6 +88,7 @@ class ServiceRecord(Base):
     customer_name = Column(String(100), nullable=False)
     phone = Column(String(20))
     email = Column(String(100))
+    vehicle_number = Column(String(20), nullable=False)
     service_date = Column(DateTime, nullable=False)
     service_type = Column(String(100))
     service_advisor_name = Column(String(100))

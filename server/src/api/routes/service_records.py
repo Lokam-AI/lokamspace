@@ -23,37 +23,25 @@ from src.core.constants import ServiceStatus, NPSScoreConstants, ServiceRecordCo
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-class ServiceRecordBase(BaseModel):
-    customer_name: str
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    service_date: datetime
+class ServiceRecordCreate(BaseModel):
+    """Model for creating a new service record"""
+    name: str
+    email: Optional[EmailStr] = None
+    vehicle_number: str
     service_type: str
-    service_advisor_name: str
-    status: str = "PENDING"
-    review_opt_in: bool = True
+    service_date: datetime
+    status: str = ServiceStatus.PENDING.value
 
-class ServiceRecordCreate(ServiceRecordBase):
-    pass
 
-class ServiceRecordResponse(ServiceRecordBase):
+class ServiceRecordResponse(BaseModel):
+    """Model for service record response"""
     id: int
     organization_id: int
-    attempts: int
-    retry_count: int
-    last_attempt_at: Optional[datetime]
-    duration_sec: Optional[int]
-    nps_score: Optional[float]
-    overall_feedback: Optional[str]
-    transcript: Optional[str]
-    recording_url: Optional[str]
-    review_sent_at: Optional[datetime]
-    created_at: datetime
     created_by: int
-    modified_at: Optional[datetime]
-    modified_by: Optional[int]
-    
+    created_at: datetime
+    modified_by: Optional[int] = None
+    modified_at: Optional[datetime] = None
+
 class CallRecordResponse(BaseModel):
     name: str
     email: Optional[str]
@@ -92,6 +80,7 @@ class BatchServiceRecordCreate(BaseModel):
     customer_name: str
     phone: Optional[str] = None
     email: Optional[str] = None
+    vehicle_number: str
     service_date: datetime
     service_type: str
     service_advisor_name: str
@@ -99,12 +88,7 @@ class BatchServiceRecordCreate(BaseModel):
     review_opt_in: bool = True
 
 class BatchServiceRecordResponse(BaseModel):
-    success: bool
-    message: str
-    records_processed: int
-    records_succeeded: int
-    records_failed: int
-    errors: Optional[List[dict]] = None
+    pass
 
 class UploadResponse(BaseModel):
     success: bool
@@ -139,7 +123,6 @@ def add_area_of_improvement(title: str, desc: str, organization_id: int, db: Ses
               .scalar() or 0
         )
         area_info["sum_metric_score"] = sum_metric_score
-        print(f"is_metric_available: {is_metric_available} for {title} for organization {organization_id}")
     
     result_list.append(area_info)
 
@@ -150,7 +133,6 @@ def validate_phone_number(phone: str) -> tuple[bool, str]:
     """
     if not phone:
         return False, "Phone number is required"
-    print(f"\n\n\nphone: {phone} \n\n\n")
     return phonenumbers.is_valid_number(phonenumbers.parse(f"+{phone}")), f"Invalid phone number: {phone}"
 
 def validate_date(date_str: Any) -> tuple[bool, str]:
@@ -194,54 +176,74 @@ async def create_service_record(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Create a new service record."""
-    service_record = ServiceRecord(
-        **service_data.dict(),
-        organization_id=current_user.organization_id,
-        created_by=current_user.id
-    )
-    
-    db.add(service_record)
-    db.commit()
-    db.refresh(service_record)
-    
-    return service_record
+
+    try:
+        # Create service record
+        service_record = ServiceRecord(
+            customer_name=service_data.name,
+            email=service_data.email,
+            vehicle_number=service_data.vehicle_number,
+            service_type=service_data.service_type,
+            service_date=service_data.service_date,
+            status=service_data.status,
+            organization_id=current_user.organization_id,
+            created_by=current_user.id
+        )
+        
+        db.add(service_record)
+        db.commit()
+        db.refresh(service_record)
+        
+        return service_record
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating service record: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error creating service record: {str(e)}"
+        )
 
 @router.get("/", response_model=List[ServiceRecordResponse])
-async def get_service_records(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+async def list_service_records(
     skip: int = 0,
     limit: int = 100,
-    customer_name: Optional[str] = None,
-    service_type: Optional[str] = None,
     status: Optional[str] = None,
     start_date: Optional[datetime] = None,
-    end_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None,
+    vehicle_number: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-    """Get list of service records with optional filters."""
-    query = db.query(ServiceRecord).filter(
-        ServiceRecord.organization_id == current_user.organization_id
-    )
-
-    # Apply filters
-    if customer_name:
-        query = query.filter(ServiceRecord.customer_name.ilike(f"%{customer_name}%"))
-    if service_type:
-        query = query.filter(ServiceRecord.service_type == service_type)
-    if status:
-        query = query.filter(ServiceRecord.status == status)
-    if start_date:
-        query = query.filter(ServiceRecord.service_date >= start_date)
-    if end_date:
-        query = query.filter(ServiceRecord.service_date <= end_date)
-
-    # Apply pagination
-    service_records = query.order_by(
-        ServiceRecord.service_date.desc()
-    ).offset(skip).limit(limit).all()
-    
-    return service_records
+    """
+    List service records with optional filtering.
+    """
+    try:
+        query = db.query(ServiceRecord).filter(
+            ServiceRecord.organization_id == current_user.organization_id
+        )
+        
+        # Apply filters
+        if status:
+            query = query.filter(ServiceRecord.status == status)
+        if start_date:
+            query = query.filter(ServiceRecord.service_date >= start_date)
+        if end_date:
+            query = query.filter(ServiceRecord.service_date <= end_date)
+        if vehicle_number:
+            query = query.filter(ServiceRecord.vehicle_number.ilike(f"%{vehicle_number}%"))
+        
+        # Apply pagination
+        records = query.order_by(ServiceRecord.service_date.desc()).offset(skip).limit(limit).all()
+        
+        return records
+        
+    except Exception as e:
+        logger.error(f"Error listing service records: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error listing service records: {str(e)}"
+        )
 
 @router.get("/overview", response_model=ServiceOverviewResponse)
 async def get_service_record_overview(
@@ -249,7 +251,6 @@ async def get_service_record_overview(
     current_user: User = Depends(get_current_user)
 ):
     """Get overview of service records for the organization"""
-    print(" \n\n\nService Record Router Included\n\n\n")
     organization_id = current_user.organization_id
     total_service_records = db.query(ServiceRecord).filter(
         ServiceRecord.organization_id == organization_id
@@ -309,7 +310,6 @@ async def get_service_calls(
             .filter(ServiceRecord.organization_id == current_user.organization_id)
             .group_by(ServiceRecord.id, Call.id)
         )
-        print(f"query: {query}")
 
         # Apply status filter if provided
         if status:
@@ -373,6 +373,7 @@ async def get_service_record_template(
             ServiceRecordColumns.CUSTOMER_NAME: ["John Doe"],
             ServiceRecordColumns.PHONE: ["+1234567890"],
             ServiceRecordColumns.EMAIL: ["john@example.com"],
+            ServiceRecordColumns.VEHICLE_NUMBER: ["1234567890"],
             ServiceRecordColumns.SERVICE_DATE: ["2024-03-15 10:00:00"],
             ServiceRecordColumns.SERVICE_TYPE: ["Oil Change"],
             ServiceRecordColumns.SERVICE_ADVISOR_NAME: ["Jane Smith"],
@@ -473,6 +474,14 @@ async def upload_service_records(
                 if not is_valid_phone:
                     row_errors.append(phone_error)
             
+            if not record_dict.get(ServiceRecordColumns.VEHICLE_NUMBER):
+                row_errors.append("Vehicle number is required")
+            else:
+                vehicle_number = str(record_dict[ServiceRecordColumns.VEHICLE_NUMBER]).replace(" ", "").upper()
+                if len(vehicle_number) < 4:
+                    row_errors.append("Vehicle number must be at least 4 characters")
+                record_dict[ServiceRecordColumns.VEHICLE_NUMBER] = vehicle_number
+            
             # Validate date
             is_valid_date, date_error = validate_date(record_dict[ServiceRecordColumns.SERVICE_DATE])
             if not is_valid_date:
@@ -510,6 +519,7 @@ async def upload_service_records(
                     customer_name=record_dict[ServiceRecordColumns.CUSTOMER_NAME],
                     phone=record_dict[ServiceRecordColumns.PHONE],
                     email=record_dict.get(ServiceRecordColumns.EMAIL),
+                    vehicle_number=record_dict[ServiceRecordColumns.VEHICLE_NUMBER],
                     service_date=record_dict[ServiceRecordColumns.SERVICE_DATE],
                     service_type=record_dict[ServiceRecordColumns.SERVICE_TYPE],
                     service_advisor_name=record_dict[ServiceRecordColumns.SERVICE_ADVISOR_NAME],

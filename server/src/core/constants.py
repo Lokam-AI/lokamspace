@@ -39,6 +39,7 @@ class ServiceRecordColumns:
     SERVICE_DATE = "service_date"
     SERVICE_TYPE = "service_type"
     SERVICE_ADVISOR_NAME = "service_advisor_name"
+    VEHICLE_NUMBER = "vehicle_number"
     
     # Optional fields
     EMAIL = "email"
