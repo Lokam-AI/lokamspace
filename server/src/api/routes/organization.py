@@ -49,7 +49,7 @@ async def update_organization(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Update organization details.
+    Add organization details.
     """
     try:
         organization = db.query(Organization).filter(

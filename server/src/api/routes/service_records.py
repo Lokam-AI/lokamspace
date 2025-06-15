@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 class ServiceRecordCreate(BaseModel):
     """Model for creating a new service record"""
-    name: str
+    customer_name: str
     email: Optional[EmailStr] = None
     vehicle_number: str
     service_type: str
@@ -433,19 +433,13 @@ async def upload_service_records(
             df = pd.read_csv(io.BytesIO(content))
             file_type = "csv"
         else:
-            raise HTTPException(
-                status_code=400,
-                detail="Unsupported file format. Please upload a CSV or Excel file."
-            )
+            return ResponseBuilder.error(message="Unsupported file format. Please upload a CSV or Excel file.")
         
         # Validate required columns
         required_columns = ServiceRecordColumns.get_required_columns()
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Missing required columns: {', '.join(missing_columns)}"
-            )
+            return ResponseBuilder.error(message=f"Missing required columns: {', '.join(missing_columns)}")
         
         # Initialize counters and error list
         records_processed = len(df)
@@ -557,68 +551,74 @@ async def upload_service_records(
         return ResponseBuilder.error(message=f"Error processing upload: {str(e)}")
 
 
-# @router.get("/{service_id}", response_model=ServiceRecordResponse)
-# async def get_service_record(
-#     service_id: int,
-#     db: Session = Depends(get_db),
-#     current_user: User = Depends(get_current_user)
-# ):
-#     """Get details of a specific service record."""
-#     service_record = db.query(ServiceRecord).filter(
-#         ServiceRecord.id == service_id,
-#         ServiceRecord.organization_id == current_user.organization_id
-#     ).first()
+@router.get("/{service_id}", response_model=StandardResponse[ServiceRecordResponse])
+async def get_service_record(
+    service_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get details of a specific service record."""
+    service_record = db.query(ServiceRecord).filter(
+        ServiceRecord.id == service_id,
+        ServiceRecord.organization_id == current_user.organization_id
+    ).first()
     
-#     if not service_record:
-#         raise HTTPException(status_code=404, detail="Service record not found")
+    if not service_record:
+        return ResponseBuilder.error(message="Service record not found")
     
-#     return service_record
+    return ResponseBuilder.success(data=service_record, message="Service record fetched successfully")
 
-# @router.put("/{service_id}", response_model=ServiceRecordResponse)
-# async def update_service_record(
-#     service_id: int,
-#     service_data: ServiceRecordCreate,
-#     db: Session = Depends(get_db),
-#     current_user: User = Depends(get_current_user)
-# ):
-#     """Update a service record."""
-#     service_record = db.query(ServiceRecord).filter(
-#         ServiceRecord.id == service_id,
-#         ServiceRecord.organization_id == current_user.organization_id
-#     ).first()
+@router.put("/{service_id}", response_model=StandardResponse[ServiceRecordResponse])
+async def update_service_record(
+    service_id: int,
+    service_data: ServiceRecordCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update a service record."""
+    service_record = db.query(ServiceRecord).filter(
+        ServiceRecord.id == service_id,
+        ServiceRecord.organization_id == current_user.organization_id
+    ).first()
     
-#     if not service_record:
-#         raise HTTPException(status_code=404, detail="Service record not found")
+    if not service_record:
+        return ResponseBuilder.error(message="Service record not found")
     
-#     # Update fields
-#     for field, value in service_data.dict().items():
-#         setattr(service_record, field, value)
+    # Update fields
+    for field, value in service_data.model_dump().items():
+        old_val = getattr(service_record, field, None)
+        print(f"Updating {field}: {old_val} -> {value}")
+        setattr(service_record, field, value)
     
-#     service_record.modified_by = current_user.id
-#     service_record.modified_at = datetime.utcnow()
     
-#     db.commit()
-#     db.refresh(service_record)
-    
-#     return service_record
 
-# @router.delete("/{service_id}")
-# async def delete_service_record(
-#     service_id: int,
-#     db: Session = Depends(get_db),
-#     current_user: User = Depends(get_current_user)
-# ):
-#     """Delete a service record."""
-#     service_record = db.query(ServiceRecord).filter(
-#         ServiceRecord.id == service_id,
-#         ServiceRecord.organization_id == current_user.organization_id
-#     ).first()
+    service_record.modified_by = current_user.id
+    service_record.modified_at = datetime.utcnow()
     
-#     if not service_record:
-#         raise HTTPException(status_code=404, detail="Service record not found")
+    db.commit()
+    db.refresh(service_record)
+    updated = db.query(ServiceRecord).filter(ServiceRecord.id == service_id).first()
+    print(updated.customer_name, updated.email, updated.service_type)  # etc.
     
-#     db.delete(service_record)
-#     db.commit()
+    return ResponseBuilder.success(data=service_record, message="Service record updated successfully")
+
+@router.delete("/{service_id}")
+async def delete_service_record(
+    service_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a service record."""
+    service_record = db.query(ServiceRecord).filter(
+        ServiceRecord.id == service_id,
+        ServiceRecord.organization_id == current_user.organization_id
+    ).first()
     
-#     return {"message": "Service record deleted successfully"}
+    if not service_record:
+        return ResponseBuilder.error(message="Service record not found")
+    
+    db.delete(service_record)
+    db.commit()
+    
+    return ResponseBuilder.success(message="Service record deleted successfully")
 
