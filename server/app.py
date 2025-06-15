@@ -2,7 +2,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.api.routes import auth, dashboard, customers, survey, service_records
-from src.core.config import settings
 from src.db.init_db import init_db
 import logging
 import os
