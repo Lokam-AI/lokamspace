@@ -31,8 +31,8 @@ def create_seed_data():
             call_quota=1000,
             location="Silicon Valley, CA",
             total_minutes_completed=0,
-            area_of_imp_1_title="Customer Communication",
-            area_of_imp_1_desc="Improve follow-up communication with customers",
+            area_of_imp_1_title="Timeliness",
+            area_of_imp_1_desc="Good Timeliness",
             area_of_imp_2_title="Service Quality",
             area_of_imp_2_desc="Enhance service quality metrics",
             area_of_imp_3_title="Response Time",
@@ -156,6 +156,7 @@ def create_seed_data():
                 score = CallMetricScore(
                     call_id=call.id,
                     metric_id=metric.id,
+                    organization_id=organization.id,
                     created_at=call.created_at,
                     created_by=user.id
                 )

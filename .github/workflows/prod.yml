@@ -69,6 +69,7 @@ jobs:
       run: |
         COMMIT_MSG=$(git log -1 --pretty=%B)
         AUTHOR_NAME=$(git log -1 --pretty=%an)
+          
         if [ "$ENVIRONMENT" = "prod" ]; then
           SLACK_URL=${{ secrets.SLACK_WEBHOOK_UR }}
           STATUS_MSG="✅ *Backend Production deployment completed successfully!*"
