@@ -2,13 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from sqlalchemy import func
 
 from ...db.session import get_db
-from ...db.base import ServiceRecord, User, Organization, OrganizationMetric, CallMetricScore
+from ...db.base import ServiceRecord, User, Organization, OrganizationMetric, CallMetricScore, Call
 from ..dependencies import get_current_user
 from src.core.constants import ServiceStatus, NPSScoreConstants
-from sqlalchemy import func
 
 router = APIRouter()
 
@@ -41,6 +41,26 @@ class ServiceRecordResponse(ServiceRecordBase):
     created_by: int
     modified_at: Optional[datetime]
     modified_by: Optional[int]
+    
+class CallRecordResponse(BaseModel):
+    name: str
+    email: Optional[str]
+    vehicle_number: Optional[str] = None
+    service_detail: str
+    service_date: datetime
+    call_date: Optional[datetime]
+    call_duration: Optional[int]
+    overall_feedback: Optional[str]
+    average_nps_score: Optional[float]
+
+    class Config:
+        from_attributes = True
+
+class PaginatedCallResponse(BaseModel):
+    total: int
+    page: int
+    limit: int
+    data: List[CallRecordResponse]
 
 class AreaOfImprovement(BaseModel):
     title: str
@@ -53,10 +73,8 @@ class ServiceOverviewResponse(BaseModel):
     average_nps_score: Optional[float]
     areas_of_improvement: List[AreaOfImprovement]
 
-
     class Config:
         from_attributes = True
-
 
 def add_area_of_improvement(title: str, desc: str, organization_id: int, db: Session, result_list: list):
     if not (title and desc):
@@ -85,8 +103,6 @@ def add_area_of_improvement(title: str, desc: str, organization_id: int, db: Ses
         print(f"is_metric_available: {is_metric_available} for {title} for organization {organization_id}")
     
     result_list.append(area_info)
-
-
 
 @router.post("/", response_model=ServiceRecordResponse)
 async def create_service_record(
@@ -142,6 +158,122 @@ async def get_service_records(
     ).offset(skip).limit(limit).all()
     
     return service_records
+
+@router.get("/overview", response_model=ServiceOverviewResponse)
+async def get_service_record_overview(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get overview of service records for the organization"""
+    print(" \n\n\nService Record Router Included\n\n\n")
+    organization_id = current_user.organization_id
+    total_service_records = db.query(ServiceRecord).filter(
+        ServiceRecord.organization_id == organization_id
+    ).count()
+    total_service_records_completed = db.query(ServiceRecord).filter(
+        ServiceRecord.organization_id == organization_id,
+        ServiceRecord.status == ServiceStatus.COMPLETED
+    ).count()
+    average_nps_score = db.query(func.avg(ServiceRecord.nps_score)).filter(
+        ServiceRecord.organization_id == current_user.organization_id,
+        ServiceRecord.status == ServiceStatus.COMPLETED
+    ).scalar() or 0
+    total_detractors = db.query(ServiceRecord).filter(
+        ServiceRecord.organization_id == organization_id,
+        ServiceRecord.status == ServiceStatus.COMPLETED,
+        ServiceRecord.nps_score <= NPSScoreConstants.DETRACTOR_MAX
+    ).count()
+    areas_of_improvement = db.query(Organization).filter(
+        Organization.id == organization_id
+    ).all()
+    areas_of_improvement_list = []
+    for area in areas_of_improvement:
+        add_area_of_improvement(area.area_of_imp_1_title, area.area_of_imp_1_desc, organization_id, db, areas_of_improvement_list)
+        add_area_of_improvement(area.area_of_imp_2_title, area.area_of_imp_2_desc, organization_id, db, areas_of_improvement_list)
+        add_area_of_improvement(area.area_of_imp_3_title, area.area_of_imp_3_desc, organization_id, db, areas_of_improvement_list)
+
+    return {
+        "total_service_records": total_service_records,
+        "total_service_records_completed": total_service_records_completed,
+        "average_nps_score": average_nps_score,
+        "total_detractors": total_detractors,
+        "areas_of_improvement": areas_of_improvement_list
+    }
+
+@router.get("/calls", response_model=PaginatedCallResponse)
+async def get_service_calls(
+    status: Optional[str] = Query(None, description="Filter by call status (completed, pending, failed) (default: all)"),
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(10, ge=1, le=100, description="Number of records per page"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get paginated list of service calls with optional status filtering.
+    Returns call records with service details and metrics.
+    """
+    try:
+        # Base query with joins
+        query = (
+            db.query(
+                ServiceRecord,
+                Call,
+                func.avg(CallMetricScore.score).label('average_nps_score')
+            )
+            .join(Call, ServiceRecord.id == Call.service_record_id)
+            .outerjoin(CallMetricScore, Call.id == CallMetricScore.call_id)
+            .filter(ServiceRecord.organization_id == current_user.organization_id)
+            .group_by(ServiceRecord.id, Call.id)
+        )
+        print(f"query: {query}")
+
+        # Apply status filter if provided
+        if status:
+            status = status.upper()
+            if status not in [s.value for s in ServiceStatus]:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid status. Must be one of: {', '.join([s.value.lower() for s in ServiceStatus])}"
+                )
+            query = query.filter(Call.status == status)
+
+        # Calculate total count
+        total = query.count()
+
+        # Apply pagination
+        offset = (page - 1) * limit
+        records = query.offset(offset).limit(limit).all()
+
+        # Transform records to response format
+        call_records = []
+        for service_record, call, avg_score in records:
+            call_records.append(
+                CallRecordResponse(
+                    name=service_record.customer_name,
+                    email=service_record.email,
+                    vehicle_number=None,  # Not in current schema
+                    service_detail=service_record.service_type,
+                    service_date=service_record.service_date,
+                    call_date=call.call_started_at,
+                    call_duration=call.duration_sec,
+                    overall_feedback=service_record.overall_feedback,
+                    average_nps_score=float(avg_score) if avg_score else None
+                )
+            )
+
+        return PaginatedCallResponse(
+            total=total,
+            page=page,
+            limit=limit,
+            data=call_records
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching service calls: {str(e)}"
+        )
+
 
 @router.get("/{service_id}", response_model=ServiceRecordResponse)
 async def get_service_record(
@@ -208,43 +340,3 @@ async def delete_service_record(
     
     return {"message": "Service record deleted successfully"}
 
-@router.get("/overview", response_model=ServiceOverviewResponse)
-async def get_service_record_overview(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Get overview of service records for the organization"""
-    print(" \n\n\nService Record Router Included\n\n\n")
-    organization_id = current_user.organization_id
-    total_service_records = db.query(ServiceRecord).filter(
-        ServiceRecord.organization_id == organization_id
-    ).count()
-    total_service_records_completed = db.query(ServiceRecord).filter(
-        ServiceRecord.organization_id == organization_id,
-        ServiceRecord.status == ServiceStatus.COMPLETED
-    ).count()
-    average_nps_score = db.query(func.avg(ServiceRecord.nps_score)).filter(
-        ServiceRecord.organization_id == current_user.organization_id,
-        ServiceRecord.status == ServiceStatus.COMPLETED
-    ).scalar() or 0
-    total_detractors = db.query(ServiceRecord).filter(
-        ServiceRecord.organization_id == organization_id,
-        ServiceRecord.status == ServiceStatus.COMPLETED,
-        ServiceRecord.nps_score <= NPSScoreConstants.DETRACTOR_MAX
-    ).count()
-    areas_of_improvement = db.query(Organization).filter(
-        Organization.id == organization_id
-    ).all()
-    areas_of_improvement_list = []
-    for area in areas_of_improvement:
-        add_area_of_improvement(area.area_of_imp_1_title, area.area_of_imp_1_desc, organization_id, db, areas_of_improvement_list)
-        add_area_of_improvement(area.area_of_imp_2_title, area.area_of_imp_2_desc, organization_id, db, areas_of_improvement_list)
-        add_area_of_improvement(area.area_of_imp_3_title, area.area_of_imp_3_desc, organization_id, db, areas_of_improvement_list)
-
-    return {
-        "total_service_records": total_service_records,
-        "total_service_records_completed": total_service_records_completed,
-        "average_nps_score": average_nps_score,
-        "total_detractors": total_detractors,
-        "areas_of_improvement": areas_of_improvement_list
-    }
