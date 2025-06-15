@@ -68,6 +68,7 @@ jobs:
     - name: Notify Slack
       run: |
         COMMIT_MSG=$(git log -1 --pretty=%B)
+        AUTHOR_NAME=$(git log -1 --pretty=%an)
         if [ "$ENVIRONMENT" = "prod" ]; then
           SLACK_URL=${{ secrets.SLACK_WEBHOOK_UR }}
           STATUS_MSG="✅ *Backend Production deployment completed successfully!*"
@@ -78,6 +79,6 @@ jobs:
 
         curl -X POST -H 'Content-type: application/json' \
           --data "{
-            \"text\": \"$STATUS_MSG\n*Repository:* $REPO_NAME\n*Environment:* $ENVIRONMENT\n*Branch:* ${{ github.ref_name }}\n*Commit Message:* $COMMIT_MSG\n*Service:* Backend\"
+            \"text\": \"$STATUS_MSG\n*Repository:* $REPO_NAME\n*Environment:* $ENVIRONMENT\n*Branch:* ${{ github.ref_name }}\n*Commit Message:* $COMMIT_MSG\n*Author:* $AUTHOR_NAME\n*Service:* Backend\"
           }" \
           $SLACK_URL
