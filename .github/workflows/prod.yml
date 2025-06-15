@@ -39,11 +39,13 @@ jobs:
           echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
           echo "ENVIRONMENT=prod" >> $GITHUB_ENV
           echo "REPO_NAME=lokamspace/backend" >> $GITHUB_ENV
+          echo "DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}" >> $GITHUB_ENV
         else
           echo "AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID_DEV }}" >> $GITHUB_ENV
           echo "AWS_REGION=${{ secrets.AWS_REGION_DEV }}" >> $GITHUB_ENV
           echo "ENVIRONMENT=dev" >> $GITHUB_ENV
           echo "REPO_NAME=autopulse/dev" >> $GITHUB_ENV
+          echo "DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}" >> $GITHUB_ENV
         fi
 
     - name: Log in to Amazon ECR
@@ -62,3 +64,51 @@ jobs:
     - name: Push Docker image to ECR
       run: |
         docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:latest
+
+  database-migration:
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        cd server
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Set environment variables
+      run: |
+        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          echo "ENVIRONMENT=prod" >> $GITHUB_ENV
+          echo "DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}" >> $GITHUB_ENV
+        else
+          echo "ENVIRONMENT=dev" >> $GITHUB_ENV
+          echo "DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}" >> $GITHUB_ENV
+        fi
+
+    - name: Run database migrations
+      run: |
+        cd server
+        echo "Running database migrations for $ENVIRONMENT environment..."
+        alembic upgrade head
+      env:
+        DATABASE_URL: ${{ env.DATABASE_URL }}
+        ENVIRONMENT: ${{ env.ENVIRONMENT }}
+
+    - name: Verify migration status
+      run: |
+        cd server
+        echo "Verifying migration status..."
+        alembic current
+      env:
+        DATABASE_URL: ${{ env.DATABASE_URL }}
+        ENVIRONMENT: ${{ env.ENVIRONMENT }}

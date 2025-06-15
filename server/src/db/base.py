@@ -149,6 +149,7 @@ class CallMetricScore(Base):
     id = Column(Integer, primary_key=True)
     call_id = Column(Integer, ForeignKey("calls.id"), nullable=False)
     metric_id = Column(Integer, ForeignKey("organization_metrics.id"), nullable=False)
+    score = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
     created_by = Column(Integer)
     modified_at = Column(DateTime, onupdate=datetime.utcnow)
