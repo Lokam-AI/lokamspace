@@ -7,8 +7,10 @@ from pydantic import BaseModel
 from ...db.session import get_db
 from ...db.base import ServiceRecord, User
 from ..dependencies import get_current_user
+from src.core.constants import ServiceStatus, NPSScoreConstants
+from sqlalchemy import func
 
-router = APIRouter(prefix="/service-records", tags=["Service Records"])
+router = APIRouter()
 
 class ServiceRecordBase(BaseModel):
     customer_name: str
@@ -42,6 +44,37 @@ class ServiceRecordResponse(ServiceRecordBase):
 
     class Config:
         from_attributes = True
+
+@router.post("/overview")
+async def get_service_record_overview(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get overview of service records for the organization"""
+    organization_id = current_user.organization_id
+    total_service_records = db.query(ServiceRecord).filter(
+        ServiceRecord.organization_id == organization_id
+    ).count()
+    total_service_records_completed = db.query(ServiceRecord).filter(
+        ServiceRecord.organization_id == organization_id,
+        ServiceRecord.status == ServiceStatus.COMPLETED
+    ).count()
+    average_nps_score = db.query(func.avg(ServiceRecord.nps_score)).filter(
+        ServiceRecord.organization_id == current_user.organization_id,
+        ServiceRecord.status == ServiceStatus.COMPLETED
+    ).scalar() or 0
+    total_detractors = db.query(ServiceRecord).filter(
+        ServiceRecord.organization_id == organization_id,
+        ServiceRecord.status == ServiceStatus.COMPLETED,
+        ServiceRecord.nps_score <= NPSScoreConstants.DETRACTOR_MAX
+    ).count()
+
+    return {
+        "total_service_records": total_service_records,
+        "total_service_records_completed": total_service_records_completed,
+        "average_nps_score": average_nps_score,
+        "total_detractors": total_detractors
+    }
 
 @router.post("/", response_model=ServiceRecordResponse)
 async def create_service_record(

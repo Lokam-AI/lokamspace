@@ -69,12 +69,14 @@ jobs:
       run: |
         if [ "$ENVIRONMENT" = "prod" ]; then
           SLACK_URL=${{ secrets.SLACK_WEBHOOK_UR }}
-          STATUS_MSG="✅ *Production deployment completed successfully!*"
+          STATUS_MSG="✅ *Backend Production deployment completed successfully!*"
         else
           SLACK_URL=${{ secrets.SLACK_WEBHOOK_URL }}
-          STATUS_MSG="✅ *Development deployment completed successfully!*"
+          STATUS_MSG="🚀 *Backend Development deployment completed successfully!*"
         fi
 
         curl -X POST -H 'Content-type: application/json' \
-          --data "{\"text\": \"$STATUS_MSG\nRepository: $REPO_NAME\nEnvironment: $ENVIRONMENT\nBranch: ${{ github.ref_name }}\"}" \
+          --data "{
+            \"text\": \"$STATUS_MSG\n*Repository:* $REPO_NAME\n*Environment:* $ENVIRONMENT\n*Branch:* ${{ github.ref_name }}\n*Commit Message:* $COMMIT_MSG\n*Service:* Backend\"
+          }" \
           $SLACK_URL
