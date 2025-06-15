@@ -1,5 +1,7 @@
 # IDE and Editor files
-.cursor/
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
 .idea/
 .vscode/*
 !.vscode/extensions.json
