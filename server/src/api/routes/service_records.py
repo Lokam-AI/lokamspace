@@ -1,14 +1,26 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr, validator
 from sqlalchemy import func
+import pandas as pd
+import io
+import csv
+from fastapi.responses import StreamingResponse
+import logging
+import re
+from datetime import datetime
+from typing import Dict, Any
+import phonenumbers
 
 from ...db.session import get_db
 from ...db.base import ServiceRecord, User, Organization, OrganizationMetric, CallMetricScore, Call
 from ..dependencies import get_current_user
-from src.core.constants import ServiceStatus, NPSScoreConstants
+from src.core.constants import ServiceStatus, NPSScoreConstants, ServiceRecordColumns
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -76,6 +88,33 @@ class ServiceOverviewResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class BatchServiceRecordCreate(BaseModel):
+    customer_name: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    service_date: datetime
+    service_type: str
+    service_advisor_name: str
+    status: str = "PENDING"
+    review_opt_in: bool = True
+
+class BatchServiceRecordResponse(BaseModel):
+    success: bool
+    message: str
+    records_processed: int
+    records_succeeded: int
+    records_failed: int
+    errors: Optional[List[dict]] = None
+
+class UploadResponse(BaseModel):
+    success: bool
+    message: str
+    records_processed: int
+    records_succeeded: int
+    records_failed: int
+    errors: Optional[List[dict]] = None
+    file_type: str
+
 def add_area_of_improvement(title: str, desc: str, organization_id: int, db: Session, result_list: list):
     if not (title and desc):
         return
@@ -103,6 +142,51 @@ def add_area_of_improvement(title: str, desc: str, organization_id: int, db: Ses
         print(f"is_metric_available: {is_metric_available} for {title} for organization {organization_id}")
     
     result_list.append(area_info)
+
+def validate_phone_number(phone: str) -> tuple[bool, str]:
+    """
+    Validate phone number format.
+    Returns (is_valid, error_message)
+    """
+    if not phone:
+        return False, "Phone number is required"
+    print(f"\n\n\nphone: {phone} \n\n\n")
+    return phonenumbers.is_valid_number(phonenumbers.parse(f"+{phone}")), f"Invalid phone number: {phone}"
+
+def validate_date(date_str: Any) -> tuple[bool, str]:
+    """
+    Validate date format.
+    Returns (is_valid, error_message)
+    """
+    if pd.isna(date_str):
+        return False, "Date is required"
+    
+    try:
+        if isinstance(date_str, str):
+            # Try parsing with pandas
+            pd.to_datetime(date_str)
+        elif isinstance(date_str, datetime):
+            # Already a datetime object
+            pass
+        else:
+            return False, f"Invalid date format: {date_str}"
+        return True, ""
+    except:
+        return False, f"Invalid date format: {date_str}"
+
+def validate_email(email: str) -> tuple[bool, str]:
+    """
+    Validate email format.
+    Returns (is_valid, error_message)
+    """
+    if pd.isna(email):
+        return True, ""  # Email is optional
+    
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, str(email)):
+        return False, f"Invalid email format: {email}"
+    
+    return True, ""
 
 @router.post("/", response_model=ServiceRecordResponse)
 async def create_service_record(
@@ -272,6 +356,209 @@ async def get_service_calls(
         raise HTTPException(
             status_code=500,
             detail=f"Error fetching service calls: {str(e)}"
+        )
+
+@router.get("/batch/template")
+async def get_service_record_template(
+    format: str = Query("csv", description="Template format (csv or excel)"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Download a template for batch service record creation.
+    Supports both CSV and Excel formats.
+    """
+    try:
+        # Create template data
+        template_data = {
+            ServiceRecordColumns.CUSTOMER_NAME: ["John Doe"],
+            ServiceRecordColumns.PHONE: ["+1234567890"],
+            ServiceRecordColumns.EMAIL: ["john@example.com"],
+            ServiceRecordColumns.SERVICE_DATE: ["2024-03-15 10:00:00"],
+            ServiceRecordColumns.SERVICE_TYPE: ["Oil Change"],
+            ServiceRecordColumns.SERVICE_ADVISOR_NAME: ["Jane Smith"],
+            ServiceRecordColumns.STATUS: ["PENDING"],
+            ServiceRecordColumns.REVIEW_OPT_IN: ["true"]
+        }
+        
+        df = pd.DataFrame(template_data)
+        
+        if format.lower() == "excel":
+            # Create Excel file
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Template')
+            
+            output.seek(0)
+            return StreamingResponse(
+                output,
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={
+                    "Content-Disposition": "attachment; filename=service_records_template.xlsx"
+                }
+            )
+        else:
+            # Create CSV file
+            output = io.StringIO()
+            df.to_csv(output, index=False)
+            output.seek(0)
+            
+            return StreamingResponse(
+                iter([output.getvalue()]),
+                media_type="text/csv",
+                headers={
+                    "Content-Disposition": "attachment; filename=service_records_template.csv"
+                }
+            )
+            
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating template: {str(e)}"
+        )
+
+@router.post("/upload", response_model=UploadResponse)
+async def upload_service_records(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Upload a CSV or Excel file containing service records.
+    Validates all records and provides detailed feedback.
+    """
+    try:
+        # Read file content
+        content = await file.read()
+        
+        # Determine file type and read into DataFrame
+        if file.filename.endswith('.xlsx') or file.filename.endswith('.xls'):
+            df = pd.read_excel(io.BytesIO(content))
+            file_type = "excel"
+        elif file.filename.endswith('.csv'):
+            df = pd.read_csv(io.BytesIO(content))
+            file_type = "csv"
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Unsupported file format. Please upload a CSV or Excel file."
+            )
+        
+        # Validate required columns
+        required_columns = ServiceRecordColumns.get_required_columns()
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Missing required columns: {', '.join(missing_columns)}"
+            )
+        
+        # Initialize counters and error list
+        records_processed = len(df)
+        records_succeeded = 0
+        records_failed = 0
+        errors = []
+        
+        # Process each record
+        for index, row in df.iterrows():
+            row_errors = []
+            record_dict = {k: v if pd.notna(v) else None for k, v in row.items()}
+            # Validate required fields
+            if not record_dict.get(ServiceRecordColumns.CUSTOMER_NAME):
+                row_errors.append("Customer name is required")
+            
+            if not record_dict.get(ServiceRecordColumns.PHONE):
+                row_errors.append("Phone number is required")
+            else:
+                is_valid_phone, phone_error = validate_phone_number(str(record_dict[ServiceRecordColumns.PHONE]))
+                if not is_valid_phone:
+                    row_errors.append(phone_error)
+            
+            # Validate date
+            is_valid_date, date_error = validate_date(record_dict[ServiceRecordColumns.SERVICE_DATE])
+            if not is_valid_date:
+                row_errors.append(date_error)
+            
+            # Validate email if provided
+            if record_dict.get(ServiceRecordColumns.EMAIL):
+                is_valid_email, email_error = validate_email(str(record_dict[ServiceRecordColumns.EMAIL]))
+                if not is_valid_email:
+                    row_errors.append(email_error)
+            
+            # Validate status if provided
+            if record_dict.get(ServiceRecordColumns.STATUS):
+                if record_dict[ServiceRecordColumns.STATUS] not in [s.value for s in ServiceStatus]:
+                    row_errors.append(f"Invalid status: {record_dict[ServiceRecordColumns.STATUS]}")
+            
+            if row_errors:
+                records_failed += 1
+                errors.append({
+                    "row": index + 2,  # +2 because Excel/CSV is 1-based and has header
+                    "data": record_dict,
+                    "errors": row_errors
+                })
+                logger.error(f"Validation errors in row {index + 2}: {row_errors}")
+                continue
+            
+            try:
+                # Convert service_date to datetime if it's a string
+                if isinstance(record_dict[ServiceRecordColumns.SERVICE_DATE], str):
+                    record_dict[ServiceRecordColumns.SERVICE_DATE] = pd.to_datetime(record_dict[ServiceRecordColumns.SERVICE_DATE])
+                
+                # Create service record
+                service_record = ServiceRecord(
+                    organization_id=current_user.organization_id,
+                    customer_name=record_dict[ServiceRecordColumns.CUSTOMER_NAME],
+                    phone=record_dict[ServiceRecordColumns.PHONE],
+                    email=record_dict.get(ServiceRecordColumns.EMAIL),
+                    service_date=record_dict[ServiceRecordColumns.SERVICE_DATE],
+                    service_type=record_dict[ServiceRecordColumns.SERVICE_TYPE],
+                    service_advisor_name=record_dict[ServiceRecordColumns.SERVICE_ADVISOR_NAME],
+                    status=record_dict.get(ServiceRecordColumns.STATUS, ServiceStatus.PENDING.value),
+                    review_opt_in=record_dict.get(ServiceRecordColumns.REVIEW_OPT_IN, True),
+                    created_by=current_user.id
+                )
+                
+                db.add(service_record)
+                records_succeeded += 1
+                
+            except Exception as e:
+                records_failed += 1
+                errors.append({
+                    "row": index + 2,
+                    "data": record_dict,
+                    "errors": [str(e)]
+                })
+                logger.error(f"Error processing row {index + 2}: {str(e)}")
+        
+        # Commit all successful records
+        db.commit()
+        
+        return UploadResponse(
+            success=records_failed == 0,
+            message=f"Processed {records_processed} records. {records_succeeded} succeeded, {records_failed} failed.",
+            records_processed=records_processed,
+            records_succeeded=records_succeeded,
+            records_failed=records_failed,
+            errors=errors if errors else None,
+            file_type=file_type
+        )
+        
+    except pd.errors.EmptyDataError:
+        raise HTTPException(
+            status_code=400,
+            detail="The uploaded file is empty."
+        )
+    except pd.errors.ParserError:
+        raise HTTPException(
+            status_code=400,
+            detail="Error parsing the file. Please ensure it's a valid CSV or Excel file."
+        )
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error processing upload: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing upload: {str(e)}"
         )
 
 
