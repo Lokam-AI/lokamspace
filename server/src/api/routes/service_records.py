@@ -18,6 +18,8 @@ from ...db.session import get_db
 from ...db.base import ServiceRecord, User, Organization, OrganizationMetric, CallMetricScore, Call
 from ..dependencies import get_current_user
 from src.core.constants import ServiceStatus, NPSScoreConstants, ServiceRecordColumns
+from src.core.response import ResponseBuilder
+from src.schemas.standard_response import StandardResponse
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -42,6 +44,10 @@ class ServiceRecordResponse(BaseModel):
     modified_by: Optional[int] = None
     modified_at: Optional[datetime] = None
 
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
 class CallRecordResponse(BaseModel):
     name: str
     email: Optional[str]
@@ -60,7 +66,7 @@ class PaginatedCallResponse(BaseModel):
     total: int
     page: int
     limit: int
-    data: List[CallRecordResponse]
+    callRecord: List[CallRecordResponse]
 
 class AreaOfImprovement(BaseModel):
     title: str
@@ -170,7 +176,7 @@ def validate_email(email: str) -> tuple[bool, str]:
     
     return True, ""
 
-@router.post("/", response_model=ServiceRecordResponse)
+@router.post("/", response_model=StandardResponse[ServiceRecordResponse])
 async def create_service_record(
     service_data: ServiceRecordCreate,
     db: Session = Depends(get_db),
@@ -194,17 +200,14 @@ async def create_service_record(
         db.commit()
         db.refresh(service_record)
         
-        return service_record
+        return ResponseBuilder.success(data=service_record, message="Service record created successfully")
         
     except Exception as e:
         db.rollback()
         logger.error(f"Error creating service record: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error creating service record: {str(e)}"
-        )
+        return ResponseBuilder.error(message=f"Error creating service record: {str(e)}")
 
-@router.get("/", response_model=List[ServiceRecordResponse])
+@router.get("/", response_model=StandardResponse[List[ServiceRecordResponse]])
 async def list_service_records(
     skip: int = 0,
     limit: int = 100,
@@ -235,17 +238,15 @@ async def list_service_records(
         
         # Apply pagination
         records = query.order_by(ServiceRecord.service_date.desc()).offset(skip).limit(limit).all()
-        
-        return records
+        response_data = [ServiceRecordResponse.model_validate(r) for r in records]
+
+        return ResponseBuilder.success(data=response_data, message="Records fetched successfully")
         
     except Exception as e:
         logger.error(f"Error listing service records: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error listing service records: {str(e)}"
-        )
+        return ResponseBuilder.error(message=f"Error listing service records: {str(e)}")
 
-@router.get("/overview", response_model=ServiceOverviewResponse)
+@router.get("/overview", response_model=StandardResponse[ServiceOverviewResponse])
 async def get_service_record_overview(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -277,7 +278,7 @@ async def get_service_record_overview(
         add_area_of_improvement(area.area_of_imp_2_title, area.area_of_imp_2_desc, organization_id, db, areas_of_improvement_list)
         add_area_of_improvement(area.area_of_imp_3_title, area.area_of_imp_3_desc, organization_id, db, areas_of_improvement_list)
 
-    return {
+    response_data = {
         "total_service_records": total_service_records,
         "total_service_records_completed": total_service_records_completed,
         "average_nps_score": average_nps_score,
@@ -285,7 +286,9 @@ async def get_service_record_overview(
         "areas_of_improvement": areas_of_improvement_list
     }
 
-@router.get("/calls", response_model=PaginatedCallResponse)
+    return ResponseBuilder.success(data=response_data, message="Overview fetched successfully")
+
+@router.get("/calls", response_model=StandardResponse[PaginatedCallResponse])
 async def get_service_calls(
     status: Optional[str] = Query(None, description="Filter by call status (completed, pending, failed) (default: all)"),
     page: int = Query(1, ge=1, description="Page number"),
@@ -315,10 +318,7 @@ async def get_service_calls(
         if status:
             status = status.upper()
             if status not in [s.value for s in ServiceStatus]:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Invalid status. Must be one of: {', '.join([s.value.lower() for s in ServiceStatus])}"
-                )
+                return ResponseBuilder.error(message=f"Invalid status. Must be one of: {', '.join([s.value.lower() for s in ServiceStatus])}")
             query = query.filter(Call.status == status)
 
         # Calculate total count
@@ -345,18 +345,15 @@ async def get_service_calls(
                 )
             )
 
-        return PaginatedCallResponse(
+        return ResponseBuilder.success(data=PaginatedCallResponse(
             total=total,
             page=page,
             limit=limit,
-            data=call_records
-        )
+            callRecord=call_records
+        ), message="Service calls fetched successfully")
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error fetching service calls: {str(e)}"
-        )
+        return ResponseBuilder.error(message=f"Error fetching service calls: {str(e)}")
 
 @router.get("/batch/template")
 async def get_service_record_template(
@@ -412,12 +409,9 @@ async def get_service_record_template(
             )
             
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error generating template: {str(e)}"
-        )
+        return ResponseBuilder.error(message=f"Error generating template: {str(e)}")
 
-@router.post("/upload", response_model=UploadResponse)
+@router.post("/upload", response_model=StandardResponse[UploadResponse])
 async def upload_service_records(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -554,86 +548,77 @@ async def upload_service_records(
         )
         
     except pd.errors.EmptyDataError:
-        raise HTTPException(
-            status_code=400,
-            detail="The uploaded file is empty."
-        )
+        return ResponseBuilder.error(message="The uploaded file is empty.")
     except pd.errors.ParserError:
-        raise HTTPException(
-            status_code=400,
-            detail="Error parsing the file. Please ensure it's a valid CSV or Excel file."
-        )
+        return ResponseBuilder.error(message="Error parsing the file. Please ensure it's a valid CSV or Excel file.")
     except Exception as e:
         db.rollback()
         logger.error(f"Error processing upload: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error processing upload: {str(e)}"
-        )
+        return ResponseBuilder.error(message=f"Error processing upload: {str(e)}")
 
 
-@router.get("/{service_id}", response_model=ServiceRecordResponse)
-async def get_service_record(
-    service_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Get details of a specific service record."""
-    service_record = db.query(ServiceRecord).filter(
-        ServiceRecord.id == service_id,
-        ServiceRecord.organization_id == current_user.organization_id
-    ).first()
+# @router.get("/{service_id}", response_model=ServiceRecordResponse)
+# async def get_service_record(
+#     service_id: int,
+#     db: Session = Depends(get_db),
+#     current_user: User = Depends(get_current_user)
+# ):
+#     """Get details of a specific service record."""
+#     service_record = db.query(ServiceRecord).filter(
+#         ServiceRecord.id == service_id,
+#         ServiceRecord.organization_id == current_user.organization_id
+#     ).first()
     
-    if not service_record:
-        raise HTTPException(status_code=404, detail="Service record not found")
+#     if not service_record:
+#         raise HTTPException(status_code=404, detail="Service record not found")
     
-    return service_record
+#     return service_record
 
-@router.put("/{service_id}", response_model=ServiceRecordResponse)
-async def update_service_record(
-    service_id: int,
-    service_data: ServiceRecordCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Update a service record."""
-    service_record = db.query(ServiceRecord).filter(
-        ServiceRecord.id == service_id,
-        ServiceRecord.organization_id == current_user.organization_id
-    ).first()
+# @router.put("/{service_id}", response_model=ServiceRecordResponse)
+# async def update_service_record(
+#     service_id: int,
+#     service_data: ServiceRecordCreate,
+#     db: Session = Depends(get_db),
+#     current_user: User = Depends(get_current_user)
+# ):
+#     """Update a service record."""
+#     service_record = db.query(ServiceRecord).filter(
+#         ServiceRecord.id == service_id,
+#         ServiceRecord.organization_id == current_user.organization_id
+#     ).first()
     
-    if not service_record:
-        raise HTTPException(status_code=404, detail="Service record not found")
+#     if not service_record:
+#         raise HTTPException(status_code=404, detail="Service record not found")
     
-    # Update fields
-    for field, value in service_data.dict().items():
-        setattr(service_record, field, value)
+#     # Update fields
+#     for field, value in service_data.dict().items():
+#         setattr(service_record, field, value)
     
-    service_record.modified_by = current_user.id
-    service_record.modified_at = datetime.utcnow()
+#     service_record.modified_by = current_user.id
+#     service_record.modified_at = datetime.utcnow()
     
-    db.commit()
-    db.refresh(service_record)
+#     db.commit()
+#     db.refresh(service_record)
     
-    return service_record
+#     return service_record
 
-@router.delete("/{service_id}")
-async def delete_service_record(
-    service_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Delete a service record."""
-    service_record = db.query(ServiceRecord).filter(
-        ServiceRecord.id == service_id,
-        ServiceRecord.organization_id == current_user.organization_id
-    ).first()
+# @router.delete("/{service_id}")
+# async def delete_service_record(
+#     service_id: int,
+#     db: Session = Depends(get_db),
+#     current_user: User = Depends(get_current_user)
+# ):
+#     """Delete a service record."""
+#     service_record = db.query(ServiceRecord).filter(
+#         ServiceRecord.id == service_id,
+#         ServiceRecord.organization_id == current_user.organization_id
+#     ).first()
     
-    if not service_record:
-        raise HTTPException(status_code=404, detail="Service record not found")
+#     if not service_record:
+#         raise HTTPException(status_code=404, detail="Service record not found")
     
-    db.delete(service_record)
-    db.commit()
+#     db.delete(service_record)
+#     db.commit()
     
-    return {"message": "Service record deleted successfully"}
+#     return {"message": "Service record deleted successfully"}
 

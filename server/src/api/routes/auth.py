@@ -12,6 +12,8 @@ from ...db.session import get_db
 from ...db.base import User, Organization, UserRole
 from ...core.security import verify_password, get_password_hash, create_access_token
 from ...core.config import settings
+from src.core.response import ResponseBuilder
+from src.schemas.standard_response import StandardResponse
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -78,7 +80,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
             detail="Database error occurred"
         )
 
-@router.post("/signup", response_model=Token)
+@router.post("/signup", response_model=StandardResponse[Token])
 async def signup(user_data: SignupRequest, db: Session = Depends(get_db)):
     """Create new user and organization."""
     try:
@@ -117,83 +119,77 @@ async def signup(user_data: SignupRequest, db: Session = Depends(get_db)):
             data={"sub": user.email, "org": org.id}
         )
         
-        return {
+        return ResponseBuilder.success(data={
             "access_token": access_token,
             "token_type": "bearer",
             "name": user.name,
             "user_id": user.id,
             "email": user.email,
             "role": user.role.value
-        }
+        }, message="User created successfully")
     except SQLAlchemyError as e:
         db.rollback()
         logger.error(f"Database error during signup: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database error occurred during signup"
-        )
+        return ResponseBuilder.error(message="Database error occurred during signup")
     except Exception as e:
         logger.error(f"Unexpected error during signup: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred during signup"
-        )
+        return ResponseBuilder.error(message="An unexpected error occurred during signup")
 
-@router.post("/register", response_model=Token)
-async def register_user(
-    user_data: UserCreate,
-    db: Session = Depends(get_db)
-):
-    """Register a new user."""
-    try:
-        # Check if user already exists
-        existing_user = db.query(User).filter(User.email == user_data.email).first()
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
-            )
+# @router.post("/register", response_model=Token)
+# async def register_user(
+#     user_data: UserCreate,
+#     db: Session = Depends(get_db)
+# ):
+#     """Register a new user."""
+#     try:
+#         # Check if user already exists
+#         existing_user = db.query(User).filter(User.email == user_data.email).first()
+#         if existing_user:
+#             raise HTTPException(
+#                 status_code=status.HTTP_400_BAD_REQUEST,
+#                 detail="Email already registered"
+#             )
         
-        # Create new user
-        hashed_password = get_password_hash(user_data.password)
-        user = User(
-            name=user_data.name,
-            email=user_data.email,
-            password_hash=hashed_password,
-            role=user_data.role,
-            is_active=True
-        )
+#         # Create new user
+#         hashed_password = get_password_hash(user_data.password)
+#         user = User(
+#             name=user_data.name,
+#             email=user_data.email,
+#             password_hash=hashed_password,
+#             role=user_data.role,
+#             is_active=True
+#         )
         
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+#         db.add(user)
+#         db.commit()
+#         db.refresh(user)
         
-        # Create access token
-        access_token = create_access_token(data={"sub": user.email})
+#         # Create access token
+#         access_token = create_access_token(data={"sub": user.email})
         
-        return {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "name": user.name,
-            "user_id": user.id,
-            "email": user.email,
-            "role": user.role
-        }
-    except SQLAlchemyError as e:
-        db.rollback()
-        logger.error(f"Database error during user registration: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database error occurred during registration"
-        )
-    except Exception as e:
-        logger.error(f"Unexpected error during user registration: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred during registration"
-        )
+#         return {
+#             "access_token": access_token,
+#             "token_type": "bearer",
+#             "name": user.name,
+#             "user_id": user.id,
+#             "email": user.email,
+#             "role": user.role
+#         }
+#     except SQLAlchemyError as e:
+#         db.rollback()
+#         logger.error(f"Database error during user registration: {str(e)}")
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail="Database error occurred during registration"
+#         )
+#     except Exception as e:
+#         logger.error(f"Unexpected error during user registration: {str(e)}")
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail="An unexpected error occurred during registration"
+#         )
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=StandardResponse[Token])
 async def login(
     login_data: LoginRequest,
     db: Session = Depends(get_db)
@@ -204,69 +200,48 @@ async def login(
         user = db.query(User).filter(User.email == login_data.email).first()
         
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            return ResponseBuilder.error(message="Incorrect email or password")
         
         # Verify password
         if not verify_password(login_data.password, user.password_hash):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            return ResponseBuilder.error(message="Incorrect email or password")
         
         # Check if user is active
         if not user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User account is inactive",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            return ResponseBuilder.error(message="User account is inactive")
         
         # Create access token
         access_token = create_access_token(data={"sub": user.email})
         
-        return {
+        return ResponseBuilder.success(data={
             "access_token": access_token,
             "token_type": "bearer",
             "name": user.name,
             "user_id": user.id,
             "email": user.email,
-            "role": user.role.value
-        }
+            "role": user.role.value 
+        }, message="Login successful")
     except SQLAlchemyError as e:
         logger.error(f"Database error during login: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database error occurred during login"
-        )
+        return ResponseBuilder.error(message="Database error occurred during login")
     except HTTPException:
         # Re-raise HTTP exceptions (like 401) as they are already properly formatted
         raise
     except Exception as e:
         logger.error(f"Unexpected error during login: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred during login"
-        )
+        return ResponseBuilder.error(message="An unexpected error occurred during login")
 
 @router.get("/me")
 async def read_users_me(current_user: User = Depends(get_current_user)):
     """Get current user information."""
     try:
-        return {
+        return ResponseBuilder.success(data={
             "id": current_user.id,
             "email": current_user.email,
             "name": current_user.name,
             "role": current_user.role.value,
             "organization_id": current_user.organization_id
-        }
+        }, message="User details fetched successfully")
     except Exception as e:
         logger.error(f"Error fetching user details: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error fetching user details"
-        )
+        return ResponseBuilder.error(message="Error fetching user details")
