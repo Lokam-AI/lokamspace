@@ -10,7 +10,7 @@ export default function Hero() {
           <div className="flex items-center justify-center gap-2">
             <span className="text-xl text-[#71717A]">by</span>
             <Image 
-              src="/assets/lokam-ai-logo.png"
+              src="/assets/brand/lokam-ai-logo.png"
               alt="Lokam.ai" 
               width={100} 
               height={35} 

@@ -10,7 +10,7 @@ export default function Footer() {
           <div className="flex flex-col items-center md:items-start">
             <div className="flex items-center gap-4">
               <Image 
-                src="/assets/lokam-ai-logo.png"
+                src="/assets/brand/lokam-ai-logo.png"
                 alt="Lokam.ai" 
                 width={120} 
                 height={40} 
