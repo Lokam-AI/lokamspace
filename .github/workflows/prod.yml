@@ -72,10 +72,10 @@ jobs:
           
         if [ "$ENVIRONMENT" = "prod" ]; then
           SLACK_URL=${{ secrets.SLACK_WEBHOOK_UR }}
-          STATUS_MSG="✅ *Backend Production deployment completed successfully!*"
+          STATUS_MSG="✅ *Production deployment completed successfully!*"
         else
           SLACK_URL=${{ secrets.SLACK_WEBHOOK_URL }}
-          STATUS_MSG="🚀 *Backend Development deployment completed successfully!*"
+          STATUS_MSG="🚀 *Development deployment completed successfully!*"
         fi
 
         curl -X POST -H 'Content-type: application/json' \
