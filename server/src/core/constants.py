@@ -14,7 +14,7 @@ class UserRole(str, Enum):
 
 # Service Status
 class ServiceStatus(str, Enum):
-    PENDING = "PENDING"
+    READY_TO_DIAL = "READY_TO_DIAL"
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"

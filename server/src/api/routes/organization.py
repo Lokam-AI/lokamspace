@@ -42,7 +42,7 @@ async def get_organization(
         logger.error(f"Error retrieving organization details: {str(e)}")
         return ResponseBuilder.error(message=f"Error retrieving organization details: {str(e)}")
 
-@router.post("/", response_model=StandardResponse[OrganizationResponse])
+@router.patch("/", response_model=StandardResponse[OrganizationResponse])
 async def update_organization(
     org_data: OrganizationUpdate,
     db: Session = Depends(get_db),

@@ -18,7 +18,7 @@ class CampaignStatus(enum.Enum):
     FAILED = "FAILED"
 
 class ServiceStatus(enum.Enum):
-    PENDING = "PENDING"
+    READY_TO_DIAL = "READY_TO_DIAL"
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"

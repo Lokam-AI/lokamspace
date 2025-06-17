@@ -10,7 +10,7 @@ class ServiceRecordBase(BaseModel):
     vehicle_number: str = Field(..., description="Vehicle registration number", min_length=5, max_length=20)
     service_type: str = Field(..., description="Type of service required", min_length=3, max_length=100)
     service_date: datetime = Field(..., description="Date of service")
-    status: str = Field(default="PENDING", description="Service status")
+    status: str = Field(default="READY_TO_DIAL", description="Service status")
 
     @validator('vehicle_number')
     def validate_vehicle_number(cls, v):
