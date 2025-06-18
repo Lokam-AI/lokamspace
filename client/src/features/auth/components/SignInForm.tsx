@@ -1,90 +1,105 @@
 'use client';
+
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { Button } from '@/components/ui/button/Button';
+import { Input, Label, FormField, FormMessage } from '@/components/ui/form';
+import { signIn } from '../api/authApi';
 
 export default function SignInForm() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-  const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState<{ email?: string; password?: string; api?: string }>({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  const validate = () => {
+    const newErrors: { email?: string; password?: string } = {};
+    if (!email) {
+      newErrors.email = 'Email is required.';
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Email is invalid.';
+    }
+
+    if (!password) {
+      newErrors.password = 'Password is required.';
+    } else if (password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters long.';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setErrors({});
+    
+    if (!validate()) {
+      return;
+    }
+
+    setIsLoading(true);
     
     try {
-      // TODO: Implement actual authentication logic here
-      console.log('Sign in:', formData);
+      const data = await signIn({ email, password });
+      
+      // Assuming the API returns a token or user data on success
+      // TODO: Handle successful login (e.g., store token, redirect)
+      console.log('Sign in successful:', data);
       router.push('/dashboard');
-    } catch {
-      setError('Invalid email or password');
+
+    } catch (error: any) {
+      setErrors({ api: error.message || 'Failed to connect to the server.' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md mx-auto bg-white rounded-2xl shadow p-8 border border-[#E3E3E7]">
-      <h2 className="text-2xl font-bold text-[#27272A] mb-6">Sign In</h2>
+    <div className="w-full max-w-md mx-auto bg-white rounded-2xl shadow p-8 border border-autopulse-grey-dark">
+      <h2 className="text-2xl font-bold text-center text-autopulse-black mb-6">Sign In</h2>
       
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 text-red-500 rounded-lg text-sm">
-          {error}
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-[#27272A] mb-1">
-            Email
-          </label>
-          <input
+        <FormField>
+          <Label htmlFor="email">Email</Label>
+          <Input
             type="email"
             id="email"
-            value={formData.email}
-            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-            className="w-full px-4 py-2 border border-[#E3E3E7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F97316] text-[#27272A]"
-            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@example.com"
+            disabled={isLoading}
           />
-        </div>
+          <FormMessage>{errors.email}</FormMessage>
+        </FormField>
 
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-[#27272A] mb-1">
-            Password
-          </label>
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              id="password"
-              value={formData.password}
-              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-              className="w-full px-4 py-2 border border-[#E3E3E7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F97316] text-[#27272A] pr-10"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#71717A] hover:text-[#27272A] transition-colors"
-            >
-              {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
-            </button>
-          </div>
-        </div>
+        <FormField>
+          <Label htmlFor="password">Password</Label>
+          <Input
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            disabled={isLoading}
+          />
+          <FormMessage>{errors.password}</FormMessage>
+        </FormField>
+        
+        {errors.api && (
+            <FormMessage>{errors.api}</FormMessage>
+        )}
 
-        <button
-          type="submit"
-          className="w-full bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-        >
-          Sign In
-        </button>
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? 'Signing In...' : 'Sign In'}
+        </Button>
       </form>
 
-      <div className="mt-6 text-center text-sm text-[#71717A]">
+      <div className="mt-6 text-center text-sm text-gray-500">
         Don&apos;t have an account?{' '}
-        <Link href="/signup" className="text-[#F97316] hover:text-[#EA580C] font-semibold">
+        <Link href="/signup" className="text-autopulse-orange hover:text-autopulse-orange-dark font-semibold">
           Sign Up
         </Link>
       </div>
