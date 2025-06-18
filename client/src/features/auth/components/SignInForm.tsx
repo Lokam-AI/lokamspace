@@ -6,9 +6,12 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button/Button';
 import { Input, Label, FormField, FormMessage, PasswordInput } from '@/components/ui/form';
 import { signIn } from '../api/authApi';
+import { useAuthStore } from '@/stores/authStore';
+import { toast } from 'react-hot-toast';
 
 export default function SignInForm() {
   const router = useRouter();
+  const login = useAuthStore((state) => state.login);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string; api?: string }>({});
@@ -43,15 +46,24 @@ export default function SignInForm() {
     setIsLoading(true);
     
     try {
-      const data = await signIn({ email, password });
+      const responseData = await signIn({ email, password });
       
-      // Assuming the API returns a token or user data on success
-      // TODO: Handle successful login (e.g., store token, redirect)
-      console.log('Sign in successful:', data);
+      const userData = {
+        name: responseData.data.name,
+        email: responseData.data.email,
+        userId: responseData.data.user_id,
+        role: responseData.data.role,
+      };
+
+      login({ accessToken: responseData.data.access_token, user: userData });
+      
+      toast.success(responseData.message || 'Login successful!');
       router.push('/dashboard');
 
     } catch (error: any) {
-      setErrors({ api: error.message || 'Failed to connect to the server.' });
+      const errorMessage = error.message || 'Failed to connect to the server.';
+      setErrors({ api: errorMessage });
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
