@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button/Button';
-import { Input, Label, FormField, FormMessage } from '@/components/ui/form';
+import { Input, Label, FormField, FormMessage, PasswordInput } from '@/components/ui/form';
 import { signIn } from '../api/authApi';
 
 export default function SignInForm() {
@@ -77,8 +77,7 @@ export default function SignInForm() {
 
         <FormField>
           <Label htmlFor="password">Password</Label>
-          <Input
-            type="password"
+          <PasswordInput
             id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
