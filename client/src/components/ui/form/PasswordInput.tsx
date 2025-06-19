@@ -2,13 +2,13 @@
 
 import * as React from 'react';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
-import { Input, InputProps } from './Input';
+import { Input } from './Input';
 
 const cn = (...classes: (string | undefined | null | false)[]) => {
     return classes.filter(Boolean).join(' ');
 }
 
-const PasswordInput = React.forwardRef<HTMLInputElement, InputProps>(
+const PasswordInput = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
   ({ className, ...props }, ref) => {
     const [showPassword, setShowPassword] = React.useState(false);
 

@@ -60,8 +60,8 @@ export default function SignInForm() {
       toast.success(responseData.message || 'Login successful!');
       router.push('/dashboard');
 
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to connect to the server.';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to connect to the server.';
       setErrors({ api: errorMessage });
       toast.error(errorMessage);
     } finally {
