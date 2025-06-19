@@ -18,7 +18,7 @@ class CampaignStatus(enum.Enum):
     FAILED = "FAILED"
 
 class ServiceStatus(enum.Enum):
-    PENDING = "PENDING"
+    READY_TO_DIAL = "READY_TO_DIAL"
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
@@ -37,6 +37,8 @@ class Organization(Base):
     area_of_imp_2_desc = Column(Text, nullable=True)
     area_of_imp_3_title = Column(String(255), nullable=True)
     area_of_imp_3_desc = Column(Text, nullable=True)
+    service_manager_email = Column(String(100))
+    service_manager_number = Column(String(20))
     created_at = Column(DateTime, default=datetime.utcnow)
     created_by = Column(Integer)
     modified_at = Column(DateTime, onupdate=datetime.utcnow)

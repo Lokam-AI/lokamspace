@@ -15,9 +15,9 @@ from typing import Dict, Any
 import phonenumbers
 
 from ...db.session import get_db
-from ...db.base import ServiceRecord, User, Organization, OrganizationMetric, CallMetricScore, Call
+from ...db.base import ServiceRecord, User, Organization, OrganizationMetric, CallMetricScore, Call, Campaign
 from ..dependencies import get_current_user
-from src.core.constants import ServiceStatus, NPSScoreConstants, ServiceRecordColumns
+from src.core.constants import ServiceStatus, NPSScoreConstants, ServiceRecordColumns, CallStatus
 from src.core.response import ResponseBuilder
 from src.schemas.standard_response import StandardResponse
 
@@ -32,7 +32,7 @@ class ServiceRecordCreate(BaseModel):
     vehicle_number: str
     service_type: str
     service_date: datetime
-    status: str = ServiceStatus.PENDING.value
+    status: str = ServiceStatus.READY_TO_DIAL.value
 
 
 class ServiceRecordResponse(BaseModel):
@@ -90,7 +90,7 @@ class BatchServiceRecordCreate(BaseModel):
     service_date: datetime
     service_type: str
     service_advisor_name: str
-    status: str = "PENDING"
+    status: str = "READY_TO_DIAL"
     review_opt_in: bool = True
 
 class BatchServiceRecordResponse(BaseModel):
@@ -104,6 +104,17 @@ class UploadResponse(BaseModel):
     records_failed: int
     errors: Optional[List[dict]] = None
     file_type: str
+
+class CallRequest(BaseModel):
+    """Model for initiating calls"""
+    service_record_ids: List[int]
+    campaign_id: int | None = None  # Optional campaign ID
+
+class CallResponse(BaseModel):
+    """Model for call response"""
+    service_record_id: int
+    call_id: int
+    status: str
 
 def add_area_of_improvement(title: str, desc: str, organization_id: int, db: Session, result_list: list):
     if not (title and desc):
@@ -374,7 +385,7 @@ async def get_service_record_template(
             ServiceRecordColumns.SERVICE_DATE: ["2024-03-15 10:00:00"],
             ServiceRecordColumns.SERVICE_TYPE: ["Oil Change"],
             ServiceRecordColumns.SERVICE_ADVISOR_NAME: ["Jane Smith"],
-            ServiceRecordColumns.STATUS: ["PENDING"],
+            ServiceRecordColumns.STATUS: ["READY_TO_DIAL"],
             ServiceRecordColumns.REVIEW_OPT_IN: ["true"]
         }
         
@@ -511,7 +522,7 @@ async def upload_service_records(
                     service_date=record_dict[ServiceRecordColumns.SERVICE_DATE],
                     service_type=record_dict[ServiceRecordColumns.SERVICE_TYPE],
                     service_advisor_name=record_dict[ServiceRecordColumns.SERVICE_ADVISOR_NAME],
-                    status=record_dict.get(ServiceRecordColumns.STATUS, ServiceStatus.PENDING.value),
+                    status=record_dict.get(ServiceRecordColumns.STATUS, ServiceStatus.READY_TO_DIAL.value),
                     review_opt_in=record_dict.get(ServiceRecordColumns.REVIEW_OPT_IN, True),
                     created_by=current_user.id
                 )
@@ -621,4 +632,93 @@ async def delete_service_record(
     db.commit()
     
     return ResponseBuilder.success(message="Service record deleted successfully")
+
+@router.post("/call/initiate", response_model=StandardResponse[List[CallResponse]])
+async def initiate_calls(
+    request: CallRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Initiate calls for one or multiple service records.
+    Updates service record status to READY_TO_DIAL and creates new call entries.
+    """
+    try:
+        # Validate service records exist and belong to the organization
+        service_records = db.query(ServiceRecord).filter(
+            ServiceRecord.id.in_(request.service_record_ids),
+            ServiceRecord.organization_id == current_user.organization_id
+        ).all()
+
+        if len(service_records) != len(request.service_record_ids):
+            return ResponseBuilder.error(
+                message="One or more service records not found or do not belong to your organization"
+            )
+
+        # Get campaign ID (use provided campaign or default campaign)
+        campaign_id = request.campaign_id
+        if not campaign_id:
+            # Get the default campaign for the organization
+            default_campaign = db.query(Campaign).filter(
+                Campaign.organization_id == current_user.organization_id,
+                Campaign.name == "Default Campaign"
+            ).first()
+            
+            if not default_campaign:
+                return ResponseBuilder.error(
+                    message="No campaign ID provided and no default campaign found"
+                )
+            campaign_id = default_campaign.id
+
+        # Validate campaign belongs to organization
+        campaign = db.query(Campaign).filter(
+            Campaign.id == campaign_id,
+            Campaign.organization_id == current_user.organization_id
+        ).first()
+
+        if not campaign:
+            return ResponseBuilder.error(
+                message="Campaign not found or does not belong to your organization"
+            )
+
+        responses = []
+        for service_record in service_records:
+            try:
+                # Update service record status
+                service_record.status = ServiceStatus.READY_TO_DIAL
+                service_record.modified_at = datetime.utcnow()
+                service_record.modified_by = current_user.id
+
+                # Create new call entry
+                new_call = Call(
+                    service_record_id=service_record.id,
+                    organization_id=current_user.organization_id,
+                    campaign_id=campaign_id,  # Add campaign ID
+                    status=CallStatus.PENDING,
+                    created_by=current_user.id,
+                    modified_by=current_user.id
+                )
+                db.add(new_call)
+                db.flush()  # Flush to get the ID without committing
+
+                responses.append(
+                    CallResponse(
+                        service_record_id=service_record.id,
+                        call_id=new_call.id,
+                        status=new_call.status.value
+                    )
+                )
+            except Exception as e:
+                db.rollback()
+                return ResponseBuilder.error(message=f"Error processing service record {service_record.id}: {str(e)}")
+
+        db.commit()
+        return ResponseBuilder.success(
+            data=responses,
+            message=f"Successfully initiated {len(responses)} call(s)"
+        )
+
+    except Exception as e:
+        db.rollback()
+        return ResponseBuilder.error(message=f"Error initiating calls: {str(e)}")
 

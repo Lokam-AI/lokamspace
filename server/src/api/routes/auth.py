@@ -9,7 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import logging
 
 from ...db.session import get_db
-from ...db.base import User, Organization, UserRole
+from ...db.base import User, Organization, UserRole, Campaign, CampaignStatus
 from ...core.security import verify_password, get_password_hash, create_access_token
 from ...core.config import settings
 from src.core.response import ResponseBuilder
@@ -97,7 +97,18 @@ async def signup(user_data: SignupRequest, db: Session = Depends(get_db)):
             location=user_data.location
         )
         db.add(org)
-        db.flush()
+        db.flush()  # Flush to get the organization ID
+        
+        # Create default campaign for the organization
+        default_campaign = Campaign(
+            name="Default Campaign",
+            description="Default campaign created with organization",
+            organization_id=org.id,
+            status=CampaignStatus.PENDING,
+            created_by=None,  # Will be updated after user creation
+            modified_by=None  # Will be updated after user creation
+        )
+        db.add(default_campaign)
         
         # Create user
         password_hash = get_password_hash(user_data.password)
@@ -111,6 +122,12 @@ async def signup(user_data: SignupRequest, db: Session = Depends(get_db)):
         )
         
         db.add(user)
+        db.flush()  # Flush to get the user ID
+        
+        # Update campaign with user ID
+        default_campaign.created_by = user.id
+        default_campaign.modified_by = user.id
+        
         db.commit()
         db.refresh(user)
         

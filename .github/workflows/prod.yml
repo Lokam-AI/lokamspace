@@ -69,17 +69,35 @@ jobs:
       run: |
         COMMIT_MSG=$(git log -1 --pretty=%B)
         AUTHOR_NAME=$(git log -1 --pretty=%an)
+        
+        # Get changed files in the last commit
+        CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }})
+        
+        # Check if changes are in server or client folders
+        SERVER_CHANGES=$(echo "$CHANGED_FILES" | grep -q "^server/" && echo "true" || echo "false")
+        CLIENT_CHANGES=$(echo "$CHANGED_FILES" | grep -q "^client/" && echo "true" || echo "false")
+        
+        # Determine service type
+        if [ "$SERVER_CHANGES" = "true" ] && [ "$CLIENT_CHANGES" = "true" ]; then
+          SERVICE_TYPE="Full Stack"
+        elif [ "$SERVER_CHANGES" = "true" ]; then
+          SERVICE_TYPE="Backend"
+        elif [ "$CLIENT_CHANGES" = "true" ]; then
+          SERVICE_TYPE="Frontend"
+        else
+          SERVICE_TYPE="Other"
+        fi
           
         if [ "$ENVIRONMENT" = "prod" ]; then
           SLACK_URL=${{ secrets.SLACK_WEBHOOK_UR }}
-          STATUS_MSG="✅ *Backend Production deployment completed successfully!*"
+          STATUS_MSG="✅ *Production deployment completed successfully!*"
         else
           SLACK_URL=${{ secrets.SLACK_WEBHOOK_URL }}
-          STATUS_MSG="🚀 *Backend Development deployment completed successfully!*"
+          STATUS_MSG="🚀 *Development deployment completed successfully!*"
         fi
 
         curl -X POST -H 'Content-type: application/json' \
           --data "{
-            \"text\": \"$STATUS_MSG\n*Repository:* $REPO_NAME\n*Environment:* $ENVIRONMENT\n*Branch:* ${{ github.ref_name }}\n*Commit Message:* $COMMIT_MSG\n*Author:* $AUTHOR_NAME\n*Service:* Backend\"
+            \"text\": \"$STATUS_MSG\n*Repository:* $REPO_NAME\n*Environment:* $ENVIRONMENT\n*Branch:* ${{ github.ref_name }}\n*Commit Message:* $COMMIT_MSG\n*Author:* $AUTHOR_NAME\n*Service:* $SERVICE_TYPE\"
           }" \
           $SLACK_URL
