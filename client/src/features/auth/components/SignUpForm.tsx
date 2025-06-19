@@ -84,8 +84,8 @@ export default function SignUpForm() {
       // Redirect to the dashboard after a successful sign-up and auto-login
       router.push('/dashboard');
 
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to create account.';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create account.';
       setErrors({ api: errorMessage });
       toast.error(errorMessage);
     } finally {
