@@ -39,6 +39,8 @@ class Organization(Base):
     area_of_imp_3_desc = Column(Text, nullable=True)
     service_manager_email = Column(String(100))
     service_manager_number = Column(String(20))
+    schedule_start_time = Column(DateTime)
+    schedule_end_time = Column(DateTime)
     created_at = Column(DateTime, default=datetime.utcnow)
     created_by = Column(Integer)
     modified_at = Column(DateTime, onupdate=datetime.utcnow)
@@ -102,6 +104,7 @@ class ServiceRecord(Base):
     nps_score = Column(Float)
     overall_feedback = Column(Text)
     transcript = Column(Text)
+    summary = Column(Text)
     recording_url = Column(String(255))
     review_opt_in = Column(Boolean, default=False)
     review_sent_at = Column(DateTime)
@@ -127,7 +130,8 @@ class Call(Base):
     created_by = Column(Integer)
     modified_at = Column(DateTime, onupdate=datetime.utcnow)
     modified_by = Column(Integer)
-
+    cost = Column(Float)
+    success_metric = Column(String(100))
     service_record = relationship("ServiceRecord", back_populates="calls")
     organization = relationship("Organization", back_populates="calls")
     campaign = relationship("Campaign", back_populates="calls")
@@ -161,3 +165,30 @@ class CallMetricScore(Base):
 
     call = relationship("Call", back_populates="metric_scores")
     metric = relationship("OrganizationMetric", back_populates="call_metric_scores")
+
+class Transcript(Base):
+    __tablename__ = "transcripts"
+    id = Column(Integer, primary_key=True)
+    role = Column(String(100), nullable=False)
+    call_id = Column(Integer, ForeignKey("calls.id"), nullable=False)
+    message = Column(Text, nullable=False)
+    time = Column(Integer, nullable=False)
+    end_time = Column(Integer, nullable=False)
+    duration = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(Integer)
+    modified_at = Column(DateTime, onupdate=datetime.utcnow)
+    modified_by = Column(Integer)
+
+class CallFeedback(Base):
+    __tablename__ = "call_feedbacks"
+    id = Column(Integer, primary_key=True)
+    call_id = Column(Integer, ForeignKey("calls.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    detractos = Column(Text, nullable=False)
+    positives = Column(Text, nullable=False)
+    action_items = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(Integer)
+    modified_at = Column(DateTime, onupdate=datetime.utcnow)
+    modified_by = Column(Integer)
