@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { getCookie, setCookie, deleteCookie } from 'cookies-next';
 
 interface User {
   name: string;
@@ -15,6 +16,25 @@ interface AuthState {
   login: (data: { accessToken: string; user: User }) => void;
   logout: () => void;
 }
+
+const cookieStorage = {
+  getItem: (name: string) => {
+    const cookie = getCookie(name);
+    if (typeof cookie === 'string') {
+      return cookie;
+    }
+    return null;
+  },
+  setItem: (name: string, value: string) => {
+    setCookie(name, value, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+    });
+  },
+  removeItem: (name: string) => {
+    deleteCookie(name);
+  },
+};
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -35,7 +55,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'autopulse-auth-storage',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => cookieStorage),
     }
   )
 ); 
