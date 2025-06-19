@@ -5,11 +5,22 @@
   --foreground: #171717;
 }
 
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Custom autopulse colors */
+  --color-autopulse-orange: #F97316;
+  --color-autopulse-orange-light: #FA812D;
+  --color-autopulse-orange-dark: #EE6506;
+  --color-autopulse-black: #27272A;
+  --color-autopulse-black-light: #3C3C40;
+  --color-autopulse-black-dark: #232326;
+  --color-autopulse-grey: #F4F4F5;
+  --color-autopulse-grey-light: #F5F5F6;
+  --color-autopulse-grey-dark: #DADADE;
 }
 
 @media (prefers-color-scheme: dark) {
