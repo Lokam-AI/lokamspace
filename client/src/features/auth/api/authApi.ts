@@ -8,6 +8,7 @@ export const signIn = async (credentials: SignInCredentials) => {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(credentials),
+    credentials: "include" 
   });
 
   const data = await response.json();
