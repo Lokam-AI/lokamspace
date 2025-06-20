@@ -1,0 +1,57 @@
+---
+description: 
+globs: client/**
+alwaysApply: false
+---
+# Frontend Project Structure
+
+This document outlines the project structure for the frontend application, located in the `/client` directory. The structure is designed for scalability and maintainability by separating code into shared modules and feature-specific modules.
+
+## `src` Directory Structure
+
+Most of the code lives in the `src` folder.
+
+-   `app`: Application layer containing layouts, pages, and route definitions for Next.js.
+-   `assets`: Processed assets such as:
+    - Images that need optimization
+    - SVGs used as React components
+    - Other assets requiring build pipeline processing
+-   `components`: Shared, reusable UI components used across the entire application (e.g., Button, Input).
+-   `config`: Global configurations, exported environment variables, etc.
+-   `features`: Contains self-contained feature modules.
+-   `hooks`: Shared React hooks used across the entire application.
+-   `libs`: Reusable libraries preconfigured for the application (e.g., `axios` instance, logger).
+-   `stores`: Global state management stores (e.g., Zustand, Redux).
+-   `styles`: Global styles, theme definitions, and shared style utilities.
+-   `testing`: Test utilities, mocks, and setup files for testing.
+-   `types`: Shared TypeScript types and interfaces used across the application.
+-   `utils`: Shared utility functions.
+
+## `features` Directory
+
+For easy scalability and maintenance, organize most of the code within the `features` folder. Each feature folder should contain code specific to that feature, keeping things neatly separated.
+
+A feature could have the following structure:
+
+-   `api`: Exported API request declarations and hooks.
+-   `assets`: Static files for a specific feature.
+-   `components`: Components scoped to a specific feature.
+-   `hooks`: React hooks scoped to a specific feature.
+-   `stores`: State stores for a specific feature.
+-   `types`: TypeScript types used within the feature.
+-   `utils`: Utility functions for a specific feature.
+
+## `public` Directory Structure
+
+Static assets that need to be served directly:
+-   `assets`: Static assets such as:
+    - Fonts
+    - Static images
+    - Documents (PDFs, etc.)
+    - Media files
+-   Root files like `favicon.ico`, `robots.txt`, `manifest.json`
+
+## Feature Isolation Rule
+
+Each feature should remain self-contained and **should not** import from other features. Code within a feature can only import from shared directories (`components`, `hooks`, `libs`, `types`, `utils`, etc.). This keeps the codebase modular, predictable, and easier to test and scale.
+

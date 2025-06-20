@@ -32,7 +32,7 @@ export default function Sidebar({ user, onSignOut }: SidebarProps) {
         <div className="mb-4">
           <div className="flex items-center gap-4 justify-center">
             <Image
-              src="/assets/lokam-ai-logo.png"
+              src="/assets/brand/lokam-ai-logo.png"
               alt="Lokam.ai"
               width={100}
               height={32}
