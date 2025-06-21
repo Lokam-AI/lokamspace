@@ -18,7 +18,7 @@ interface CallListProps {
 export default function CallList({ calls, selectedIds, onToggle }: CallListProps) {
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full text-sm">
+      <table className="min-w-full text-xs">
         <thead>
           <tr className="text-left text-[#9D9DA3] font-semibold border-b border-[#E3E3E7]">
             <th className="py-2 pr-4">Select</th>
@@ -39,7 +39,7 @@ export default function CallList({ calls, selectedIds, onToggle }: CallListProps
                   type="checkbox"
                   checked={selectedIds.includes(call.id)}
                   onChange={() => onToggle(call.id)}
-                  className="accent-[#F97316] w-4 h-4"
+                  className="accent-[#F97316] w-3 h-3"
                 />
               </td>
               <td className="py-2 pr-4 font-medium text-black">{call.customer}</td>

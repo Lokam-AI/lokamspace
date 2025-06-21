@@ -1,12 +1,13 @@
 import MetricBar from "./MetricBar";
+import { SERVICE_METRICS } from "@/data/staticData";
 
 const metrics = [
-  { label: "Overall Service", value: 80 },
-  { label: "Timeliness", value: 17 },
-  { label: "Cleanliness", value: 3 },
-  { label: "Advisor Helpfulness", value: 25 },
-  { label: "Work Quality", value: 24 },
-  { label: "Recommendation", value: 59 },
+  { label: "Overall Service", value: Math.round(SERVICE_METRICS.timeliness * 20) },
+  { label: "Timeliness", value: Math.round(SERVICE_METRICS.timeliness * 20) },
+  { label: "Cleanliness", value: Math.round(SERVICE_METRICS.cleanliness * 20) },
+  { label: "Advisor Helpfulness", value: Math.round(SERVICE_METRICS.advisorHelpfulness * 20) },
+  { label: "Work Quality", value: Math.round(SERVICE_METRICS.workQuality * 20) },
+  { label: "Recommendation", value: Math.round(SERVICE_METRICS.recommendation * 20) },
 ];
 
 export default function ServiceMetricsCard() {

@@ -3,14 +3,18 @@ import { useState } from "react";
 import CallListTitle from "./CallListTitle";
 import CallList from "./CallList";
 import CallListFooter from "./CallListFooter";
+import PostServiceCallsPagination from "./PostServiceCallsPagination";
+import { STATIC_CALL_LIST } from "@/data/staticData";
 
-const mockCalls = [
-  { id: 1, customer: "John Smith", email: "john.smith@email.com", phone: "9029897685", vehicleNumber: "ABC-1234", serviceDate: "2025-01-09", serviceDetails: "Tire Replacement - Completed routine maintenance and inspection", status: "pending" },
-  { id: 2, customer: "Jane Doe", email: "jane.doe@email.com", phone: "9876543210", vehicleNumber: "XYZ-5678", serviceDate: "2025-01-12", serviceDetails: "Oil Change - Routine oil and filter replacement", status: "pending" },
-];
+const PAGE_SIZE = 5;
 
 export default function CallListCard() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [page, setPage] = useState(1);
+
+  // Paginate
+  const totalPages = Math.max(1, Math.ceil(STATIC_CALL_LIST.length / PAGE_SIZE));
+  const pagedCalls = STATIC_CALL_LIST.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handleToggle = (id: number) => {
     setSelectedIds((prev) =>
@@ -19,10 +23,10 @@ export default function CallListCard() {
   };
 
   const handleSelectAll = () => {
-    if (selectedIds.length === mockCalls.length) {
+    if (selectedIds.length === STATIC_CALL_LIST.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(mockCalls.map((c) => c.id));
+      setSelectedIds(STATIC_CALL_LIST.map((c) => c.id));
     }
   };
 
@@ -32,15 +36,22 @@ export default function CallListCard() {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow p-4 flex flex-col h-full min-w-[320px]">
+    <div className="bg-white rounded-xl shadow p-4 flex flex-col h-full">
       <CallListTitle />
-      <CallList calls={mockCalls} selectedIds={selectedIds} onToggle={handleToggle} />
+      <CallList calls={pagedCalls} selectedIds={selectedIds} onToggle={handleToggle} />
       <div className="mt-auto">
         <CallListFooter
-          allSelected={selectedIds.length === mockCalls.length}
+          allSelected={selectedIds.length === STATIC_CALL_LIST.length}
           onSelectAll={handleSelectAll}
           onCall={handleCall}
           disabled={selectedIds.length === 0}
+        />
+        <PostServiceCallsPagination
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          buttonClassName="bg-[#E5E7EB] hover:bg-[#D4D4D8] text-[#27272A]"
+          activeButtonClassName="bg-[#F97316] text-white"
         />
       </div>
     </div>

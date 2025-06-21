@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { Button } from '@/components/ui/button/Button';
 import { Input, Label, FormField, FormMessage, PasswordInput } from '@/components/ui/form';
-import { signUp } from '../api/authApi';
 import { useAuthStore } from '@/stores/authStore';
+import { STATIC_USER } from '@/data/staticData';
 
 // Simplified validation error type
 type SignUpErrors = {
@@ -67,35 +67,42 @@ export default function SignUpForm() {
 
     setIsLoading(true);
     
-    try {
-      const responseData = await signUp(formData);
-      
-      const userData = {
-        name: responseData.data.name,
-        email: responseData.data.email,
-        userId: responseData.data.user_id,
-        role: responseData.data.role,
-      };
+    // Simulate API delay
+    setTimeout(() => {
+      try {
+        const userData = {
+          name: name || STATIC_USER.name,
+          email: email || STATIC_USER.email,
+          userId: STATIC_USER.userId,
+          role: STATIC_USER.role,
+        };
 
-      login({ accessToken: responseData.data.access_token, user: userData });
+        login({ accessToken: 'demo-access-token-12345', user: userData });
 
-      toast.success(responseData.message || 'Account created successfully!');
-      
-      // Redirect to the dashboard after a successful sign-up and auto-login
-      router.push('/dashboard');
+        toast.success('Account created successfully! Welcome to AutoCare Dashboard.');
+        
+        // Redirect to the dashboard after a successful sign-up and auto-login
+        router.push('/dashboard');
 
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create account.';
-      setErrors({ api: errorMessage });
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to create account.';
+        setErrors({ api: errorMessage });
+        toast.error(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 1000);
   };
 
   return (
     <div className="w-full max-w-md mx-auto bg-white rounded-2xl shadow p-8 border border-autopulse-grey-dark">
       <h2 className="text-2xl font-bold text-center text-autopulse-black mb-6">Create Your Account</h2>
+      
+      <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+        <p className="text-sm text-green-800">
+          <strong>Demo Mode:</strong> This is a static demo. Any valid form submission will create a demo account and log you in automatically.
+        </p>
+      </div>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <FormField>

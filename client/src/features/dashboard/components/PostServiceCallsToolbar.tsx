@@ -9,8 +9,8 @@ interface PostServiceCallsToolbarProps {
 
 export default function PostServiceCallsToolbar({ searchValue, onSearchChange, sortValue, onSortChange }: PostServiceCallsToolbarProps) {
   return (
-    <div className="flex flex-row items-center justify-end gap-4 w-full h-10">
-      <div className="relative w-full max-w-xs h-10 flex items-center">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-4 w-full">
+      <div className="relative w-full sm:max-w-xs h-10 flex items-center">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#71717A] text-sm">
           <FaSearch />
         </span>

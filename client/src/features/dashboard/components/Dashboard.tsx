@@ -4,11 +4,11 @@ import { useRouter } from 'next/navigation';
 
 // TODO: Replace with actual user data from authentication
 const mockUser = {
-  name: 'John Doe',
-  email: 'john@example.com'
+  name: 'Saleeq Muhammed',
+  email: 'saleeq.muhammed@autocare.com'
 };
 
-export default function GarageBotDashboard() {
+export default function AutoPulseDashboard() {
   const router = useRouter();
 
   const handleSignOut = async () => {

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const authCookie = request.cookies.get('autopulse-auth-storage');;
+  const authCookie = request.cookies.get('autopulse-auth-storage');
   let isAuthenticated = false;
 
   if (authCookie) {
@@ -19,7 +19,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isAuthPage = pathname.startsWith('/signin') || pathname.startsWith('/signup');
-  const isProtectedPage = pathname.startsWith('/dashboard');
+  const isProtectedPage = pathname.startsWith('/dashboard') || pathname.startsWith('/customers') || pathname.startsWith('/organization');
 
   if (isAuthPage) {
     if (isAuthenticated) {
@@ -38,5 +38,5 @@ export function middleware(request: NextRequest) {
 
 // See "Matching Paths" below to learn more
 export const config = {
-  matcher: ['/dashboard/:path*', '/signin', '/signup'],
+  matcher: ['/dashboard/:path*', '/customers/:path*', '/organization/:path*', '/signin', '/signup'],
 }; 
