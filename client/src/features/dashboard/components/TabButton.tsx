@@ -6,10 +6,9 @@ interface TabButtonProps {
   active: boolean;
   onClick: () => void;
   variant?: 'default' | 'danger';
-  collapsed?: boolean;
 }
 
-export default function TabButton({ label, icon, active, onClick, variant = 'default', collapsed = false }: TabButtonProps) {
+export default function TabButton({ label, icon, active, onClick, variant = 'default' }: TabButtonProps) {
   const getStyles = () => {
     if (variant === 'danger') {
       return {
@@ -31,24 +30,22 @@ export default function TabButton({ label, icon, active, onClick, variant = 'def
     <button
       onClick={onClick}
       className={`
-        group flex items-center gap-2 px-3 py-1.5 w-full rounded-xl text-xs font-medium transition-colors
+        group flex items-center gap-3 px-4 py-1.5 w-full rounded-2xl text-sm font-medium transition-colors
         ${styles.button}
-        ${collapsed ? 'justify-center px-1.5' : ''}
       `}
       style={{
         boxShadow: active ? "0 2px 8px 0 rgba(0,0,0,0.04)" : undefined,
       }}
-      title={collapsed ? label : undefined}
     >
       <span
         className={`
-          flex items-center justify-center w-8 h-8 rounded-lg transition-colors
+          flex items-center justify-center w-10 h-10 rounded-xl transition-colors
           ${styles.icon}
         `}
       >
         {icon}
       </span>
-      {!collapsed && <span className={`transition-colors ${styles.text}`}>{label}</span>}
+      <span className={`transition-colors ${styles.text}`}>{label}</span>
     </button>
   );
 } 

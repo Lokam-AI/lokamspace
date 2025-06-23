@@ -3,9 +3,73 @@ import { useState } from "react";
 import PostServiceCallsToolbar from "./PostServiceCallsToolbar";
 import PostServiceCallsTable from "./PostServiceCallsTable";
 import PostServiceCallsPagination from "./PostServiceCallsPagination";
-import { STATIC_SERVICE_CALLS } from "@/data/staticData";
 
-const PAGE_SIZE = 5;
+const allCalls = [
+  {
+    vehicle_number: "ABC-1234",
+    service_details: "Tire Replacement - Completed routine maintenance and inspection",
+    service_date: "2025-01-09T02:14:44.854405",
+    id: 1,
+    customer_id: 1,
+    customer_name: "John Smith",
+    customer_email: "john.smith@email.com",
+    customer_phone: "9029897685",
+    assigned_user_id: 1,
+    created_at: "2025-01-09T02:14:44.854405",
+    status: "pending",
+    call_interactions: [
+      {
+        id: 1,
+        call_date: "2025-01-10T02:14:44.854405",
+        status: "completed",
+        duration_seconds: 291,
+        transcription: "Customer satisfaction call for John Smith. Discussed tire replacement service experience.",
+        overall_feedback: "Great service experience at Lokam.ai. The tire replacement was handled professionally.",
+        overall_score: 4.5,
+        timeliness_score: 3.3,
+        cleanliness_score: 4.4,
+        advisor_helpfulness_score: 4.7,
+        work_quality_score: 4.4,
+        recommendation_score: 3.7,
+        action_items: "Follow up on warranty information",
+        completed_at: "2025-01-10T02:36:44.854405"
+      }
+    ]
+  },
+  {
+    vehicle_number: "XYZ-5678",
+    service_details: "Oil Change - Routine oil and filter replacement",
+    service_date: "2025-01-12T10:00:00.000000",
+    id: 2,
+    customer_id: 2,
+    customer_name: "Jane Doe",
+    customer_email: "jane.doe@email.com",
+    customer_phone: "9876543210",
+    assigned_user_id: 2,
+    created_at: "2025-01-12T10:00:00.000000",
+    status: "pending",
+    call_interactions: [
+      {
+        id: 2,
+        call_date: "2025-01-13T11:00:00.000000",
+        status: "completed",
+        duration_seconds: 180,
+        transcription: "Customer satisfaction call for Jane Doe. Discussed oil change experience.",
+        overall_feedback: "Quick and efficient service. Satisfied with the oil change.",
+        overall_score: 4.8,
+        timeliness_score: 4.5,
+        cleanliness_score: 4.8,
+        advisor_helpfulness_score: 4.9,
+        work_quality_score: 4.7,
+        recommendation_score: 4.6,
+        action_items: "Send service reminder for next oil change",
+        completed_at: "2025-01-13T11:30:00.000000"
+      }
+    ]
+  }
+];
+
+const PAGE_SIZE = 8;
 
 export default function PostServiceCallsCard() {
   const [search, setSearch] = useState("");
@@ -13,7 +77,7 @@ export default function PostServiceCallsCard() {
   const [page, setPage] = useState(1);
 
   // Filter
-  const filtered = STATIC_SERVICE_CALLS.filter(
+  const filtered = allCalls.filter(
     c =>
       c.customer_name.toLowerCase().includes(search.toLowerCase()) ||
       c.vehicle_number.toLowerCase().includes(search.toLowerCase()) ||
@@ -43,8 +107,8 @@ export default function PostServiceCallsCard() {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow p-4 flex flex-col">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 w-full">
+    <div className="bg-white rounded-xl shadow p-4 flex flex-col min-w-[320px]">
+      <div className="flex flex-row items-center justify-between gap-2 mb-4 w-full">
         <h6 className="text-lg text-black font-bold whitespace-nowrap">Post Service Calls</h6>
         <PostServiceCallsToolbar
           searchValue={search}
