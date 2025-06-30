@@ -29,4 +29,4 @@ applications:
         paths:
           - client/node_modules/**/*
           - client/.npm/**/*
-      appRoot: /client
+      appRoot: client  # Changed from /client to client
