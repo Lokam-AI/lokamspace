@@ -1,0 +1,252 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import Inter font family */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Design System Foundation - Typography, Colors, Spacing */
+
+@layer base {
+  :root {
+    /* Typography Scale */
+    --font-family-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    --font-size-base: 16px;
+    --font-size-sm: 14px;
+    --font-size-h5: 16px;
+    --font-size-h4: 20px;
+    --font-size-h3: 24px;
+    --font-size-h2: 32px;
+    --font-size-h1: 40px;
+    --line-height-base: 1.5;
+    --line-height-heading: 1.4;
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    /* Spacing Scale (4px base) */
+    --spacing-1: 4px;
+    --spacing-2: 8px;
+    --spacing-3: 12px;
+    --spacing-4: 16px;
+    --spacing-6: 24px;
+    --spacing-8: 32px;
+    --spacing-12: 48px;
+    --spacing-16: 64px;
+
+    /* Border Radius */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+
+    /* Component Sizes */
+    --button-height-sm: 36px;
+    --button-height-md: 44px;
+    --button-height-lg: 52px;
+    --input-height: 40px;
+
+    /* Light Theme Colors - Fixed to pure white backgrounds */
+    --background: 0 0% 100%;
+    --background-card: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --foreground-secondary: 215.4 16.3% 46.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    /* Brand Colors - Tech Blue Primary */
+    --primary: 213 94% 40%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 213 94% 35%;
+
+    /* Semantic Colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 45 100% 51%;
+    --warning-foreground: 220 9% 15%;
+    --destructive: 0 84% 37%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Secondary Colors */
+    --secondary: 210 40% 98%;
+    --secondary-foreground: 222.2 84% 4.9%;
+
+    --muted: 210 40% 98%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 98%;
+    --accent-foreground: 222.2 84% 4.9%;
+
+    /* Border and Input */
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 213 94% 40%;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 8px 0 rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 16px 0 rgba(0, 0, 0, 0.10);
+
+    --radius: 8px;
+
+    /* Sidebar colors */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 213 94% 40%;
+  }
+
+  .dark {
+    /* Dark Theme Colors */
+    --background: 222.2 84% 4.9%;
+    --background-card: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --foreground-secondary: 215 20.2% 65.1%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Brand Colors - Adjusted for Dark */
+    --primary: 213 100% 75%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --primary-hover: 213 100% 70%;
+
+    /* Semantic Colors - Dark Adjusted */
+    --success: 142 76% 50%;
+    --success-foreground: 222.2 84% 4.9%;
+    --warning: 45 100% 68%;
+    --warning-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84% 67%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Secondary Colors */
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    /* Border and Input */
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 213 100% 75%;
+
+    /* Shadows - Enhanced for Dark */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 2px 4px 0 rgba(0, 0, 0, 0.6);
+    --shadow-lg: 0 4px 8px 0 rgba(0, 0, 0, 0.8);
+
+    /* Sidebar colors */
+    --sidebar-background: 222.2 84% 4.9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 213 100% 75%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 213 100% 75%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-family-primary);
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-base);
+  }
+
+  /* Typography Scale */
+  h1 {
+    font-size: var(--font-size-h1);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-heading);
+  }
+
+  h2 {
+    font-size: var(--font-size-h2);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-heading);
+  }
+
+  h3 {
+    font-size: var(--font-size-h3);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-heading);
+  }
+
+  h4 {
+    font-size: var(--font-size-h4);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-heading);
+  }
+
+  h5 {
+    font-size: var(--font-size-h5);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-heading);
+  }
+
+  /* Responsive Typography */
+  @media (max-width: 768px) {
+    body {
+      font-size: var(--font-size-sm);
+    }
+  }
+}
+
+/* Utility Classes for Design System */
+@layer utilities {
+  .text-primary {
+    color: hsl(var(--foreground));
+  }
+
+  .text-secondary {
+    color: hsl(var(--foreground-secondary));
+  }
+
+  .bg-card-elevated {
+    background-color: hsl(var(--background-card));
+    box-shadow: var(--shadow-md);
+  }
+
+  .transition-smooth {
+    transition: all 150ms ease-in-out;
+  }
+
+  .transition-smooth-200 {
+    transition: all 200ms ease-in-out;
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+
+  .focus-glow {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+  }
+
+  .dark .focus-glow {
+    @apply focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:shadow-[0_0_0_2px_hsl(var(--primary))];
+  }
+}
