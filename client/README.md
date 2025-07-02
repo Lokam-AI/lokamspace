@@ -1,96 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Welcome to your Lovable project
 
-## Getting Started
+## Project info
 
-First, run the development server:
+**URL**: https://lovable.dev/projects/3a0326fb-1b99-4fe6-8531-ccd27b73381c
 
-```bash
+## How can I edit this code?
+
+There are several ways of editing your application.
+
+**Use Lovable**
+
+Simply visit the [Lovable Project](https://lovable.dev/projects/3a0326fb-1b99-4fe6-8531-ccd27b73381c) and start prompting.
+
+Changes made via Lovable will be committed automatically to this repo.
+
+**Use your preferred IDE**
+
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+
+The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+
+Follow these steps:
+
+```sh
+# Step 1: Clone the repository using the project's Git URL.
+git clone <YOUR_GIT_URL>
+
+# Step 2: Navigate to the project directory.
+cd <YOUR_PROJECT_NAME>
+
+# Step 3: Install the necessary dependencies.
+npm i
+
+# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Edit a file directly in GitHub**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Navigate to the desired file(s).
+- Click the "Edit" button (pencil icon) at the top right of the file view.
+- Make your changes and commit the changes.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Use GitHub Codespaces**
 
-## Learn More
+- Navigate to the main page of your repository.
+- Click on the "Code" button (green button) near the top right.
+- Select the "Codespaces" tab.
+- Click on "New codespace" to launch a new Codespace environment.
+- Edit files directly within the Codespace and commit and push your changes once you're done.
 
-To learn more about Next.js, take a look at the following resources:
+## What technologies are used for this project?
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This project is built with:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
 
-## Deploy on Vercel
+## How can I deploy this project?
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Simply open [Lovable](https://lovable.dev/projects/3a0326fb-1b99-4fe6-8531-ccd27b73381c) and click on Share -> Publish.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Can I connect a custom domain to my Lovable project?
 
-## 🗄️ Project Structure
+Yes, you can!
 
-Most of the code lives in the `src` folder and looks something like this:
+To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
-```sh
-src
-|
-+-- app               # application layer containing:
-|   +-- layout.tsx    # root layout component
-|   +-- page.tsx      # landing page route
-|   +-- globals.css   # global Tailwind CSS and base styles
-|   +-- favicon.ico   # favicon used by the app
-|
-+-- assets            # global static files such as images, fonts, etc.
-|
-+-- components        # shared components used across the entire application
-|
-+-- config            # global configurations, exported env variables etc.
-|
-+-- features          # feature based modules (e.g., agents or tools)
-|
-+-- hooks             # shared hooks used across the entire application
-|
-+-- lib               # reusable libraries preconfigured for the application
-|
-+-- stores            # global state stores
-|
-+-- testing           # test utilities and mocks
-|
-+-- types             # shared types used across the application
-|
-+-- utils             # shared utility functions
-```
-
-For easy scalability and maintenance, organize most of the code within the features folder. Each feature folder should contain code specific to that feature, keeping things neatly separated. This approach helps prevent mixing feature-related code with shared components, making it simpler to manage and maintain the codebase compared to having many files in a flat folder structure. By adopting this method, you can enhance collaboration, readability, and scalability in the application's architecture.
-
-A feature could have the following structure:
-
-```sh
-src/features/agent-name
-|
-+-- api         # exported API request declarations and API hooks related to a specific feature
-|
-+-- assets      # assets folder can contain all the static files for a specific feature
-|
-+-- components  # components scoped to a specific feature
-|
-+-- hooks       # hooks scoped to a specific feature
-|
-+-- stores      # state stores for a specific feature
-|
-+-- types       # TypeScript types used within the feature
-|
-+-- utils       # utility functions for a specific feature
-```
-
-## 🧠 Feature Isolation Rule:
-
-Each feature should remain self-contained and should not import from other features. Only import from shared folders such as components, hooks, lib, types, and utils. This keeps the codebase modular, predictable, and easier to test and scale.
+Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
