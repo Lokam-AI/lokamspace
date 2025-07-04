@@ -112,3 +112,5 @@ terraform.tfstate.backup
 *~
 __pycache__/
 *.pyc
+
+# plans/

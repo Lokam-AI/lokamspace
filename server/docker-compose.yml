@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://autopulse:autopulse@db:5432/autopulse
+      - ENVIRONMENT=development
+      - LOG_LEVEL=debug
+      - SECRET_KEY=dev_secret_key_replace_in_production
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+      - JWT_SECRET=dev_jwt_secret_replace_in_production
+      - JWT_ALGORITHM=HS256
+      - JWT_EXPIRATION=86400
+    depends_on:
+      - db
+    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+  db:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=autopulse
+      - POSTGRES_PASSWORD=autopulse
+      - POSTGRES_DB=autopulse
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@autopulse.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    depends_on:
+      - db
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data: 
