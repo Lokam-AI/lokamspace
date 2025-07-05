@@ -25,11 +25,7 @@
 ehthumbs.db
 Thumbs.db
 
-# Environment and secrets
-.env
-.env.local
-.env.*
-!.env.example
+
 
 notes.md
 

@@ -1,0 +1,63 @@
+"""
+Organization schemas.
+"""
+
+from typing import List, Optional
+from uuid import UUID
+
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
+
+
+class OrganizationBase(BaseModel):
+    """Base organization schema."""
+    
+    name: str
+    email: EmailStr
+    phone_feedback: Optional[str] = None
+    phone_support: Optional[str] = None
+    phone_service: Optional[str] = None
+    description: Optional[str] = None
+    location: Optional[str] = None
+    call_concurrency_limit: int = 1
+    service_types: Optional[List[str]] = None
+    focus_areas: Optional[List[str]] = None
+    hipaa_compliant: bool = False
+    pci_compliant: bool = False
+
+
+class OrganizationCreate(OrganizationBase):
+    """Organization creation schema."""
+    pass
+
+
+class OrganizationUpdate(BaseModel):
+    """Organization update schema."""
+    
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone_feedback: Optional[str] = None
+    phone_support: Optional[str] = None
+    phone_service: Optional[str] = None
+    description: Optional[str] = None
+    location: Optional[str] = None
+    call_concurrency_limit: Optional[int] = None
+    service_types: Optional[List[str]] = None
+    focus_areas: Optional[List[str]] = None
+    hipaa_compliant: Optional[bool] = None
+    pci_compliant: Optional[bool] = None
+
+
+class OrganizationDB(OrganizationBase):
+    """Organization database schema."""
+    
+    id: UUID
+    plan_id: Optional[int] = None
+    credit_balance: float = 0.0
+    
+    class Config:
+        from_attributes = True
+
+
+class OrganizationResponse(OrganizationDB):
+    """Organization response schema."""
+    pass

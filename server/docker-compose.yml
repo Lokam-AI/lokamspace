@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   api:
     build:
@@ -10,11 +8,15 @@ services:
     volumes:
       - .:/app
     environment:
-      - DATABASE_URL=postgresql+asyncpg://autopulse:autopulse@db:5432/autopulse
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=autopulse
+      - POSTGRES_PASSWORD=autopulse
+      - POSTGRES_DB=autopulse
       - ENVIRONMENT=development
       - LOG_LEVEL=debug
       - SECRET_KEY=dev_secret_key_replace_in_production
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+      - CORS_ORIGINS=["http://localhost:3000", "http://localhost:5173"]
       - JWT_SECRET=dev_jwt_secret_replace_in_production
       - JWT_ALGORITHM=HS256
       - JWT_EXPIRATION=86400
@@ -25,7 +27,7 @@ services:
   db:
     image: postgres:15
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       - POSTGRES_USER=autopulse
       - POSTGRES_PASSWORD=autopulse

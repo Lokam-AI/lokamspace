@@ -1,0 +1,37 @@
+# API framework
+fastapi
+uvicorn[standard]
+starlette
+pydantic
+pydantic-settings
+python-multipart
+
+# Database and ORM
+SQLAlchemy
+alembic
+asyncpg
+psycopg2-binary
+greenlet
+
+# Security
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt
+
+# Utilities
+python-dotenv
+httpx
+ujson
+email-validator
+
+# Date handling
+pytz
+python-dateutil
+
+# Development tools
+pytest
+pytest-asyncio
+black
+isort
+flake8
+mypy
