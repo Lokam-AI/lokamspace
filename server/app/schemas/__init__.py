@@ -3,7 +3,7 @@ Schema package.
 Import all schemas here for convenient imports.
 """
 
-from app.schemas.auth import Token, TokenPayload, UserLogin, PasswordReset, PasswordChange
+from app.schemas.auth import Token, TokenPayload, UserLogin, PasswordReset, PasswordChange, UserRegistration, UserInfo
 from app.schemas.call import (
     CallBase,
     CallCreate,
@@ -25,6 +25,7 @@ from app.schemas.organization import (
     OrganizationUpdate,
     OrganizationDB,
     OrganizationResponse,
+    OrganizationSettingsUpdate,
 )
 from app.schemas.service_record import (
     ServiceRecordBase,
@@ -58,6 +59,8 @@ __all__ = [
     "UserLogin", 
     "PasswordReset", 
     "PasswordChange",
+    "UserRegistration",
+    "UserInfo",
     
     # User schemas
     "UserBase", 
@@ -72,6 +75,7 @@ __all__ = [
     "OrganizationUpdate",
     "OrganizationDB",
     "OrganizationResponse",
+    "OrganizationSettingsUpdate",
     
     # Campaign schemas
     "CampaignBase",

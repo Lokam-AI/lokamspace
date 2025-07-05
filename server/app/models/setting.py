@@ -3,7 +3,7 @@ Setting model for organization settings.
 """
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -26,7 +26,9 @@ class Setting(Base):
     
     # Setting details
     key = Column(String(100), nullable=False)
-    value = Column(Text, nullable=False)
+    value = Column(JSONB, nullable=False)
+    category = Column(String(50), nullable=False, default="general")
+    description = Column(Text, nullable=True)
     
     # Relationships
     organization = relationship("Organization", back_populates="settings")

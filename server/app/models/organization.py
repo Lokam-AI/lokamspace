@@ -41,10 +41,15 @@ class Organization(Base):
     name = Column(String(255), nullable=False, unique=True)
     email = Column(String(255), nullable=False, unique=True)
     phone_feedback = Column(String(20))
-    phone_support = Column(String(20))
-    phone_service = Column(String(20))
+    phone_booking = Column(String(20))  # Renamed from phone_service
+    phone_inquiry = Column(String(20))  # Renamed from phone_support
     description = Column(Text)
-    location = Column(Text)
+    service_center_description = Column(Text)
+    
+    # Location fields
+    location = Column(Text)  # Keep for backward compatibility
+    location_city = Column(String(255))  # City name (e.g., "New York, NY, USA")
+    location_value = Column(String(100))  # City value (e.g., "new-york")
     
     # Business settings
     call_concurrency_limit = Column(Integer, nullable=False, default=1)
@@ -72,6 +77,7 @@ class Organization(Base):
     dms_integrations = relationship("DMSIntegration", back_populates="organization")
     settings = relationship("Setting", back_populates="organization")
     audit_logs = relationship("AuditLog", back_populates="organization")
+    knowledge_files = relationship("KnowledgeFile", back_populates="organization")
     
     def __repr__(self) -> str:
         return f"<Organization {self.name}>"

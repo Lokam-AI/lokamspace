@@ -212,4 +212,29 @@ async def update_setting_by_key(
         value=value,
         description=description,
         db=db
-    ) 
+    )
+
+
+@router.post("/initialize", status_code=status.HTTP_200_OK)
+async def initialize_settings(
+    organization: Organization = Depends(get_current_organization),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_tenant_db),
+) -> dict:
+    """
+    Initialize default settings for the organization.
+    
+    Args:
+        organization: Current organization
+        current_user: Current authenticated user
+        db: Database session
+        
+    Returns:
+        dict: Success message
+    """
+    await SettingsService.initialize_default_settings(
+        organization_id=organization.id,
+        db=db
+    )
+    
+    return {"message": "Default settings initialized successfully"} 

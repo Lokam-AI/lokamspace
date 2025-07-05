@@ -28,6 +28,7 @@ class DMSIntegration(Base):
     name = Column(String(100), nullable=False)
     type = Column(String(50), nullable=False)  # e.g., "CDK", "Reynolds", "DealerTrack"
     config = Column(JSONB, nullable=False)  # Credentials, endpoints, etc.
+    timeout_seconds = Column(Integer, default=20)
     is_active = Column(Boolean, default=True, nullable=False)
     
     # Relationships

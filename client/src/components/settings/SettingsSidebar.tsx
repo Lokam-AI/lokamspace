@@ -1,4 +1,3 @@
-
 import { Settings, CreditCard, Users, Plug, User, Cog } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -10,16 +9,22 @@ interface SettingsSidebarProps {
 const orgSettingsItems = [
   { id: "org-settings", title: "Org Settings", icon: Settings },
   { id: "configuration", title: "Configuration", icon: Cog },
-  { id: "billing", title: "Billing & Add-Ons", icon: CreditCard },
+  {
+    id: "billing",
+    title: "Billing & Add-Ons",
+    icon: CreditCard,
+    disabled: true,
+  },
   { id: "members", title: "Members", icon: Users },
-  { id: "integrations", title: "Integrations", icon: Plug },
+  { id: "integrations", title: "Integrations", icon: Plug, disabled: true },
 ];
 
-const accountSettingsItems = [
-  { id: "profile", title: "Profile", icon: User },
-];
+const accountSettingsItems = [{ id: "profile", title: "Profile", icon: User }];
 
-export function SettingsSidebar({ activeSection, onSectionChange }: SettingsSidebarProps) {
+export function SettingsSidebar({
+  activeSection,
+  onSectionChange,
+}: SettingsSidebarProps) {
   return (
     <div className="w-80 border-r border-border bg-background p-6 sticky top-0 h-screen overflow-y-auto">
       <div className="mb-8">
@@ -46,16 +51,23 @@ export function SettingsSidebar({ activeSection, onSectionChange }: SettingsSide
               return (
                 <button
                   key={item.id}
-                  onClick={() => onSectionChange(item.id)}
+                  onClick={() => !item.disabled && onSectionChange(item.id)}
                   className={cn(
                     "w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                    activeSection === item.id
+                    item.disabled
+                      ? "opacity-50 cursor-not-allowed"
+                      : activeSection === item.id
                       ? "bg-primary text-primary-foreground"
                       : "text-foreground hover:bg-accent hover:text-accent-foreground"
                   )}
                 >
                   <Icon className="h-4 w-4" />
                   <span>{item.title}</span>
+                  {item.disabled && (
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      Coming soon
+                    </span>
+                  )}
                 </button>
               );
             })}

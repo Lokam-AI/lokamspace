@@ -4,6 +4,7 @@ Settings service for managing organization settings.
 
 from typing import Any, Dict, List, Optional
 from uuid import UUID
+import json
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -198,6 +199,50 @@ class SettingsService:
         return setting
     
     @staticmethod
+    async def initialize_default_settings(
+        db: AsyncSession,
+        organization_id: UUID) -> None:
+        """
+        Initialize default settings for a new organization.
+        
+        Args:
+            organization_id: Organization ID
+            db: Database session
+        """
+        # Default inquiry topics
+        default_inquiry_topics = [
+            "Service Estimate Request",
+            "Appointment Scheduling",
+            "Service Status Update",
+            "Billing & Payment Questions",
+            "Warranty Information",
+            "Parts Availability",
+            "Customer Complaints",
+            "General Information Request",
+        ]
+        
+        # Check if inquiry_topics setting exists
+        setting = await SettingsService.get_setting_by_key(
+            key="inquiry_topics",
+            organization_id=organization_id,
+            db=db
+        )
+        
+        # Create if it doesn't exist
+        if setting is None:
+            setting_data = SettingCreate(
+                key="inquiry_topics",
+                value=default_inquiry_topics,  # JSONB can handle Python lists directly
+                description="Types of inquiries expected from customers",
+                category="inquiries",
+                organization_id=organization_id
+            )
+            await SettingsService.create_setting(
+                setting_data=setting_data,
+                db=db
+            )
+    
+    @staticmethod
     async def delete_setting(
         db: AsyncSession,
         setting_id: int,
@@ -238,7 +283,8 @@ class SettingsService:
         """
         settings = await SettingsService.list_settings(
             organization_id=organization_id,
-            db=db
+            db=db,
+            category=None
         )
         
         # Organize settings by category

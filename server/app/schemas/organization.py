@@ -14,10 +14,13 @@ class OrganizationBase(BaseModel):
     name: str
     email: EmailStr
     phone_feedback: Optional[str] = None
-    phone_support: Optional[str] = None
-    phone_service: Optional[str] = None
+    phone_booking: Optional[str] = None  # Renamed from phone_service
+    phone_inquiry: Optional[str] = None  # Renamed from phone_support
     description: Optional[str] = None
+    service_center_description: Optional[str] = None
     location: Optional[str] = None
+    location_city: Optional[str] = None
+    location_value: Optional[str] = None
     call_concurrency_limit: int = 1
     service_types: Optional[List[str]] = None
     focus_areas: Optional[List[str]] = None
@@ -36,15 +39,30 @@ class OrganizationUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     phone_feedback: Optional[str] = None
-    phone_support: Optional[str] = None
-    phone_service: Optional[str] = None
+    phone_booking: Optional[str] = None
+    phone_inquiry: Optional[str] = None
     description: Optional[str] = None
+    service_center_description: Optional[str] = None
     location: Optional[str] = None
+    location_city: Optional[str] = None
+    location_value: Optional[str] = None
     call_concurrency_limit: Optional[int] = None
     service_types: Optional[List[str]] = None
     focus_areas: Optional[List[str]] = None
     hipaa_compliant: Optional[bool] = None
     pci_compliant: Optional[bool] = None
+
+
+class OrganizationSettingsUpdate(BaseModel):
+    """Organization settings update schema."""
+    
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    location_city: Optional[str] = None
+    location_value: Optional[str] = None
+    phone_feedback: Optional[str] = None
+    phone_booking: Optional[str] = None
+    phone_inquiry: Optional[str] = None
 
 
 class OrganizationDB(OrganizationBase):

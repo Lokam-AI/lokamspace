@@ -31,6 +31,7 @@ class Inquiry(Base):
     
     # Inquiry content
     message = Column(Text, nullable=False)
+    topic = Column(String(100))
     
     # Status (e.g., "New", "In Progress", "Responded", "Closed")
     status = Column(String(20), nullable=False, default="New")

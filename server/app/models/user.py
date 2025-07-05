@@ -64,6 +64,7 @@ class User(Base):
     )
     payment_history = relationship("PaymentHistory", back_populates="user")
     audit_logs = relationship("AuditLog", back_populates="user")
+    uploaded_files = relationship("KnowledgeFile", back_populates="user")
     
     def __repr__(self) -> str:
         return f"<User {self.email} ({self.role})>"

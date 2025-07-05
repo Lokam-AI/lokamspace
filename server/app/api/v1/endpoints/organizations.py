@@ -3,16 +3,17 @@ Organization API endpoints.
 """
 
 import uuid
-from typing import Any, List
+from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.dependencies import get_admin_user, get_current_organization, get_current_user
 from app.models import Organization, User
-from app.schemas import OrganizationCreate, OrganizationResponse, OrganizationUpdate
+from app.schemas import OrganizationCreate, OrganizationResponse, OrganizationUpdate, OrganizationSettingsUpdate
+from app.services.organization_service import OrganizationService
 
 router = APIRouter()
 
@@ -63,6 +64,58 @@ async def update_organization(
     await db.refresh(organization)
     
     return organization
+
+
+@router.put("/settings", response_model=OrganizationResponse)
+async def update_organization_settings(
+    settings_update: OrganizationSettingsUpdate,
+    organization: Organization = Depends(get_current_organization),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """
+    Update organization settings.
+    
+    Args:
+        settings_update: Updated organization settings
+        organization: Current organization
+        current_user: Current authenticated user
+        db: Database session
+        
+    Returns:
+        OrganizationResponse: Updated organization
+    """
+    return await OrganizationService.update_organization_settings(
+        db=db,
+        organization_id=organization.id,
+        settings_data=settings_update
+    )
+
+
+@router.put("/configuration", response_model=OrganizationResponse)
+async def update_organization_configuration(
+    config_data: Dict = Body(...),
+    organization: Organization = Depends(get_current_organization),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """
+    Update organization configuration.
+    
+    Args:
+        config_data: Configuration data
+        organization: Current organization
+        current_user: Current authenticated user
+        db: Database session
+        
+    Returns:
+        OrganizationResponse: Updated organization
+    """
+    return await OrganizationService.update_organization_configuration(
+        db=db,
+        organization_id=organization.id,
+        config_data=config_data
+    )
 
 
 @router.get("/stats", response_model=dict)

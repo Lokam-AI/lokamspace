@@ -4,20 +4,150 @@ Authentication API endpoints.
 
 from datetime import timedelta
 from typing import Any
+import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security import create_access_token, verify_password
+from app.core.security import create_access_token, verify_password, get_password_hash
 from app.dependencies import get_current_user
-from app.models import User
-from app.schemas import PasswordChange, PasswordReset, Token, UserResponse
+from app.models import User, Organization
+from app.schemas import PasswordChange, PasswordReset, Token, UserResponse, UserRegistration, UserLogin
 from app.core.config import settings
 
 router = APIRouter()
+
+
+@router.post("/register", response_model=Token)
+async def register(
+    user_data: UserRegistration,
+    db: AsyncSession = Depends(get_db)
+) -> Any:
+    """
+    Register a new user and organization.
+    
+    Args:
+        user_data: User registration data
+        db: Database session
+        
+    Returns:
+        Token: JWT access token
+    """
+    # Check if email already exists
+    result = await db.execute(
+        select(User).where(User.email == user_data.email)
+    )
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    # Create organization if organization_name is provided
+    organization = Organization(
+        id=uuid.uuid4(),
+        name=user_data.organization_name or f"{user_data.full_name}'s Organization",
+        email=user_data.email
+    )
+    db.add(organization)
+    await db.flush()
+    
+    # Create user
+    user = User(
+        name=user_data.full_name,
+        email=user_data.email,
+        password_hash=get_password_hash(user_data.password),
+        organization_id=organization.id,
+        role="Admin"  # First user is admin
+    )
+    db.add(user)
+    await db.commit()
+    
+    # Generate access token
+    access_token_expires = timedelta(seconds=settings.JWT_EXPIRATION)
+    access_token = create_access_token(
+        data={
+            "sub": user.email,
+            "organization_id": str(user.organization_id),
+            "role": user.role
+        },
+        expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "user": {
+            "id": str(user.id),
+            "email": user.email,
+            "full_name": user.name,
+            "role": user.role,
+            "organization_id": str(user.organization_id)
+        }
+    }
+
+
+@router.post("/login/json", response_model=Token)
+async def login_json(
+    login_data: UserLogin,
+    db: AsyncSession = Depends(get_db)
+) -> Any:
+    """
+    JSON login endpoint.
+    
+    Args:
+        login_data: Login credentials in JSON format
+        db: Database session
+        
+    Returns:
+        Token: JWT access token
+    """
+    # Find user by email
+    result = await db.execute(
+        select(User).where(User.email == login_data.email)
+    )
+    user = result.scalar_one_or_none()
+    
+    # Check if user exists and password is correct
+    if not user or not verify_password(login_data.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Check if user is active
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user"
+        )
+    
+    # Generate access token
+    access_token_expires = timedelta(seconds=settings.JWT_EXPIRATION)
+    access_token = create_access_token(
+        data={
+            "sub": user.email,
+            "organization_id": str(user.organization_id),
+            "role": user.role
+        },
+        expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "user": {
+            "id": str(user.id),
+            "email": user.email,
+            "full_name": user.name,
+            "role": user.role,
+            "organization_id": str(user.organization_id)
+        }
+    }
 
 
 @router.post("/login", response_model=Token)
@@ -67,7 +197,17 @@ async def login(
         expires_delta=access_token_expires
     )
     
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "user": {
+            "id": str(user.id),
+            "email": user.email,
+            "full_name": user.name,
+            "role": user.role,
+            "organization_id": str(user.organization_id)
+        }
+    }
 
 
 @router.get("/me", response_model=UserResponse)
@@ -111,7 +251,6 @@ async def change_password(
         )
     
     # Update password hash
-    from app.core.security import get_password_hash
     current_user.password_hash = get_password_hash(password_data.new_password)
     
     await db.commit()

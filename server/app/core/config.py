@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     DB_ECHO: bool = False
     CREATE_TABLES_ON_STARTUP: bool = True
     
-    # CORS
+    # CORS - Default to allowing all origins in development
     CORS_ORIGINS: List[str] = ["*"]
     
     # Model configuration
@@ -87,12 +87,22 @@ class Settings(BaseSettings):
     @classmethod
     def parse_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
         """Parse CORS origins from string or list."""
+        # If we already have a list, return it
+        if isinstance(v, list):
+            return v
+        
+        # Handle empty or None values
+        if not v:
+            return ["*"]  # Default to allow all origins
+            
+        # Handle string values
         if isinstance(v, str):
             # Check if it's a JSON string
             if v.startswith("[") and v.endswith("]"):
                 try:
                     return json.loads(v)
                 except json.JSONDecodeError:
+                    # If JSON parsing fails, treat as comma-separated
                     pass
             
             # Handle comma-separated string
@@ -101,10 +111,9 @@ class Settings(BaseSettings):
             
             # Single value
             return [v]
-        elif isinstance(v, list):
-            return v
         
-        raise ValueError(f"Invalid CORS_ORIGINS format: {v}")
+        # Fallback to default
+        return ["*"]
 
 
 # Create settings instance

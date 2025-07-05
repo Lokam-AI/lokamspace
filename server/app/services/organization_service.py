@@ -10,7 +10,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Call, Organization, ServiceRecord
-from app.schemas import OrganizationCreate, OrganizationUpdate
+from app.schemas import OrganizationCreate, OrganizationUpdate, OrganizationSettingsUpdate
 
 
 class OrganizationService:
@@ -67,6 +67,13 @@ class OrganizationService:
         await db.commit()
         await db.refresh(organization)
         
+        # Initialize default settings for the organization
+        from app.services.settings_service import SettingsService
+        await SettingsService.initialize_default_settings(
+            db=db,
+            organization_id=organization.id
+        )
+        
         return organization
     
     @staticmethod
@@ -90,7 +97,8 @@ class OrganizationService:
         """
         # Get organization
         organization = await OrganizationService.get_organization(
-            organization_id, db
+            db=db,
+            organization_id=organization_id
         )
         
         # Update organization fields
@@ -98,6 +106,93 @@ class OrganizationService:
         
         for field, value in update_data.items():
             setattr(organization, field, value)
+        
+        # Save changes
+        await db.commit()
+        await db.refresh(organization)
+        
+        return organization
+    
+    @staticmethod
+    async def update_organization_settings(
+        db: AsyncSession,
+        organization_id: UUID,
+        settings_data: OrganizationSettingsUpdate) -> Organization:
+        """
+        Update organization settings.
+        
+        Args:
+            organization_id: Organization ID
+            settings_data: Updated organization settings
+            db: Database session
+            
+        Returns:
+            Organization: Updated organization
+            
+        Raises:
+            HTTPException: If organization not found
+        """
+        # Get organization
+        organization = await OrganizationService.get_organization(
+            db=db,
+            organization_id=organization_id
+        )
+        
+        # Update organization fields
+        update_data = settings_data.model_dump(exclude_unset=True)
+        
+        # Update location field for backward compatibility
+        if 'location_city' in update_data and update_data['location_city']:
+            update_data['location'] = update_data['location_city']
+        
+        for field, value in update_data.items():
+            setattr(organization, field, value)
+        
+        # Save changes
+        await db.commit()
+        await db.refresh(organization)
+        
+        return organization
+    
+    @staticmethod
+    async def update_organization_configuration(
+        db: AsyncSession,
+        organization_id: UUID,
+        config_data: dict) -> Organization:
+        """
+        Update organization configuration.
+        
+        Args:
+            organization_id: Organization ID
+            config_data: Configuration data
+            db: Database session
+            
+        Returns:
+            Organization: Updated organization
+            
+        Raises:
+            HTTPException: If organization not found
+        """
+        # Get organization
+        organization = await OrganizationService.get_organization(
+            db=db,
+            organization_id=organization_id
+        )
+        
+        # Fields that can be updated
+        allowed_fields = [
+            "description", 
+            "service_center_description",
+            "focus_areas",
+            "service_types", 
+            "hipaa_compliant",
+            "pci_compliant"
+        ]
+        
+        # Update only allowed fields
+        for field in allowed_fields:
+            if field in config_data:
+                setattr(organization, field, config_data[field])
         
         # Save changes
         await db.commit()
@@ -143,7 +238,8 @@ class OrganizationService:
         
         # Get organization for credit balance
         organization = await OrganizationService.get_organization(
-            organization_id, db
+            db=db,
+            organization_id=organization_id
         )
         
         # Calculate completion rate
