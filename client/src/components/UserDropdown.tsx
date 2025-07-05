@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { HelpCircle, LogOut, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,12 +19,27 @@ import {
 } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { getOrganizationSettings, Organization } from "@/api/endpoints/organizations";
 
 const UserDropdown = () => {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
   const { logout, user } = useAuth();
+  const [organization, setOrganization] = useState<Organization | null>(null);
+
+  // Fetch organization details when user is available
+  useEffect(() => {
+    if (user && user.organization_id) {
+      getOrganizationSettings()
+        .then((orgData) => {
+          setOrganization(orgData);
+        })
+        .catch((error) => {
+          console.error('Failed to fetch organization:', error);
+        });
+    }
+  }, [user]);
 
   const handleSignOut = async () => {
     try {
@@ -60,8 +75,8 @@ const UserDropdown = () => {
   const userEmail = user?.email || "user@example.com";
   // Get first letter of email for avatar
   const avatarLetter = userEmail.charAt(0).toUpperCase();
-  // Get organization name or use default
-  const orgName = user?.full_name ? `${user.full_name}'s Org` : "Organization";
+  // Get organization name from API or use default
+  const orgName = organization?.name || "Organization";
 
   const avatarButton = (
     <Button
