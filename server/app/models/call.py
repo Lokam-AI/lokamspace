@@ -27,6 +27,9 @@ class Call(Base):
     # ServiceRecord relationship
     service_record_id = Column(Integer, ForeignKey("service_record.id"), nullable=True)
     
+    # Campaign relationship
+    campaign_id = Column(Integer, ForeignKey("campaign.id"), nullable=True)
+    
     # User (agent) relationship
     agent_id = Column(Integer, ForeignKey("user.id"), nullable=True)
     
@@ -43,9 +46,15 @@ class Call(Base):
     # Recording information
     recording_url = Column(Text)
     
+    # Added fields for feedback calls
+    nps_score = Column(Integer, nullable=True)
+    call_reason = Column(String(100), nullable=True)
+    feedback_summary = Column(Text, nullable=True)
+    
     # Relationships
     organization = relationship("Organization", back_populates="calls")
     service_record = relationship("ServiceRecord", back_populates="calls")
+    campaign = relationship("Campaign", back_populates="calls")
     agent = relationship("User", foreign_keys=[agent_id])
     transcript = relationship("Transcript", back_populates="call")
     audio_file = relationship("AudioFile", back_populates="call", uselist=False)

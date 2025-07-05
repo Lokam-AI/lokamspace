@@ -191,4 +191,31 @@ async def get_trend_analysis(
         start_date=start_date,
         end_date=end_date,
         db=db
+    )
+
+
+@router.get("/calls/summary", response_model=Dict[str, Any])
+async def get_calls_summary_metrics(
+    organization: Organization = Depends(get_current_organization),
+    db: AsyncSession = Depends(get_tenant_db),
+) -> Any:
+    """
+    Get summary metrics for calls dashboard.
+    
+    Args:
+        organization: Current organization
+        db: Database session
+        
+    Returns:
+        Dict[str, Any]: Call summary metrics including:
+            - ready_count: Number of calls in Ready/Scheduled status
+            - missed_count: Number of calls in Failed/Missed status
+            - completed_count: Number of calls in Completed status
+            - avg_nps: Average NPS score for completed calls
+            - promoters_count: Number of completed calls with NPS >= 7
+            - detractors_count: Number of completed calls with NPS <= 5
+    """
+    return await AnalyticsService.get_calls_summary_metrics(
+        organization_id=organization.id,
+        db=db
     ) 

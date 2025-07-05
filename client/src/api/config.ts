@@ -50,11 +50,24 @@ export const handleApiError = async (response: Response) => {
       handleTokenExpiration(response.status);
     }
 
-    const errorData = await response.json().catch(() => null);
+    console.error(
+      `API Error: ${response.status} ${response.statusText} - ${response.url}`
+    );
+
+    let errorData;
+    try {
+      errorData = await response.json();
+      console.error("Error details:", errorData);
+    } catch (e) {
+      console.error("Could not parse error response as JSON");
+      errorData = null;
+    }
+
     throw {
       status: response.status,
       statusText: response.statusText,
       data: errorData,
+      url: response.url,
     };
   }
   return response;

@@ -649,4 +649,61 @@ class AnalyticsService:
                     date_key = call_date.isoformat()
                     distribution[date_key] += 1
         
-        return distribution 
+        return distribution
+    
+    @staticmethod
+    async def get_calls_summary_metrics(
+        db: AsyncSession,
+        organization_id: UUID
+    ) -> Dict[str, Any]:
+        """
+        Get summary metrics for calls dashboard.
+        
+        Args:
+            db: Database session
+            organization_id: Organization ID
+            
+        Returns:
+            Dict[str, Any]: Call summary metrics including:
+                - ready_count: Number of calls in Ready/Scheduled status
+                - missed_count: Number of calls in Failed/Missed status
+                - completed_count: Number of calls in Completed status
+                - avg_nps: Average NPS score for completed calls
+                - promoters_count: Number of completed calls with NPS >= 7
+                - detractors_count: Number of completed calls with NPS <= 5
+        """
+        # Query for all calls for this organization
+        query = select(Call).where(Call.organization_id == organization_id)
+        result = await db.execute(query)
+        calls = result.scalars().all()
+        
+        # Calculate metrics
+        ready_calls = [call for call in calls if call.status == "Scheduled"]
+        missed_calls = [call for call in calls if call.status in ["Failed", "Missed"]]
+        completed_calls = [call for call in calls if call.status == "Completed"]
+        
+        # Count metrics
+        ready_count = len(ready_calls)
+        missed_count = len(missed_calls)
+        completed_count = len(completed_calls)
+        
+        # NPS metrics
+        nps_scores = [call.nps_score for call in completed_calls if call.nps_score is not None]
+        avg_nps = sum(nps_scores) / len(nps_scores) if nps_scores else 0
+        
+        # Promoters (NPS >= 7)
+        promoters = [score for score in nps_scores if score >= 7]
+        promoters_count = len(promoters)
+        
+        # Detractors (NPS <= 5)
+        detractors = [score for score in nps_scores if score <= 5]
+        detractors_count = len(detractors)
+        
+        return {
+            "ready_count": ready_count,
+            "missed_count": missed_count,
+            "completed_count": completed_count,
+            "avg_nps": round(avg_nps, 1),
+            "promoters_count": promoters_count,
+            "detractors_count": detractors_count
+        } 

@@ -11,6 +11,8 @@ from app.schemas.call import (
     CallDB,
     CallResponse,
     TranscriptSnippet,
+    BulkCallUpload,
+    CSVTemplateResponse,
 )
 from app.schemas.campaign import (
     CampaignBase,
@@ -98,6 +100,8 @@ __all__ = [
     "CallDB",
     "CallResponse",
     "TranscriptSnippet",
+    "BulkCallUpload",
+    "CSVTemplateResponse",
     
     # Transcript schemas
     "TranscriptBase",

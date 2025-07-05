@@ -40,6 +40,7 @@ class Campaign(Base):
     creator = relationship("User", foreign_keys=[created_by], back_populates="created_campaigns")
     modifier = relationship("User", foreign_keys=[modified_by], back_populates="modified_campaigns")
     service_records = relationship("ServiceRecord", back_populates="campaign")
+    calls = relationship("Call", back_populates="campaign")
     bookings = relationship("Booking", back_populates="campaign")
     schedule_configs = relationship("ScheduleConfig", back_populates="campaign")
     
