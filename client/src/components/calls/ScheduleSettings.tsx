@@ -33,7 +33,7 @@ interface ScheduleConfig {
 
 export const ScheduleSettings = () => {
   const { toast } = useToast();
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
