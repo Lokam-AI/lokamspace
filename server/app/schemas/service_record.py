@@ -24,6 +24,7 @@ class ServiceRecordBase(BaseModel):
     status: str = "Scheduled"  # Scheduled, In Progress, Completed, Cancelled
     total_amount: Optional[float] = None
     notes: Optional[str] = None
+    is_demo: bool = False
 
 
 class ServiceRecordCreate(ServiceRecordBase):
@@ -47,6 +48,7 @@ class ServiceRecordUpdate(BaseModel):
     status: Optional[str] = None
     total_amount: Optional[float] = None
     notes: Optional[str] = None
+    is_demo: Optional[bool] = None
 
 
 class ServiceRecordDB(ServiceRecordBase):

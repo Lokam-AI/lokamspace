@@ -2,7 +2,7 @@
 Demo call schemas.
 """
 
-from typing import Optional
+from typing import Dict, Optional, Any
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -14,8 +14,10 @@ class DemoCallCreate(BaseModel):
     customer_name: str
     phone_number: str
     vehicle_number: Optional[str] = None
+    service_advisor_name: Optional[str] = None
+    service_type: Optional[str] = "Feedback Call"
     campaign_id: Optional[int] = None
-    organization_id: UUID
+    organization_id: Optional[UUID] = None
 
 
 class DemoCallResponse(BaseModel):
@@ -26,4 +28,5 @@ class DemoCallResponse(BaseModel):
     phone_number: str
     vehicle_number: Optional[str] = None
     campaign_id: Optional[int] = None
-    status: str 
+    status: str
+    vapi_response: Optional[Dict[str, Any]] = None 

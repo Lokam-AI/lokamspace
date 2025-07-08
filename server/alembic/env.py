@@ -43,7 +43,7 @@ db_url = f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{database}"
 
 # Set SQLAlchemy URL
 config.set_main_option('sqlalchemy.url', db_url)
-print(f"Using database URL: {db_url}")
+# print(f"Using database URL: {db_url}")
 
 # Add your model's MetaData object here
 target_metadata = Base.metadata

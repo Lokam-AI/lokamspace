@@ -58,8 +58,6 @@ coverage.xml
 # Database and Migrations
 *.sqlite3
 *.db
-server/alembic/versions/*.py
-server/alembic.ini
 
 # Node.js - Client
 node_modules/

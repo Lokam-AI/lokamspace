@@ -2,7 +2,7 @@
 Call model for phone call records.
 """
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -50,6 +50,9 @@ class Call(Base):
     nps_score = Column(Integer, nullable=True)
     call_reason = Column(String(100), nullable=True)
     feedback_summary = Column(Text, nullable=True)
+    
+    # Flag for demo calls
+    is_demo = Column(Boolean, nullable=False, default=False)
     
     # Relationships
     organization = relationship("Organization", back_populates="calls")

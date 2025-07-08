@@ -3,7 +3,7 @@ ServiceRecord model for customer service records.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, SmallInteger, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, SmallInteger, String, Text, Boolean
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import relationship
 
@@ -48,6 +48,9 @@ class ServiceRecord(Base):
     overall_feedback = Column(Text, nullable=True)
     positive_mentions = Column(ARRAY(String), nullable=True)
     areas_to_improve = Column(ARRAY(String), nullable=True)
+    
+    # Flag for demo service records
+    is_demo = Column(Boolean, nullable=False, default=False)
     
     # Audit fields
     created_by = Column(Integer, ForeignKey("user.id"))

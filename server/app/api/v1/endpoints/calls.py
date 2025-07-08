@@ -4,6 +4,7 @@ Call API endpoints.
 
 from typing import Any, List, Optional
 from uuid import UUID
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy import select
@@ -150,6 +151,7 @@ async def list_ready_calls(
         List[CallResponse]: List of calls with 'Ready' status
     """
     try:
+        print(f"Fetching ready calls for organization: {organization.id}")
         calls = await CallService.list_calls_by_status(
             organization_id=organization.id,
             status="ready",
@@ -158,9 +160,12 @@ async def list_ready_calls(
             db=db
         )
         
+        print(f"Found {len(calls)} ready calls")
+        
         # Enhance calls with additional info
         result = []
         for call in calls:
+            print(f"Processing call: {call.id}")
             call_with_info = await CallService.get_call_with_related_info(
                 call_id=call.id,
                 organization_id=organization.id,
@@ -170,6 +175,7 @@ async def list_ready_calls(
         
         return result
     except Exception as e:
+        print(f"Error retrieving ready calls: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve ready calls: {str(e)}"
@@ -268,6 +274,55 @@ async def list_completed_calls(
         )
 
 
+@router.get("/demo", response_model=List[CallResponse])
+async def list_demo_calls(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    organization: Organization = Depends(get_current_organization),
+    db: AsyncSession = Depends(get_tenant_db),
+) -> Any:
+    """
+    List demo calls.
+    
+    Args:
+        skip: Number of calls to skip
+        limit: Maximum number of calls to return
+        organization: Current organization
+        db: Database session
+        
+    Returns:
+        List[CallResponse]: List of demo calls
+    """
+    try:
+        # Get calls with "demo" status
+        calls = await CallService.list_calls_by_status(
+            organization_id=organization.id,
+            status="demo",
+            skip=skip,
+            limit=limit,
+            db=db
+        )
+        
+        # Enhance calls with related information
+        call_responses = []
+        for call in calls:
+            call_info = await CallService.get_call_with_related_info(
+                call_id=call.id,
+                organization_id=organization.id,
+                db=db
+            )
+            call_responses.append(call_info)
+        
+        return call_responses
+    except Exception as e:
+        # Log the error
+        logging.error(f"Error fetching demo calls: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch demo calls"
+        )
+
+
 @router.post("/demo", response_model=DemoCallResponse)
 async def create_demo_call(
     demo_data: DemoCallCreate,
@@ -287,26 +342,39 @@ async def create_demo_call(
     Returns:
         DemoCallResponse: Created demo call
     """
-    # Ensure organization ID matches
-    if demo_data.organization_id != organization.id:
+    try:
+        # Set organization ID from current organization if not provided
+        if not demo_data.organization_id:
+            demo_data.organization_id = organization.id
+        
+        # Create demo call
+        call = await CallService.create_demo_call(
+            demo_data=demo_data,
+            current_user_id=current_user.id,
+            db=db
+        )
+        
+        # Get service record
+        service_record = None
+        if call.service_record_id:
+            query = select(ServiceRecord).where(ServiceRecord.id == call.service_record_id)
+            result = await db.execute(query)
+            service_record = result.scalar_one_or_none()
+        
+        # Return response
+        return DemoCallResponse(
+            call_id=call.id,
+            customer_name=service_record.customer_name if service_record else None,
+            phone_number=call.customer_number,
+            vehicle_number=service_record.vehicle_info if service_record else None,
+            campaign_id=call.campaign_id,
+            status=call.status
+        )
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Organization ID mismatch"
+            detail=f"Failed to create demo call: {str(e)}"
         )
-    
-    call = await CallService.create_demo_call(
-        demo_data=demo_data,
-        db=db
-    )
-    
-    return DemoCallResponse(
-        call_id=call.id,
-        customer_name=demo_data.customer_name,
-        phone_number=demo_data.phone_number,
-        vehicle_number=demo_data.vehicle_number,
-        campaign_id=demo_data.campaign_id,
-        status=call.status
-    )
 
 
 @router.post("/demo/{call_id}/initiate", response_model=DemoCallResponse)
@@ -317,7 +385,7 @@ async def initiate_demo_call(
     db: AsyncSession = Depends(get_tenant_db),
 ) -> Any:
     """
-    Initiate a demo call.
+    Initiate a demo call with VAPI.
     
     Args:
         call_id: Call ID
@@ -326,31 +394,25 @@ async def initiate_demo_call(
         db: Database session
         
     Returns:
-        DemoCallResponse: Updated demo call
+        DemoCallResponse: Updated demo call with VAPI response
     """
     try:
-        call = await CallService.initiate_demo_call(
+        # Initiate demo call
+        call_result = await CallService.initiate_demo_call(
             call_id=call_id,
             organization_id=organization.id,
             db=db
         )
         
-        # Get service record info
-        service_record = None
-        if call.service_record_id:
-            service_record_query = select(ServiceRecord).where(
-                ServiceRecord.id == call.service_record_id
-            )
-            service_record_result = await db.execute(service_record_query)
-            service_record = service_record_result.scalars().first()
-        
+        # Return response with VAPI response included
         return DemoCallResponse(
-            call_id=call.id,
-            customer_name=service_record.customer_name if service_record else None,
-            phone_number=call.customer_number,
-            vehicle_number=service_record.vehicle_info if service_record else None,
-            campaign_id=call.campaign_id,
-            status=call.status
+            call_id=call_result["call_id"],
+            customer_name=call_result["customer_name"],
+            phone_number=call_result["customer_number"],
+            vehicle_number=call_result["vehicle_info"],
+            campaign_id=call_result["campaign_id"],
+            status=call_result["status"],
+            vapi_response=call_result["vapi_response"]
         )
     except Exception as e:
         raise HTTPException(

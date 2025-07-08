@@ -9,6 +9,7 @@ from app.services.user_service import UserService
 from app.services.campaign_service import CampaignService
 from app.services.call_service import CallService
 from app.services.service_record_service import ServiceRecordService
+from app.services.vapi_service import VAPIService
 
 __all__ = [
     "AuthService",
@@ -17,4 +18,5 @@ __all__ = [
     "CampaignService",
     "CallService",
     "ServiceRecordService",
+    "VAPIService",
 ]

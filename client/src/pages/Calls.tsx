@@ -68,6 +68,7 @@ export interface Call {
   scheduledDateTime?: string; // For backward compatibility
   callDateTime?: string; // For backward compatibility
   audioUrl?: string; // For backward compatibility
+  serviceType?: string; // For backward compatibility with service_type
 }
 
 // Mock campaigns data

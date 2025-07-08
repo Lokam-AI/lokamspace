@@ -191,7 +191,7 @@ async def get_trend_analysis(
         start_date=start_date,
         end_date=end_date,
         db=db
-    )
+    ) 
 
 
 @router.get("/calls/summary", response_model=Dict[str, Any])

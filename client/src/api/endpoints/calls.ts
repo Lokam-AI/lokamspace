@@ -25,6 +25,29 @@ export const getCallsByStatus = async (status: string, filters: any = {}) => {
 };
 
 /**
+ * Get demo calls
+ */
+export const getDemoCalls = async (filters: any = {}) => {
+  const queryParams = new URLSearchParams(filters).toString();
+  const url = `${API_BASE_URL}/calls/demo${
+    queryParams ? `?${queryParams}` : ""
+  }`;
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: getHeaders(),
+    });
+
+    await handleApiError(response);
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching demo calls:`, error);
+    throw error;
+  }
+};
+
+/**
  * Get call details by ID
  */
 export const getCallDetails = async (callId: string) => {

@@ -50,7 +50,14 @@ class Settings(BaseSettings):
     CREATE_TABLES_ON_STARTUP: bool = True
     
     # CORS - Default to allowing all origins in development
-    CORS_ORIGINS: List[str] = ["*"]
+    # Change to explicitly use a string to avoid parsing issues with .env file
+    CORS_ORIGINS: str = "*"
+
+    # VAPI Settings
+    VAPI_API_KEY: str = "your_api_key_here"
+    VAPI_ASSISTANT_ID: str = "your_assistant_id_here"
+    VAPI_DEMO_ASSISTANT_ID: str = "your_demo_assistant_id_here"
+    VAPI_PHONE_NUMBER_ID: str = "your_phone_number_id_here"
     
     # Model configuration
     model_config = SettingsConfigDict(
@@ -97,6 +104,10 @@ class Settings(BaseSettings):
             
         # Handle string values
         if isinstance(v, str):
+            # Special case for wildcard
+            if v == "*":
+                return ["*"]
+                
             # Check if it's a JSON string
             if v.startswith("[") and v.endswith("]"):
                 try:

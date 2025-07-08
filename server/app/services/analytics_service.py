@@ -649,7 +649,7 @@ class AnalyticsService:
                     date_key = call_date.isoformat()
                     distribution[date_key] += 1
         
-        return distribution
+        return distribution 
     
     @staticmethod
     async def get_calls_summary_metrics(

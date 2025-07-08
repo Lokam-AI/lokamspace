@@ -34,6 +34,9 @@ class CallBase(BaseModel):
     vehicle_info: Optional[str] = None
     positive_mentions: Optional[List[str]] = None
     areas_to_improve: Optional[List[str]] = None
+    
+    # Flag for demo calls
+    is_demo: bool = False
 
 
 class CallCreate(CallBase):
@@ -67,6 +70,9 @@ class CallUpdate(BaseModel):
     vehicle_info: Optional[str] = None
     positive_mentions: Optional[List[str]] = None
     areas_to_improve: Optional[List[str]] = None
+    
+    # Flag for demo calls
+    is_demo: Optional[bool] = None
 
 
 class CallDB(CallBase):

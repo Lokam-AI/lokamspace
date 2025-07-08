@@ -1,10 +1,15 @@
-from typing import Dict, Any
-import httpx
-from app.core.logging import get_logger
-from app.config import get_settings
+"""
+VAPI service for making calls using the VAPI API.
+"""
 
-settings = get_settings()
-logger = get_logger(__name__)
+from typing import Dict, Any, Optional
+import logging
+import httpx
+from fastapi import Depends
+
+from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 class VAPIService:
     """Service for interacting with VAPI API."""
@@ -24,8 +29,8 @@ class VAPIService:
         service_type: str,
         organization_name: str,
         location: str,
-        google_review_link: str | None = None,
-        call_id: int | None = None
+        google_review_link: Optional[str] = None,
+        call_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Create a new call using VAPI's API.
@@ -68,8 +73,8 @@ class VAPIService:
             assistant_overrides["variableValues"]["call_id"] = str(call_id)
 
         payload = {
-            "assistantId": settings.SURVEY_ASSISTANT_ID,
-            "phoneNumberId": settings.PHONE_NUMBER_ID,
+            "assistantId": settings.VAPI_ASSISTANT_ID,
+            "phoneNumberId": settings.VAPI_PHONE_NUMBER_ID,
             "customer": customer,
             "assistantOverrides": assistant_overrides,
             "name": f"Calling {customer_name}"
@@ -98,9 +103,9 @@ class VAPIService:
         vehicle_info: str,
         service_advisor_name: str = "Demo Advisor",
         service_type: str = "Feedback Call",
-        organization_name: str = "Lokam Auto",
+        organization_name: str = "Demo Organization",
         location: str = "Demo Location",
-        call_id: int = None
+        call_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Create a demo call using VAPI's API.
@@ -139,14 +144,15 @@ class VAPIService:
             assistant_overrides["variableValues"]["call_id"] = str(call_id)
 
         payload = {
-            "assistantId": settings.DEMO_ASSISTANT_ID,
-            "phoneNumberId": settings.PHONE_NUMBER_ID,
+            "assistantId": settings.VAPI_DEMO_ASSISTANT_ID,
+            "phoneNumberId": settings.VAPI_PHONE_NUMBER_ID,
             "customer": customer,
             "assistantOverrides": assistant_overrides,
             "name": f"Demo Call: {customer_name}"
         }
 
         try:
+            logger.info(f"Making VAPI demo call request with payload: {payload}")
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     f"{self.base_url}/call",

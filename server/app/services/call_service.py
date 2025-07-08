@@ -224,7 +224,9 @@ class CallService:
             "service_record_id": call.service_record_id,
             "campaign_id": call.campaign_id,
             "customer_number": call.customer_number,
+            "phone_number": call.customer_number,  # Map customer_number to phone_number for schema compatibility
             "direction": call.direction,
+            "call_type": call.direction.capitalize(),  # Map direction to call_type for schema compatibility
             "start_time": call.start_time,
             "end_time": call.end_time,
             "duration_sec": call.duration_sec,
@@ -372,6 +374,7 @@ class CallService:
     @staticmethod
     async def create_demo_call(
         demo_data: DemoCallCreate,
+        current_user_id: int = None,
         db: AsyncSession = None
     ) -> Call:
         """
@@ -379,11 +382,34 @@ class CallService:
         
         Args:
             demo_data: Demo call data
+            current_user_id: ID of the current user
             db: Database session
             
         Returns:
             Call: Created call
         """
+        # Create or get 'Demo Campaign'
+        campaign_query = select(Campaign).where(
+            and_(
+                Campaign.name == "Demo Campaign",
+                Campaign.organization_id == demo_data.organization_id
+            )
+        )
+        result = await db.execute(campaign_query)
+        campaign = result.scalar_one_or_none()
+        
+        if not campaign:
+            # Create new demo campaign
+            campaign = Campaign(
+                name="Demo Campaign",
+                organization_id=demo_data.organization_id,
+                status="Active",
+                created_by=current_user_id,
+                modified_by=current_user_id
+            )
+            db.add(campaign)
+            await db.flush()
+        
         # Create a service record for the demo call
         service_record = ServiceRecord(
             organization_id=demo_data.organization_id,
@@ -391,7 +417,9 @@ class CallService:
             customer_phone=demo_data.phone_number,
             vehicle_info=demo_data.vehicle_number,
             status="Ready",
-            service_type="Demo"
+            service_type="feedback call",
+            campaign_id=campaign.id,
+            is_demo=True  # Set is_demo flag to True
         )
         
         db.add(service_record)
@@ -403,13 +431,11 @@ class CallService:
             service_record_id=service_record.id,
             customer_number=demo_data.phone_number,
             direction="outbound",
-            status="Scheduled",
-            call_reason="Demo Call"
+            status="Ready",  # Set status to Ready instead of Scheduled
+            call_reason="Demo Call",
+            campaign_id=campaign.id,
+            is_demo=True  # Set is_demo flag to True
         )
-        
-        if demo_data.campaign_id:
-            call.campaign_id = demo_data.campaign_id
-            service_record.campaign_id = demo_data.campaign_id
         
         db.add(call)
         await db.commit()
@@ -422,9 +448,9 @@ class CallService:
         call_id: int,
         organization_id: UUID,
         db: AsyncSession = None
-    ) -> Call:
+    ) -> Dict:
         """
-        Initiate a demo call.
+        Initiate a demo call using VAPI service.
         
         Args:
             call_id: Call ID
@@ -432,9 +458,12 @@ class CallService:
             db: Database session
             
         Returns:
-            Call: Updated call
+            Dict: Dictionary with call details and VAPI response
         """
-        # Get the call
+        from app.services.vapi_service import VAPIService
+        from app.models import Organization
+
+        # Get the call and associated data
         query = select(Call).where(
             and_(
                 Call.id == call_id,
@@ -442,20 +471,71 @@ class CallService:
             )
         )
         result = await db.execute(query)
-        call = result.scalars().first()
+        call = result.scalar_one_or_none()
         
         if not call:
             raise ValueError(f"Call with ID {call_id} not found")
+            
+        # Get service record
+        service_query = select(ServiceRecord).where(ServiceRecord.id == call.service_record_id)
+        service_result = await db.execute(service_query)
+        service_record = service_result.scalar_one_or_none()
         
-        # Update call status
-        call.status = "In Progress"
-        await db.commit()
-        await db.refresh(call)
+        if not service_record:
+            raise ValueError(f"Service record for call ID {call_id} not found")
+            
+        # Get organization
+        org_query = select(Organization).where(Organization.id == call.organization_id)
+        org_result = await db.execute(org_query)
+        organization = org_result.scalar_one_or_none()
         
-        # In a real implementation, this would trigger the actual call
-        # For now, this is just updating the status
+        if not organization:
+            raise ValueError(f"Organization for call ID {call_id} not found")
         
-        return call
+        # Initialize VAPI service
+        vapi_service = VAPIService()
+        
+        try:
+            # Make the call to VAPI
+            vapi_response = await vapi_service.create_demo_call(
+                phone=service_record.customer_phone,
+                customer_name=service_record.customer_name,
+                vehicle_info=service_record.vehicle_info or "Demo Vehicle",
+                service_advisor_name=service_record.service_advisor_name or "Demo Advisor",
+                service_type=service_record.service_type or "Feedback Call",
+                organization_name=organization.name,
+                location=organization.location or "Demo Location",
+                call_id=call.id
+            )
+            
+            # Update call status
+            call.status = "In Progress"
+            call.start_time = datetime.utcnow()
+            await db.commit()
+            await db.refresh(call)
+            
+            # Update service record status too
+            service_record.status = "In Progress"
+            await db.commit()
+            
+            # Return response with all necessary information
+            return {
+                "call_id": call.id,
+                "service_record_id": service_record.id,
+                "customer_name": service_record.customer_name,
+                "customer_number": call.customer_number,
+                "vehicle_info": service_record.vehicle_info,
+                "campaign_id": call.campaign_id,
+                "status": call.status,
+                "vapi_response": vapi_response
+            }
+            
+        except Exception as e:
+            # Update call and service record status to Failed if there's an error
+            call.status = "Failed"
+            service_record.status = "Failed"
+            await db.commit()
+            raise ValueError(f"Failed to initiate call with VAPI: {str(e)}")
 
     @staticmethod
     async def list_calls_by_status(
@@ -470,7 +550,7 @@ class CallService:
         
         Args:
             organization_id: Organization ID
-            status: Call status (Ready, Completed, Failed, Missed)
+            status: Call status (Ready, Completed, Failed, Missed, Demo)
             skip: Number of calls to skip
             limit: Maximum number of calls to return
             db: Database session
@@ -479,27 +559,38 @@ class CallService:
             List[Call]: List of calls with the specified status
         """
         if status.lower() == "ready":
-            # Ready for call status
+            # Ready for call status - exclude demo calls
             query = select(Call).where(
                 and_(
                     Call.organization_id == organization_id,
-                    Call.status == "Scheduled"
+                    Call.status.in_(["Ready", "Scheduled"]),  # Look for both Ready and Scheduled status
+                    Call.is_demo == False  # Exclude demo calls
                 )
             )
         elif status.lower() == "missed":
-            # Missed calls include both Failed and Missed status
+            # Missed calls include both Failed and Missed status - exclude demo calls
             query = select(Call).where(
                 and_(
                     Call.organization_id == organization_id,
-                    Call.status.in_(["Failed", "Missed"])
+                    Call.status.in_(["Failed", "Missed"]),
+                    Call.is_demo == False  # Exclude demo calls
                 )
             )
         elif status.lower() == "completed":
-            # Completed calls
+            # Completed calls - exclude demo calls
             query = select(Call).where(
                 and_(
                     Call.organization_id == organization_id,
-                    Call.status == "Completed"
+                    Call.status == "Completed",
+                    Call.is_demo == False  # Exclude demo calls
+                )
+            )
+        elif status.lower() == "demo":
+            # Demo calls - include all demo calls regardless of status
+            query = select(Call).where(
+                and_(
+                    Call.organization_id == organization_id,
+                    Call.is_demo == True  # Only demo calls
                 )
             )
         else:
@@ -590,43 +681,37 @@ class CallService:
                     call = Call(
                         organization_id=organization_id,
                         customer_number=customer_number,
-                        call_reason=call_data.get("call_reason", "Follow-up call"),
-                        status="Ready",  # Set status to Ready instead of Scheduled
+                        call_reason=call_data.get("call_reason", "Feedback call"),
+                        status="Ready",  # Always set status to Ready
                         direction="outbound",
-                        campaign_id=campaign.id
+                        campaign_id=campaign.id,
+                        is_demo=False  # Ensure is_demo is False for bulk uploaded calls
                     )
                     
-                    # Add service record if we have vehicle info
-                    service_record_id = None
-                    if call_data.get("vehicle_info") or call_data.get("service_type"):
-                        try:
-                            logging.info("Creating service record")
-                            vehicle_info = call_data.get("vehicle_info", "")
-                            service_type = call_data.get("service_type", "")
-                            customer_name = call_data.get("customer_name", "")
-                            service_advisor = call_data.get("service_advisor_name", "")
-                            
-                            logging.info(f"Service record data: vehicle={vehicle_info}, type={service_type}")
-                            
-                            service_record = ServiceRecord(
-                                organization_id=organization_id,
-                                customer_name=customer_name,
-                                vehicle_info=vehicle_info,
-                                service_type=service_type,
-                                service_advisor=service_advisor,
-                                status="Active",
-                                campaign_id=campaign.id
-                            )
-                            db.add(service_record)
-                            await db.flush()
-                            service_record_id = service_record.id
-                            logging.info(f"Service record created with ID: {service_record_id}")
-                        except Exception as sr_error:
-                            logging.error(f"Error creating service record: {str(sr_error)}")
-                            # Don't fail the whole call, just continue without service record
+                    # Always create service record
+                    logging.info("Creating service record")
+                    vehicle_info = call_data.get("vehicle_info", "")
+                    service_type = call_data.get("service_type", "Feedback Call")
+                    customer_name = call_data.get("customer_name", "")
+                    service_advisor = call_data.get("service_advisor_name", "")
                     
-                    if service_record_id:
-                        call.service_record_id = service_record_id
+                    logging.info(f"Service record data: vehicle={vehicle_info}, type={service_type}")
+                    
+                    service_record = ServiceRecord(
+                        organization_id=organization_id,
+                        customer_name=customer_name,
+                        customer_phone=customer_number,
+                        vehicle_info=vehicle_info,
+                        service_type=service_type,
+                        service_advisor_name=service_advisor,
+                        status="Ready",  # Set service record to Ready status
+                        campaign_id=campaign.id,
+                        is_demo=False  # Ensure is_demo is False for bulk uploaded records
+                    )
+                    
+                    db.add(service_record)
+                    await db.flush()
+                    call.service_record_id = service_record.id
                     
                     logging.info("Adding call to session")
                     db.add(call)

@@ -3,14 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Phone, Edit, Loader2 } from "lucide-react";
+import { Phone, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Campaign } from "@/types/campaign";
 import { DemoCall } from "@/types/campaign";
@@ -18,28 +11,28 @@ import { createDemoCall, initiateDemoCall } from "@/api/endpoints/calls";
 
 interface DemoCallSectionProps {
   campaigns: Campaign[];
+  onDemoCallCreated?: () => void; // Optional callback for when a demo call is created
 }
 
-export const DemoCallSection = ({ campaigns }: DemoCallSectionProps) => {
+export const DemoCallSection = ({
+  campaigns,
+  onDemoCallCreated,
+}: DemoCallSectionProps) => {
   const { toast } = useToast();
   const [demoCall, setDemoCall] = useState<DemoCall>({
     customerName: "",
     phoneNumber: "",
-    vehicleNumber: "",
+    vehicleNumber: "ABC-123", // Default placeholder value
+    serviceType: "Feedback Call", // Fixed value
+    serviceAdvisorName: "John Smith", // Default placeholder value
     campaignId: "demo", // Always set to demo campaign
   });
-  const [isEditMode, setIsEditMode] = useState(true);
   const [isCallInProgress, setIsCallInProgress] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [callLogs, setCallLogs] = useState<string[]>([]);
   const [createdCallId, setCreatedCallId] = useState<string | null>(null);
 
   const handleInputChange = (field: keyof DemoCall, value: string) => {
     setDemoCall((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleEditDetails = () => {
-    setIsEditMode(!isEditMode);
   };
 
   const handleInitiateCall = async () => {
@@ -60,40 +53,28 @@ export const DemoCallSection = ({ campaigns }: DemoCallSectionProps) => {
         customer_name: demoCall.customerName,
         phone_number: demoCall.phoneNumber,
         vehicle_number: demoCall.vehicleNumber || undefined,
-        campaign_id:
-          demoCall.campaignId === "demo" ? "demo" : demoCall.campaignId,
-        organization_id: "current", // The backend will use the current organization from the auth token
+        service_type: "Feedback Call", // Always use Feedback Call
+        service_advisor_name: demoCall.serviceAdvisorName || undefined,
+        // No need to send campaign_id or organization_id, they'll be handled by the backend
       });
 
       setCreatedCallId(createResponse.call_id);
-      setCallLogs([`Created demo call for ${demoCall.customerName}`]);
 
       // Then initiate the call
       setIsCallInProgress(true);
 
       // Initiate the actual call
-      const initiateResponse = await initiateDemoCall(createResponse.call_id);
-
-      // Simulate call flow with logs
-      const callSteps = [
-        `Calling ${demoCall.phoneNumber}...`,
-        "Connecting...",
-        "Connected successfully",
-        `Speaking with ${demoCall.customerName}`,
-        "Call completed",
-        "Transcript available for review",
-      ];
-
-      for (let i = 0; i < callSteps.length; i++) {
-        // Use setTimeout to simulate the progression of a call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setCallLogs((prev) => [...prev, callSteps[i]]);
-      }
+      await initiateDemoCall(createResponse.call_id);
 
       toast({
         title: "Demo call completed",
-        description: "Call transcript and logs are now available",
+        description: "Call transcript is now available for review",
       });
+
+      // Call the callback if provided
+      if (onDemoCallCreated) {
+        onDemoCallCreated();
+      }
     } catch (err) {
       console.error("Failed to create or initiate demo call:", err);
       toast({
@@ -131,7 +112,6 @@ export const DemoCallSection = ({ campaigns }: DemoCallSectionProps) => {
                 handleInputChange("customerName", e.target.value)
               }
               placeholder="Enter customer name"
-              disabled={!isEditMode && demoCall.customerName !== ""}
               className="mt-1"
             />
           </div>
@@ -145,7 +125,6 @@ export const DemoCallSection = ({ campaigns }: DemoCallSectionProps) => {
               value={demoCall.phoneNumber}
               onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
               placeholder="+1 (555) 123-4567"
-              disabled={!isEditMode && demoCall.phoneNumber !== ""}
               className="mt-1"
             />
           </div>
@@ -161,7 +140,6 @@ export const DemoCallSection = ({ campaigns }: DemoCallSectionProps) => {
                 handleInputChange("vehicleNumber", e.target.value)
               }
               placeholder="ABC-123"
-              disabled={!isEditMode && demoCall.vehicleNumber !== ""}
               className="mt-1"
             />
           </div>
@@ -177,18 +155,39 @@ export const DemoCallSection = ({ campaigns }: DemoCallSectionProps) => {
               className="mt-1 bg-muted text-muted-foreground"
             />
           </div>
+
+          <div>
+            <Label htmlFor="demo-service-type" className="text-card-foreground">
+              Service Type
+            </Label>
+            <Input
+              id="demo-service-type"
+              value="Feedback Call"
+              readOnly
+              className="mt-1 bg-muted text-muted-foreground"
+            />
+          </div>
+
+          <div>
+            <Label
+              htmlFor="demo-service-advisor"
+              className="text-card-foreground"
+            >
+              Service Advisor Name
+            </Label>
+            <Input
+              id="demo-service-advisor"
+              value={demoCall.serviceAdvisorName}
+              onChange={(e) =>
+                handleInputChange("serviceAdvisorName", e.target.value)
+              }
+              placeholder="John Smith"
+              className="mt-1"
+            />
+          </div>
         </div>
 
         <div className="flex space-x-3 pt-4">
-          <Button
-            variant="outline"
-            onClick={handleEditDetails}
-            disabled={isCallInProgress || isCreating}
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            {isEditMode ? "Save Details" : "Edit Details"}
-          </Button>
-
           <Button
             onClick={handleInitiateCall}
             disabled={
@@ -197,7 +196,7 @@ export const DemoCallSection = ({ campaigns }: DemoCallSectionProps) => {
               !demoCall.customerName ||
               !demoCall.phoneNumber
             }
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground w-full"
           >
             {isCreating || isCallInProgress ? (
               <>
@@ -212,26 +211,6 @@ export const DemoCallSection = ({ campaigns }: DemoCallSectionProps) => {
             )}
           </Button>
         </div>
-
-        {/* Call Logs */}
-        {callLogs.length > 0 && (
-          <div className="mt-4 p-4 bg-muted/50 rounded-lg border border-border">
-            <h4 className="font-semibold text-sm mb-2 text-foreground">
-              Call Logs:
-            </h4>
-            <div className="space-y-1">
-              {callLogs.map((log, index) => (
-                <div
-                  key={index}
-                  className="text-sm text-muted-foreground flex items-center"
-                >
-                  <span className="text-primary mr-2">•</span>
-                  {log}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
