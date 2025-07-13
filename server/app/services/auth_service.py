@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.core.security import create_access_token, get_password_hash, verify_password
 from app.models import User
 from app.schemas import UserCreate
+from app.services.tag_service import TagService
 
 
 class AuthService:
@@ -45,6 +46,13 @@ class AuthService:
         # Check if user is active
         if not user.is_active:
             return None
+        
+        # Check if organization has required tags and create them if not
+        await TagService.check_and_create_default_tags(
+            db=db,
+            organization_id=user.organization_id,
+            user_id=user.id
+        )
             
         return user
     
@@ -88,6 +96,15 @@ class AuthService:
         db.add(user)
         await db.commit()
         await db.refresh(user)
+        
+        # Check if organization has required tags and create them if needed
+        # Only do this for the first user (admin) of the organization
+        if user.role == "Admin":
+            await TagService.check_and_create_default_tags(
+                db=db,
+                organization_id=user.organization_id,
+                user_id=user.id
+            )
         
         return user
     

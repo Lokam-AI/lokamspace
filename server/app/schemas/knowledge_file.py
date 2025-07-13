@@ -1,17 +1,14 @@
 """
-Knowledge File schemas.
+Schemas for knowledge files.
 """
 
-from datetime import datetime
+from pydantic import BaseModel
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel
-
 
 class KnowledgeFileBase(BaseModel):
-    """Base knowledge file schema."""
-    
+    """Base schema for knowledge file."""
     name: str
     file_type: str
     file_size: int
@@ -19,34 +16,24 @@ class KnowledgeFileBase(BaseModel):
 
 
 class KnowledgeFileCreate(KnowledgeFileBase):
-    """Knowledge file creation schema."""
-    
+    """Schema for creating a knowledge file."""
     organization_id: UUID
     uploaded_by: int
     file_path: str
 
 
 class KnowledgeFileUpdate(BaseModel):
-    """Knowledge file update schema."""
-    
+    """Schema for updating a knowledge file."""
     name: Optional[str] = None
     description: Optional[str] = None
 
 
-class KnowledgeFileDB(KnowledgeFileBase):
-    """Knowledge file database schema."""
-    
+class KnowledgeFileResponse(KnowledgeFileBase):
+    """Schema for knowledge file response."""
     id: int
     organization_id: UUID
-    uploaded_by: int
     file_path: str
-    created_at: datetime
-    updated_at: datetime
+    uploaded_by: int
     
     class Config:
-        from_attributes = True
-
-
-class KnowledgeFileResponse(KnowledgeFileDB):
-    """Knowledge file response schema."""
-    pass 
+        from_attributes = True 

@@ -215,7 +215,7 @@ export const MissedCallsTab = ({
                   <div>
                     <div>{call.customer_name || call.customerName}</div>
                     <div className="text-xs text-muted-foreground">
-                      {call.phone_number || call.phoneNumber}
+                      {call.phone_number}
                     </div>
                   </div>
                 </TableCell>

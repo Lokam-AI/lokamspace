@@ -12,7 +12,12 @@ from pydantic import BaseModel
 from app.core.config import settings
 
 # Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Use bcrypt with minimal configuration to avoid warnings
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+    bcrypt__ident="2b"  # Explicitly use bcrypt 2b
+)
 
 
 class TokenData(BaseModel):

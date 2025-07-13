@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Upload, File, Trash } from "lucide-react";
+import { X, Plus, Upload, File, Trash, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   updateOrganizationConfig,
@@ -25,65 +25,50 @@ import {
   getKnowledgeFiles,
   deleteKnowledgeFile,
   initializeSettings,
+  listTags,
+  createTag,
+  deleteTag,
+  checkRequiredTags,
+  getOrganizationDescriptions,
+  updateOrganizationDescriptions,
+  getFocusAreas,
+  updateFocusAreas,
+  getServiceTypes,
+  updateServiceTypes,
+  getInquiryTopics,
+  updateInquiryTopics,
 } from "@/api/endpoints/configuration";
 import { API_BASE_URL, getHeaders } from "@/api/config";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface UploadedFile {
-  id: string;
+  id: string | number;
   name: string;
   size: number;
   type: string;
   uploadDate: Date;
 }
 
+interface Tag {
+  id: number;
+  name: string;
+  type: string;
+  created_at: string;
+}
+
 export function ConfigurationSettings() {
   const { toast } = useToast();
 
-  // Default focus areas (8 items)
-  const defaultFocusAreas = [
-    "Customer Service Excellence",
-    "Timeliness & Efficiency",
-    "Service Quality & Workmanship",
-    "Pricing Transparency",
-    "Communication & Updates",
-    "Facility Cleanliness",
-    "Staff Professionalism",
-    "Follow-up & Support",
-  ];
+  // State for tag management
+  const [focusAreaTags, setFocusAreaTags] = useState<string[]>([]);
+  const [serviceTypeTags, setServiceTypeTags] = useState<string[]>([]);
+  const [inquiryTopicTags, setInquiryTopicTags] = useState<string[]>([]);
 
-  // Default service types (8 items)
-  const defaultServiceTypes = [
-    "Oil Change & Maintenance",
-    "Brake Service & Repair",
-    "Tire Services",
-    "Engine Diagnostics",
-    "Transmission Service",
-    "Air Conditioning Service",
-    "Electrical System Repair",
-    "General Auto Repair",
-  ];
-
-  // Default inquiry topics (8 items)
-  const defaultInquiryTopics = [
-    "Service Estimate Request",
-    "Appointment Scheduling",
-    "Service Status Update",
-    "Billing & Payment Questions",
-    "Warranty Information",
-    "Parts Availability",
-    "Customer Complaints",
-    "General Information Request",
-  ];
-
-  const [focusAreas, setFocusAreas] = useState<string[]>(defaultFocusAreas);
-  const [serviceTypes, setServiceTypes] =
-    useState<string[]>(defaultServiceTypes);
-  const [inquiryTopics, setInquiryTopics] =
-    useState<string[]>(defaultInquiryTopics);
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [newFocusArea, setNewFocusArea] = useState("");
   const [newServiceType, setNewServiceType] = useState("");
   const [newInquiryTopic, setNewInquiryTopic] = useState("");
+
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
   // State for form fields
   const [companyDescription, setCompanyDescription] = useState("");
@@ -97,310 +82,422 @@ export function ConfigurationSettings() {
 
   // State for DMS integration
   const [dmsIntegrationId, setDmsIntegrationId] = useState<number | null>(null);
+  const [organizationId, setOrganizationId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingTags, setLoadingTags] = useState(false);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const MIN_ITEMS = 5;
-  const MAX_ITEMS = 10;
+  // Tag constraints
+  const MIN_TAGS = 5;
+  const MAX_TAGS = 10;
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
   const ALLOWED_FILE_TYPES = [".pdf", ".doc", ".docx", ".txt", ".csv"];
 
-  const addFocusArea = () => {
-    if (newFocusArea.trim() && focusAreas.length < MAX_ITEMS) {
-      setFocusAreas([...focusAreas, newFocusArea.trim()]);
-      setNewFocusArea("");
-    }
-  };
+  useEffect(() => {
+    // Load data when component mounts
+    loadData();
+  }, []);
 
-  const removeFocusArea = (index: number) => {
-    if (focusAreas.length > MIN_ITEMS) {
-      setFocusAreas(focusAreas.filter((_, i) => i !== index));
-    }
-  };
-
-  const addServiceType = () => {
-    if (newServiceType.trim() && serviceTypes.length < MAX_ITEMS) {
-      setServiceTypes([...serviceTypes, newServiceType.trim()]);
-      setNewServiceType("");
-    }
-  };
-
-  const removeServiceType = (index: number) => {
-    if (serviceTypes.length > MIN_ITEMS) {
-      setServiceTypes(serviceTypes.filter((_, i) => i !== index));
-    }
-  };
-
-  const addInquiryTopic = () => {
-    if (newInquiryTopic.trim() && inquiryTopics.length < MAX_ITEMS) {
-      setInquiryTopics([...inquiryTopics, newInquiryTopic.trim()]);
-      setNewInquiryTopic("");
-    }
-  };
-
-  const removeInquiryTopic = (index: number) => {
-    if (inquiryTopics.length > MIN_ITEMS) {
-      setInquiryTopics(inquiryTopics.filter((_, i) => i !== index));
-    }
-  };
-
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const files = event.target.files;
-    if (!files) return;
-
-    for (const file of Array.from(files)) {
-      // Validate file type
-      const fileExtension = "." + file.name.split(".").pop()?.toLowerCase();
-      if (!ALLOWED_FILE_TYPES.includes(fileExtension)) {
-        toast({
-          title: "Invalid File Type",
-          description: `${file.name} is not a supported file type. Please upload PDF, DOC, DOCX, TXT, or CSV files.`,
-          variant: "destructive",
-        });
-        continue;
-      }
-
-      // Validate file size
-      if (file.size > MAX_FILE_SIZE) {
-        toast({
-          title: "File Too Large",
-          description: `${file.name} is larger than 10MB. Please upload a smaller file.`,
-          variant: "destructive",
-        });
-        continue;
-      }
-
-      try {
-        // Create form data for upload
-        const formData = new FormData();
-        formData.append("file", file);
-        if (
-          file.name.toLowerCase().includes("policy") ||
-          file.name.toLowerCase().includes("procedure")
-        ) {
-          formData.append("description", "Policy or procedure document");
-        }
-
-        // Upload file to server
-        const response = await uploadKnowledgeFile(formData);
-
-        // Add to state with server ID
-        setUploadedFiles((prev) => [
-          ...prev,
-          {
-            id: response.id.toString(),
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            uploadDate: new Date(),
-          },
-        ]);
-
-        toast({
-          title: "File Uploaded",
-          description: `${file.name} has been uploaded successfully.`,
-        });
-      } catch (error) {
-        console.error("Failed to upload file:", error);
-        toast({
-          title: "Upload Failed",
-          description: `Failed to upload ${file.name}.`,
-          variant: "destructive",
-        });
-      }
-    }
-
-    // Reset the input
-    event.target.value = "";
-  };
-
-  const removeFile = async (fileId: string) => {
+  const loadData = async () => {
     try {
-      // Delete from server
-      await deleteKnowledgeFile(parseInt(fileId));
+      setIsLoading(true);
 
-      // Update state
-      setUploadedFiles((prev) => prev.filter((file) => file.id !== fileId));
+      // Load organization data and descriptions
+      const descriptions = await getOrganizationDescriptions();
+      setCompanyDescription(descriptions.companyDescription);
+      setServiceCenterDescription(descriptions.serviceCenterDescription);
+      setHipaaEnabled(descriptions.hipaaCompliant || false);
+      setPciEnabled(descriptions.pciCompliant || false);
+      setOrganizationId(descriptions.organizationId || "");
+
+      // Load DMS integration
+      const dmsIntegration = await getDMSIntegration();
+      if (dmsIntegration && dmsIntegration.length > 0) {
+        const integration = dmsIntegration[0]; // Get the first integration
+        setDmsIntegrationId(integration.id);
+        // Use optional chaining and check for config properties
+        if (integration.config) {
+          setServerUrl(integration.config.url || "");
+          setAuthHeader(integration.config.auth_header || "");
+          setApiKey(integration.config.api_key || "");
+        }
+        setTimeoutSeconds(integration.timeout_seconds || 20);
+      }
+
+      // Load knowledge files
+      const knowledgeFiles = await getKnowledgeFiles();
+      setUploadedFiles(
+        knowledgeFiles.map((file: any) => ({
+          id: file.id,
+          name: file.name,
+          size: file.file_size,
+          type: file.file_type,
+          // Handle case where created_at might not exist
+          uploadDate: file.created_at ? new Date(file.created_at) : new Date(),
+        }))
+      );
+
+      // Load focus areas, service types, and inquiry topics
+      await loadTagsAndSettings();
+    } catch (error) {
+      console.error("Error loading data:", error);
+      toast({
+        title: "Error Loading Data",
+        description: "Failed to load configuration data.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadTagsAndSettings = async () => {
+    setLoadingTags(true);
+    try {
+      // Load focus areas
+      const focusAreas = await getFocusAreas();
+      setFocusAreaTags(focusAreas || []);
+
+      // Load service types
+      const serviceTypes = await getServiceTypes();
+      setServiceTypeTags(serviceTypes || []);
+
+      // Load inquiry topics
+      const inquiryTopics = await getInquiryTopics();
+      setInquiryTopicTags(inquiryTopics || []);
+    } catch (error) {
+      console.error("Error loading tags and settings:", error);
+      toast({
+        title: "Error Loading Settings",
+        description: "Failed to load tags and settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingTags(false);
+    }
+  };
+
+  // Tag handlers for focus areas
+  const handleAddFocusArea = async () => {
+    if (!newFocusArea.trim()) return;
+
+    // Validation
+    if (focusAreaTags.length >= MAX_TAGS) {
+      toast({
+        title: "Maximum Limit Reached",
+        description: `You can only have up to ${MAX_TAGS} focus areas.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (focusAreaTags.includes(newFocusArea.trim())) {
+      toast({
+        title: "Duplicate Entry",
+        description: "This focus area already exists.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const updatedAreas = [...focusAreaTags, newFocusArea.trim()];
+      await updateFocusAreas(updatedAreas);
+      setFocusAreaTags(updatedAreas);
+      setNewFocusArea("");
 
       toast({
-        title: "File Removed",
-        description: "File has been removed from knowledge sources.",
+        title: "Focus Area Added",
+        description: "The focus area has been added successfully.",
       });
     } catch (error) {
-      console.error("Failed to delete file:", error);
+      console.error("Failed to add focus area:", error);
       toast({
         title: "Error",
-        description: "Failed to remove file. Please try again.",
+        description: "Failed to add focus area.",
         variant: "destructive",
       });
     }
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  const handleDeleteFocusArea = async (areaToDelete: string) => {
+    // Validation
+    if (focusAreaTags.length <= MIN_TAGS) {
+      toast({
+        title: "Minimum Required",
+        description: `You need at least ${MIN_TAGS} focus areas.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const updatedAreas = focusAreaTags.filter(
+        (area) => area !== areaToDelete
+      );
+      await updateFocusAreas(updatedAreas);
+      setFocusAreaTags(updatedAreas);
+
+      toast({
+        title: "Focus Area Deleted",
+        description: "The focus area has been removed successfully.",
+      });
+    } catch (error) {
+      console.error("Failed to delete focus area:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete focus area.",
+        variant: "destructive",
+      });
+    }
   };
 
-  // Fetch data on component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
+  // Tag handlers for service types
+  const handleAddServiceType = async () => {
+    if (!newServiceType.trim()) return;
 
-        // Fetch organization data
-        const orgResponse = await fetch(`${API_BASE_URL}/organizations`, {
-          credentials: "include",
-          headers: getHeaders(),
-        });
+    // Validation
+    if (serviceTypeTags.length >= MAX_TAGS) {
+      toast({
+        title: "Maximum Limit Reached",
+        description: `You can only have up to ${MAX_TAGS} service types.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
-        if (!orgResponse.ok) {
-          throw new Error(
-            `Failed to fetch organization data: ${orgResponse.statusText}`
-          );
-        }
+    if (serviceTypeTags.includes(newServiceType.trim())) {
+      toast({
+        title: "Duplicate Entry",
+        description: "This service type already exists.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-        const orgData = await orgResponse.json();
-        // Store organization ID for settings creation if needed
-        localStorage.setItem("organizationId", orgData.id);
+    try {
+      const updatedTypes = [...serviceTypeTags, newServiceType.trim()];
+      await updateServiceTypes(updatedTypes);
+      setServiceTypeTags(updatedTypes);
+      setNewServiceType("");
 
-        // Set organization fields
-        setCompanyDescription(orgData.description || "");
-        setServiceCenterDescription(orgData.service_center_description || "");
-        setFocusAreas(orgData.focus_areas || defaultFocusAreas);
-        setServiceTypes(orgData.service_types || defaultServiceTypes);
-        setHipaaEnabled(orgData.hipaa_compliant || false);
-        setPciEnabled(orgData.pci_compliant || false);
+      toast({
+        title: "Service Type Added",
+        description: "The service type has been added successfully.",
+      });
+    } catch (error) {
+      console.error("Failed to add service type:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add service type.",
+        variant: "destructive",
+      });
+    }
+  };
 
-        // Fetch settings by category
-        try {
-          const settingsResponse = await getSettingsByCategory();
-          if (
-            settingsResponse.settings &&
-            settingsResponse.settings.inquiries
-          ) {
-            const inquirySettings = settingsResponse.settings.inquiries;
-            if (inquirySettings.inquiry_topics) {
-              // Parse the JSON string if needed
-              let topicsValue = inquirySettings.inquiry_topics.value;
-              try {
-                // Check if it's a JSON string and parse it
-                if (typeof topicsValue === "string") {
-                  topicsValue = JSON.parse(topicsValue);
-                }
-              } catch (e) {
-                console.error("Failed to parse inquiry topics:", e);
-              }
+  const handleDeleteServiceType = async (typeToDelete: string) => {
+    // Validation
+    if (serviceTypeTags.length <= MIN_TAGS) {
+      toast({
+        title: "Minimum Required",
+        description: `You need at least ${MIN_TAGS} service types.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
-              // Use the parsed value or default
-              setInquiryTopics(
-                Array.isArray(topicsValue) ? topicsValue : defaultInquiryTopics
-              );
-            }
-          } else {
-            console.log("No inquiry settings found, initializing defaults");
-            await initializeSettings();
-            // Fetch settings again after initialization
-            const refreshedSettings = await getSettingsByCategory();
-            if (
-              refreshedSettings.settings &&
-              refreshedSettings.settings.inquiries &&
-              refreshedSettings.settings.inquiries.inquiry_topics
-            ) {
-              let topicsValue =
-                refreshedSettings.settings.inquiries.inquiry_topics.value;
-              try {
-                // Check if it's a JSON string and parse it
-                if (typeof topicsValue === "string") {
-                  topicsValue = JSON.parse(topicsValue);
-                }
-              } catch (e) {
-                console.error("Failed to parse inquiry topics:", e);
-              }
+    try {
+      const updatedTypes = serviceTypeTags.filter(
+        (type) => type !== typeToDelete
+      );
+      await updateServiceTypes(updatedTypes);
+      setServiceTypeTags(updatedTypes);
 
-              // Use the parsed value or default
-              setInquiryTopics(
-                Array.isArray(topicsValue) ? topicsValue : defaultInquiryTopics
-              );
-            } else {
-              setInquiryTopics(defaultInquiryTopics);
-            }
-          }
-        } catch (error) {
-          console.error("Failed to fetch settings:", error);
-          // Use defaults if settings fetch fails
-          setInquiryTopics(defaultInquiryTopics);
-        }
+      toast({
+        title: "Service Type Deleted",
+        description: "The service type has been removed successfully.",
+      });
+    } catch (error) {
+      console.error("Failed to delete service type:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete service type.",
+        variant: "destructive",
+      });
+    }
+  };
 
-        // Fetch DMS integration
-        try {
-          const dmsData = await getDMSIntegration();
-          if (dmsData) {
-            setDmsIntegrationId(dmsData.id);
-            setServerUrl(dmsData.config.server_url || "");
-            setTimeoutSeconds(dmsData.timeout_seconds || 20);
-            setAuthHeader(dmsData.config.auth_header || "");
-            setApiKey(dmsData.config.api_key || "");
-          }
-        } catch (error) {
-          // No DMS integration exists yet - that's okay
-          console.log("No DMS integration found");
-        }
+  // Tag handlers for inquiry topics
+  const handleAddInquiryTopic = async () => {
+    if (!newInquiryTopic.trim()) return;
 
-        // Fetch knowledge files
-        try {
-          const files = await getKnowledgeFiles();
-          if (Array.isArray(files)) {
-            const formattedFiles: UploadedFile[] = files.map((file) => ({
-              id: file.id.toString(),
-              name: file.name,
-              size: file.file_size,
-              type: file.file_type,
-              uploadDate: new Date(file.created_at),
-            }));
-            setUploadedFiles(formattedFiles);
-          }
-        } catch (error) {
-          console.error("Failed to fetch knowledge files:", error);
-        }
-      } catch (error) {
-        console.error("Error fetching configuration data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load configuration data.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    // Validation
+    if (inquiryTopicTags.length >= MAX_TAGS) {
+      toast({
+        title: "Maximum Limit Reached",
+        description: `You can only have up to ${MAX_TAGS} inquiry topics.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
-    fetchData();
-  }, []);
+    if (inquiryTopicTags.includes(newInquiryTopic.trim())) {
+      toast({
+        title: "Duplicate Entry",
+        description: "This inquiry topic already exists.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const updatedTopics = [...inquiryTopicTags, newInquiryTopic.trim()];
+      await updateInquiryTopics(updatedTopics);
+      setInquiryTopicTags(updatedTopics);
+      setNewInquiryTopic("");
+
+      toast({
+        title: "Inquiry Topic Added",
+        description: "The inquiry topic has been added successfully.",
+      });
+    } catch (error) {
+      console.error("Failed to add inquiry topic:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add inquiry topic.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteInquiryTopic = async (topicToDelete: string) => {
+    // Validation
+    if (inquiryTopicTags.length <= MIN_TAGS) {
+      toast({
+        title: "Minimum Required",
+        description: `You need at least ${MIN_TAGS} inquiry topics.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const updatedTopics = inquiryTopicTags.filter(
+        (topic) => topic !== topicToDelete
+      );
+      await updateInquiryTopics(updatedTopics);
+      setInquiryTopicTags(updatedTopics);
+
+      toast({
+        title: "Inquiry Topic Deleted",
+        description: "The inquiry topic has been removed successfully.",
+      });
+    } catch (error) {
+      console.error("Failed to delete inquiry topic:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete inquiry topic.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+
+    const file = fileList[0];
+
+    // Validation
+    if (file.size > MAX_FILE_SIZE) {
+      toast({
+        title: "File Too Large",
+        description: `The file size should be less than ${
+          MAX_FILE_SIZE / (1024 * 1024)
+        }MB.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check file extension
+    const fileExt = `.${file.name.split(".").pop()?.toLowerCase()}`;
+    if (!ALLOWED_FILE_TYPES.includes(fileExt)) {
+      toast({
+        title: "Invalid File Type",
+        description: `Only ${ALLOWED_FILE_TYPES.join(", ")} files are allowed.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await uploadKnowledgeFile(file);
+
+      setUploadedFiles([
+        ...uploadedFiles,
+        {
+          id: response.id,
+          name: response.name,
+          size: response.file_size,
+          type: response.file_type,
+          uploadDate: new Date(response.created_at),
+        },
+      ]);
+
+      toast({
+        title: "File Uploaded",
+        description: "The file has been uploaded successfully.",
+      });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload file. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Update the handleDeleteFile function to handle both string and number IDs
+  const handleDeleteFile = async (fileId: string | number) => {
+    try {
+      // Convert fileId to number if it's a string
+      const numericFileId =
+        typeof fileId === "string" ? parseInt(fileId) : fileId;
+      await deleteKnowledgeFile(numericFileId);
+
+      setUploadedFiles(uploadedFiles.filter((file) => file.id !== fileId));
+
+      toast({
+        title: "File Deleted",
+        description: "File has been deleted successfully.",
+      });
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete file. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSaveConfiguration = async () => {
     try {
       setIsLoading(true);
 
+      // Update organization descriptions
+      await updateOrganizationDescriptions(
+        companyDescription,
+        serviceCenterDescription
+      );
+
       // Update organization data
       await updateOrganizationConfig({
-        description: companyDescription,
-        service_center_description: serviceCenterDescription,
-        focus_areas: focusAreas,
-        service_types: serviceTypes,
         hipaa_compliant: hipaaEnabled,
         pci_compliant: pciEnabled,
       });
-
-      // Update inquiry topics via settings
-      await updateSettingByKey(
-        "inquiry_topics",
-        inquiryTopics,
-        "Types of inquiries expected from customers"
-      );
 
       // Update or create DMS integration
       const dmsData = {
@@ -408,7 +505,7 @@ export function ConfigurationSettings() {
         type: "Generic",
         timeout_seconds: timeoutSeconds,
         config: {
-          server_url: serverUrl,
+          url: serverUrl,
           auth_header: authHeader,
           api_key: apiKey,
         },
@@ -455,8 +552,6 @@ export function ConfigurationSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Company Name and Service Center Name removed as requested */}
-
           <div className="space-y-2">
             <Label htmlFor="company-description">Description of Company</Label>
             <Textarea
@@ -487,62 +582,54 @@ export function ConfigurationSettings() {
         <CardHeader>
           <CardTitle>Areas to Focus</CardTitle>
           <CardDescription>
-            Key feedback areas to highlight (minimum {MIN_ITEMS}, maximum{" "}
-            {MAX_ITEMS})
+            Define areas where your service center aims to excel
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-            <span>
-              Current items: {focusAreas.length}/{MAX_ITEMS}
-            </span>
-            {focusAreas.length < MIN_ITEMS && (
-              <span className="text-amber-600">
-                Minimum {MIN_ITEMS} items required
-              </span>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {focusAreas.map((area, index) => (
-              <Badge
-                key={index}
-                variant="secondary"
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {focusAreaTags.map((area) => (
+                <Badge
+                  key={area}
+                  variant="outline"
+                  className="px-3 py-1.5 text-sm flex items-center gap-1"
+                >
+                  {area}
+                  <button
+                    type="button"
+                    className="ml-1 hover:bg-gray-200 rounded-full p-0.5"
+                    onClick={() => handleDeleteFocusArea(area)}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+
+            <div className="flex gap-2 items-center">
+              <Input
+                placeholder="Add new focus area"
+                value={newFocusArea}
+                onChange={(e) => setNewFocusArea(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddFocusArea()}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleAddFocusArea}
                 className="flex items-center gap-1"
               >
-                {area}
-                <X
-                  className={`h-3 w-3 cursor-pointer hover:text-red-500 ${
-                    focusAreas.length <= MIN_ITEMS
-                      ? "opacity-50 cursor-not-allowed"
-                      : ""
-                  }`}
-                  onClick={() => removeFocusArea(index)}
-                />
-              </Badge>
-            ))}
+                <Plus className="h-4 w-4" />
+                Add
+              </Button>
+            </div>
+
+            <div className="text-sm text-gray-500">
+              Enter your service center's key focus areas. Add at least{" "}
+              {MIN_TAGS} and up to {MAX_TAGS} areas.
+            </div>
           </div>
-          <div className="flex space-x-2">
-            <Input
-              placeholder="Add focus area..."
-              value={newFocusArea}
-              onChange={(e) => setNewFocusArea(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && addFocusArea()}
-              disabled={focusAreas.length >= MAX_ITEMS}
-            />
-            <Button
-              onClick={addFocusArea}
-              disabled={!newFocusArea.trim() || focusAreas.length >= MAX_ITEMS}
-              variant="outline"
-              size="icon"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-          {focusAreas.length >= MAX_ITEMS && (
-            <p className="text-sm text-amber-600">
-              Maximum of {MAX_ITEMS} focus areas reached
-            </p>
-          )}
         </CardContent>
       </Card>
 
@@ -550,64 +637,54 @@ export function ConfigurationSettings() {
         <CardHeader>
           <CardTitle>Service Types</CardTitle>
           <CardDescription>
-            Types of services offered at your center (minimum {MIN_ITEMS},
-            maximum {MAX_ITEMS})
+            Define types of services your center offers
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-            <span>
-              Current items: {serviceTypes.length}/{MAX_ITEMS}
-            </span>
-            {serviceTypes.length < MIN_ITEMS && (
-              <span className="text-amber-600">
-                Minimum {MIN_ITEMS} items required
-              </span>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {serviceTypes.map((service, index) => (
-              <Badge
-                key={index}
-                variant="outline"
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {serviceTypeTags.map((type) => (
+                <Badge
+                  key={type}
+                  variant="outline"
+                  className="px-3 py-1.5 text-sm flex items-center gap-1"
+                >
+                  {type}
+                  <button
+                    type="button"
+                    className="ml-1 hover:bg-gray-200 rounded-full p-0.5"
+                    onClick={() => handleDeleteServiceType(type)}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+
+            <div className="flex gap-2 items-center">
+              <Input
+                placeholder="Add new service type"
+                value={newServiceType}
+                onChange={(e) => setNewServiceType(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddServiceType()}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleAddServiceType}
                 className="flex items-center gap-1"
               >
-                {service}
-                <X
-                  className={`h-3 w-3 cursor-pointer hover:text-red-500 ${
-                    serviceTypes.length <= MIN_ITEMS
-                      ? "opacity-50 cursor-not-allowed"
-                      : ""
-                  }`}
-                  onClick={() => removeServiceType(index)}
-                />
-              </Badge>
-            ))}
+                <Plus className="h-4 w-4" />
+                Add
+              </Button>
+            </div>
+
+            <div className="text-sm text-gray-500">
+              Define the types of services your center offers. Add at least{" "}
+              {MIN_TAGS} and up to {MAX_TAGS} service types.
+            </div>
           </div>
-          <div className="flex space-x-2">
-            <Input
-              placeholder="Add service type..."
-              value={newServiceType}
-              onChange={(e) => setNewServiceType(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && addServiceType()}
-              disabled={serviceTypes.length >= MAX_ITEMS}
-            />
-            <Button
-              onClick={addServiceType}
-              disabled={
-                !newServiceType.trim() || serviceTypes.length >= MAX_ITEMS
-              }
-              variant="outline"
-              size="icon"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-          {serviceTypes.length >= MAX_ITEMS && (
-            <p className="text-sm text-amber-600">
-              Maximum of {MAX_ITEMS} service types reached
-            </p>
-          )}
         </CardContent>
       </Card>
 
@@ -615,163 +692,124 @@ export function ConfigurationSettings() {
         <CardHeader>
           <CardTitle>Inquiry Topics</CardTitle>
           <CardDescription>
-            Types of inquiries expected from customers (minimum {MIN_ITEMS},
-            maximum {MAX_ITEMS})
+            Define topics for customer inquiries
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-            <span>
-              Current items: {inquiryTopics.length}/{MAX_ITEMS}
-            </span>
-            {inquiryTopics.length < MIN_ITEMS && (
-              <span className="text-amber-600">
-                Minimum {MIN_ITEMS} items required
-              </span>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {inquiryTopics.map((topic, index) => (
-              <Badge
-                key={index}
-                variant="outline"
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {inquiryTopicTags.map((topic) => (
+                <Badge
+                  key={topic}
+                  variant="outline"
+                  className="px-3 py-1.5 text-sm flex items-center gap-1"
+                >
+                  {topic}
+                  <button
+                    type="button"
+                    className="ml-1 hover:bg-gray-200 rounded-full p-0.5"
+                    onClick={() => handleDeleteInquiryTopic(topic)}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+
+            <div className="flex gap-2 items-center">
+              <Input
+                placeholder="Add new inquiry topic"
+                value={newInquiryTopic}
+                onChange={(e) => setNewInquiryTopic(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddInquiryTopic()}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleAddInquiryTopic}
                 className="flex items-center gap-1"
               >
-                {topic}
-                <X
-                  className={`h-3 w-3 cursor-pointer hover:text-red-500 ${
-                    inquiryTopics.length <= MIN_ITEMS
-                      ? "opacity-50 cursor-not-allowed"
-                      : ""
-                  }`}
-                  onClick={() => removeInquiryTopic(index)}
-                />
-              </Badge>
-            ))}
+                <Plus className="h-4 w-4" />
+                Add
+              </Button>
+            </div>
+
+            <div className="text-sm text-gray-500">
+              Define common customer inquiry topics. Add at least {MIN_TAGS} and
+              up to {MAX_TAGS} topics.
+            </div>
           </div>
-          <div className="flex space-x-2">
-            <Input
-              placeholder="Add inquiry topic..."
-              value={newInquiryTopic}
-              onChange={(e) => setNewInquiryTopic(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && addInquiryTopic()}
-              disabled={inquiryTopics.length >= MAX_ITEMS}
-            />
-            <Button
-              onClick={addInquiryTopic}
-              disabled={
-                !newInquiryTopic.trim() || inquiryTopics.length >= MAX_ITEMS
-              }
-              variant="outline"
-              size="icon"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-          {inquiryTopics.length >= MAX_ITEMS && (
-            <p className="text-sm text-amber-600">
-              Maximum of {MAX_ITEMS} inquiry topics reached
-            </p>
-          )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Inquiry Knowledge Source Files</CardTitle>
+          <CardTitle>Knowledge Base</CardTitle>
           <CardDescription>
-            Upload documents and files that the Inquiry agent can reference to
-            provide accurate answers to customer questions
+            Upload files to help our AI better understand your business
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <div className="space-y-2">
-                <Label
-                  htmlFor="file-upload"
-                  className="cursor-pointer text-sm font-medium text-gray-900"
-                >
-                  Upload knowledge source files
-                </Label>
-                <Input
+            <div className="flex items-center justify-center w-full">
+              <label
+                htmlFor="file-upload"
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+              >
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <Upload className="w-8 h-8 mb-3 text-gray-400" />
+                  <p className="mb-2 text-sm text-gray-500">
+                    <span className="font-semibold">Click to upload</span> or
+                    drag and drop
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    PDF, DOC, DOCX, TXT, CSV (Max{" "}
+                    {MAX_FILE_SIZE / (1024 * 1024)}
+                    MB)
+                  </p>
+                </div>
+                <input
                   id="file-upload"
                   type="file"
-                  multiple
+                  className="hidden"
                   accept=".pdf,.doc,.docx,.txt,.csv"
                   onChange={handleFileUpload}
-                  className="hidden"
                 />
-                <p className="text-xs text-gray-500">
-                  Drag and drop files here, or click to browse
-                </p>
-                <p className="text-xs text-gray-400">
-                  Supported formats: PDF, DOC, DOCX, TXT, CSV (Max 10MB per
-                  file)
-                </p>
-              </div>
+              </label>
             </div>
 
-            {uploadedFiles.length > 0 && (
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">
-                  Uploaded Files ({uploadedFiles.length})
-                </Label>
-                <div className="space-y-2">
-                  {uploadedFiles.map((file) => (
-                    <div
-                      key={file.id}
-                      className="flex items-center justify-between p-3 border rounded-lg bg-gray-50"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <File className="h-5 w-5 text-gray-500" />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {file.name}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {formatFileSize(file.size)} • Uploaded{" "}
-                            {file.uploadDate.toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeFile(file.id)}
-                        className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
+            <div className="space-y-2">
+              {uploadedFiles.map((file) => (
+                <div
+                  key={file.id}
+                  className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+                >
+                  <div className="flex items-center gap-2">
+                    <File className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="text-sm font-medium">{file.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {(file.size / 1024).toFixed(1)} KB •{" "}
+                        {file.uploadDate.toLocaleDateString()}
+                      </p>
                     </div>
-                  ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="p-1 hover:bg-gray-200 rounded-full"
+                    onClick={() => handleDeleteFile(file.id)}
+                  >
+                    <Trash className="h-4 w-4 text-gray-500" />
+                  </button>
                 </div>
-              </div>
-            )}
+              ))}
 
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="text-sm font-medium text-blue-900 mb-2">
-                How to use knowledge source files:
-              </h4>
-              <ul className="text-xs text-blue-800 space-y-1">
-                <li>
-                  • Upload documents containing your business policies,
-                  procedures, and frequently asked questions
-                </li>
-                <li>
-                  • Include service manuals, pricing guides, and warranty
-                  information
-                </li>
-                <li>
-                  • The Inquiry agent will reference these files to provide
-                  accurate, consistent answers
-                </li>
-                <li>
-                  • Keep files updated to ensure the agent has the latest
-                  information
-                </li>
-              </ul>
+              {uploadedFiles.length === 0 && (
+                <div className="text-center py-4 text-gray-500">
+                  No files uploaded yet
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -893,7 +931,9 @@ export function ConfigurationSettings() {
       </Card>
 
       <div className="flex justify-end space-x-2">
-        <Button variant="outline">Reset</Button>
+        <Button variant="outline" onClick={loadData} disabled={isLoading}>
+          Reset
+        </Button>
         <Button onClick={handleSaveConfiguration} disabled={isLoading}>
           {isLoading ? "Saving..." : "Save Configuration"}
         </Button>

@@ -91,7 +91,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         navigate("/dashboard");
       }
     } catch (err: any) {
-      setError(err.data?.error?.message || "Failed to login");
+      // Check for FastAPI error format first (detail field)
+      setError(
+        err.data?.detail || err.data?.error?.message || "Failed to login"
+      );
       throw err;
     } finally {
       setLoading(false);
@@ -110,7 +113,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         navigate("/dashboard");
       }
     } catch (err: any) {
-      setError(err.data?.error?.message || "Failed to register");
+      // Check for FastAPI error format first (detail field)
+      setError(
+        err.data?.detail || err.data?.error?.message || "Failed to register"
+      );
       throw err;
     } finally {
       setLoading(false);
@@ -126,7 +132,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setUser(null);
       navigate("/login");
     } catch (err: any) {
-      setError(err.data?.error?.message || "Failed to logout");
+      // Check for FastAPI error format first (detail field)
+      setError(
+        err.data?.detail || err.data?.error?.message || "Failed to logout"
+      );
     } finally {
       setLoading(false);
     }

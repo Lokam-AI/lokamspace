@@ -22,6 +22,8 @@ from .dms_integration import DMSIntegration
 from .setting import Setting
 from .audit_log import AuditLog
 from .role import Role
+from .call_feedback import CallFeedback
+from .knowledge_file import KnowledgeFile
 
 # For Alembic discovery
 __all__ = [
@@ -44,4 +46,6 @@ __all__ = [
     "Setting",
     "AuditLog",
     "Role",
+    "CallFeedback",
+    "KnowledgeFile",
 ]

@@ -25,7 +25,7 @@ export const getCallsByStatus = async (status: string, filters: any = {}) => {
 };
 
 /**
- * Get demo calls
+ * Get demo calls (all calls with is_demo: true, regardless of status)
  */
 export const getDemoCalls = async (filters: any = {}) => {
   const queryParams = new URLSearchParams(filters).toString();
@@ -52,7 +52,7 @@ export const getDemoCalls = async (filters: any = {}) => {
  */
 export const getCallDetails = async (callId: string) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/calls/${callId}`, {
+    const response = await fetch(`${API_BASE_URL}/calls/${callId}/details`, {
       method: "GET",
       headers: getHeaders(),
     });
@@ -138,6 +138,14 @@ export const updateScheduleConfig = async (configData: any) => {
 
 /**
  * Create a demo call
+ *
+ * @param demoData Object containing:
+ *   - customer_name: Customer name
+ *   - phone_number: Phone number
+ *   - vehicle_number: Optional vehicle number
+ *   - service_type: Optional service type (defaults to "Feedback Call")
+ *   - service_advisor_name: Optional service advisor name
+ *   - appointment_date: Optional appointment date (YYYY-MM-DD format)
  */
 export const createDemoCall = async (demoData: any) => {
   try {

@@ -14,6 +14,13 @@ class Role(Base):
     This is used if roles need more flexibility than a simple enum.
     """
     
+# Table name - explicitly set
+    
+    # Table name - explicitly set
+    __tablename__ = "roles"
+    
+
+    
     # Primary key
     id = Column(Integer, primary_key=True, autoincrement=True)
     

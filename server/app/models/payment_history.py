@@ -15,19 +15,26 @@ class PaymentHistory(Base):
     PaymentHistory model for tracking payments.
     """
     
+# Table name - explicitly set
+    
+    # Table name - explicitly set
+    __tablename__ = "paymenthistories"
+    
+
+    
     # Primary key
     id = Column(Integer, primary_key=True, autoincrement=True)
     
     # Organization (tenant) relationship
     organization_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("organization.id"),
+        ForeignKey("organizations.id"),
         nullable=False
     )
     
     # Relationships to plan and user
-    plan_id = Column(Integer, ForeignKey("plan.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    plan_id = Column(Integer, ForeignKey("plans.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # Payment details
     amount = Column(Numeric(12, 2), nullable=False)

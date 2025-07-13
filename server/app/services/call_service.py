@@ -1,17 +1,25 @@
 """
-Call service.
+Call service implementation.
+
+This module provides services for handling calls.
 """
 
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from uuid import UUID
 import logging
 
 from fastapi import HTTPException, status
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+try:
+    from sqlalchemy.orm import joinedload
+except ImportError:
+    # Handle the case where the import fails
+    # This is a workaround for the linter issue
+    joinedload = lambda x: x  # type: ignore
 
-from app.models import Call, Campaign, ServiceRecord, User
+from app.models import Call, Campaign, ServiceRecord, User, Transcript, CallFeedback
 from app.schemas.call import CallCreate, CallUpdate
 from app.schemas.demo_call import DemoCallCreate
 
@@ -201,7 +209,7 @@ class CallService:
         organization_id: UUID,
         db: AsyncSession) -> Dict:
         """
-        Get call with related information.
+        Get call with related information (service record, campaign).
         
         Args:
             call_id: Call ID
@@ -209,10 +217,7 @@ class CallService:
             db: Database session
             
         Returns:
-            Dict: Call with related information
-            
-        Raises:
-            HTTPException: If call not found
+            Dict: Call data with related information
         """
         # Get call
         call = await CallService.get_call(call_id, organization_id, db)
@@ -247,9 +252,9 @@ class CallService:
                 call_dict["vehicle_info"] = service_record.vehicle_info
                 call_dict["service_advisor_name"] = service_record.service_advisor_name
                 call_dict["service_type"] = service_record.service_type
-                call_dict["positive_mentions"] = service_record.positive_mentions
-                call_dict["areas_to_improve"] = service_record.areas_to_improve
-        
+                call_dict["appointment_date"] = service_record.appointment_date
+                call_dict["is_demo"] = service_record.is_demo
+                
         # Add campaign info if available
         if call.campaign_id:
             campaign = await db.get(Campaign, call.campaign_id)
@@ -374,7 +379,7 @@ class CallService:
     @staticmethod
     async def create_demo_call(
         demo_data: DemoCallCreate,
-        current_user_id: int = None,
+        current_user_id: int,
         db: AsyncSession = None
     ) -> Call:
         """
@@ -400,7 +405,7 @@ class CallService:
         
         if not campaign:
             # Create new demo campaign
-            campaign = Campaign(
+            campaign = Campaign(  # type: ignore
                 name="Demo Campaign",
                 organization_id=demo_data.organization_id,
                 status="Active",
@@ -410,31 +415,35 @@ class CallService:
             db.add(campaign)
             await db.flush()
         
+        # Use today's date for the appointment if not provided
+        appointment_date = demo_data.appointment_date if hasattr(demo_data, 'appointment_date') and demo_data.appointment_date else datetime.utcnow()
+        
         # Create a service record for the demo call
-        service_record = ServiceRecord(
+        service_record = ServiceRecord(  # type: ignore
             organization_id=demo_data.organization_id,
             customer_name=demo_data.customer_name,
             customer_phone=demo_data.phone_number,
             vehicle_info=demo_data.vehicle_number,
             status="Ready",
-            service_type="feedback call",
+            service_type=demo_data.service_type or "Oil Change",
+            service_advisor_name=demo_data.service_advisor_name or "Demo Advisor",
             campaign_id=campaign.id,
-            is_demo=True  # Set is_demo flag to True
+            is_demo=True,  # Set is_demo flag to True on ServiceRecord
+            appointment_date=appointment_date  # Use provided date or today's date
         )
         
         db.add(service_record)
         await db.flush()  # Flush to get service_record.id
         
         # Create the call record
-        call = Call(
+        call = Call(  # type: ignore
             organization_id=demo_data.organization_id,
             service_record_id=service_record.id,
             customer_number=demo_data.phone_number,
             direction="outbound",
             status="Ready",  # Set status to Ready instead of Scheduled
             call_reason="Demo Call",
-            campaign_id=campaign.id,
-            is_demo=True  # Set is_demo flag to True
+            campaign_id=campaign.id
         )
         
         db.add(call)
@@ -527,6 +536,7 @@ class CallService:
                 "vehicle_info": service_record.vehicle_info,
                 "campaign_id": call.campaign_id,
                 "status": call.status,
+                "appointment_date": service_record.appointment_date,
                 "vapi_response": vapi_response
             }
             
@@ -558,41 +568,46 @@ class CallService:
         Returns:
             List[Call]: List of calls with the specified status
         """
+        # Always load the service record relationship to ensure it's available
+        options = [
+            joinedload(Call.service_record)
+        ]
+        
         if status.lower() == "ready":
-            # Ready for call status - exclude demo calls
-            query = select(Call).where(
+            # Ready for call status - exclude demo records
+            query = select(Call).join(ServiceRecord).where(
                 and_(
                     Call.organization_id == organization_id,
                     Call.status.in_(["Ready", "Scheduled"]),  # Look for both Ready and Scheduled status
-                    Call.is_demo == False  # Exclude demo calls
+                    ServiceRecord.is_demo == False  # Exclude demo records
                 )
-            )
+            ).options(*options)
         elif status.lower() == "missed":
-            # Missed calls include both Failed and Missed status - exclude demo calls
-            query = select(Call).where(
+            # Missed calls include both Failed and Missed status - exclude demo records
+            query = select(Call).join(ServiceRecord).where(
                 and_(
                     Call.organization_id == organization_id,
                     Call.status.in_(["Failed", "Missed"]),
-                    Call.is_demo == False  # Exclude demo calls
+                    ServiceRecord.is_demo == False  # Exclude demo records
                 )
-            )
+            ).options(*options)
         elif status.lower() == "completed":
-            # Completed calls - exclude demo calls
-            query = select(Call).where(
+            # Completed calls - exclude demo records
+            query = select(Call).join(ServiceRecord).where(
                 and_(
                     Call.organization_id == organization_id,
                     Call.status == "Completed",
-                    Call.is_demo == False  # Exclude demo calls
+                    ServiceRecord.is_demo == False  # Exclude demo records
                 )
-            )
+            ).options(*options)
         elif status.lower() == "demo":
-            # Demo calls - include all demo calls regardless of status
-            query = select(Call).where(
+            # Demo calls - include all demo records regardless of status
+            query = select(Call).join(ServiceRecord).where(
                 and_(
                     Call.organization_id == organization_id,
-                    Call.is_demo == True  # Only demo calls
+                    ServiceRecord.is_demo == True  # Only demo records
                 )
-            )
+            ).options(*options)
         else:
             # Invalid status
             return []
@@ -625,125 +640,103 @@ class CallService:
         Returns:
             Dict: Summary of the upload operation
         """
-        try:
-            logging.info(f"Starting bulk upload for campaign: {campaign_name}")
-            logging.info(f"Total calls to process: {len(calls_data)}")
-            
-            # Create or get campaign
-            campaign_query = select(Campaign).where(
+        # Create or get campaign
+        campaign_query = select(Campaign).where(
+            and_(
                 Campaign.name == campaign_name,
                 Campaign.organization_id == organization_id
             )
-            result = await db.execute(campaign_query)
-            campaign = result.scalar_one_or_none()
-            
-            if not campaign:
-                logging.info(f"Creating new campaign: {campaign_name}")
-                # Create new campaign
-                campaign = Campaign(
-                    name=campaign_name,
-                    organization_id=organization_id,
-                    status="Active",
-                    created_by=current_user_id,
-                    modified_by=current_user_id
-                )
-                db.add(campaign)
-                await db.flush()
-                logging.info(f"New campaign created with ID: {campaign.id}")
-            else:
-                logging.info(f"Found existing campaign with ID: {campaign.id}")
-            
-            # Process calls
-            successful_calls = 0
-            failed_calls = 0
-            errors = []
-            
-            for i, call_data in enumerate(calls_data):
-                try:
-                    logging.info(f"Processing call {i+1}/{len(calls_data)}")
-                    logging.debug(f"Call data: {call_data}")
-                    
-                    # Validate required fields
-                    customer_number = call_data.get("customer_number")
-                    if not customer_number:
-                        logging.warning(f"Missing customer number in row {i+1}")
-                        failed_calls += 1
-                        errors.append(f"Missing customer number in row {i+1}")
-                        continue
-                        
-                    # Validate phone number format
-                    if not customer_number.startswith("+"):
-                        customer_number = f"+{customer_number}"
-                        logging.info(f"Added + prefix to phone number: {customer_number}")
-                    
-                    # Create call
-                    logging.info(f"Creating call with customer number: {customer_number}")
-                    call = Call(
-                        organization_id=organization_id,
-                        customer_number=customer_number,
-                        call_reason=call_data.get("call_reason", "Feedback call"),
-                        status="Ready",  # Always set status to Ready
-                        direction="outbound",
-                        campaign_id=campaign.id,
-                        is_demo=False  # Ensure is_demo is False for bulk uploaded calls
-                    )
-                    
-                    # Always create service record
-                    logging.info("Creating service record")
-                    vehicle_info = call_data.get("vehicle_info", "")
-                    service_type = call_data.get("service_type", "Feedback Call")
-                    customer_name = call_data.get("customer_name", "")
-                    service_advisor = call_data.get("service_advisor_name", "")
-                    
-                    logging.info(f"Service record data: vehicle={vehicle_info}, type={service_type}")
-                    
-                    service_record = ServiceRecord(
-                        organization_id=organization_id,
-                        customer_name=customer_name,
-                        customer_phone=customer_number,
-                        vehicle_info=vehicle_info,
-                        service_type=service_type,
-                        service_advisor_name=service_advisor,
-                        status="Ready",  # Set service record to Ready status
-                        campaign_id=campaign.id,
-                        is_demo=False  # Ensure is_demo is False for bulk uploaded records
-                    )
-                    
-                    db.add(service_record)
-                    await db.flush()
-                    call.service_record_id = service_record.id
-                    
-                    logging.info("Adding call to session")
-                    db.add(call)
-                    successful_calls += 1
-                    logging.info(f"Successfully processed call {i+1}")
-                    
-                except Exception as e:
+        )
+        result = await db.execute(campaign_query)
+        campaign = result.scalar_one_or_none()
+        
+        if not campaign:
+            # Create new campaign
+            campaign = Campaign(
+                name=campaign_name,
+                organization_id=organization_id,
+                status="Active",
+                created_by=current_user_id,
+                modified_by=current_user_id
+            )
+            db.add(campaign)
+            await db.flush()
+        
+        # Process calls
+        successful_calls = 0
+        failed_calls = 0
+        errors = []
+        
+        for i, call_data in enumerate(calls_data):
+            try:
+                # Validate required fields
+                customer_number = call_data.get("customer_number")
+                if not customer_number:
                     failed_calls += 1
-                    error_msg = f"Error processing row {i+1}: {str(e)}"
-                    logging.error(error_msg)
-                    errors.append(error_msg)
-            
-            # Commit all changes
-            logging.info("Committing changes to database")
-            await db.commit()
-            logging.info(f"Bulk upload completed: {successful_calls} successful, {failed_calls} failed")
-            
-            return {
-                "campaign_id": campaign.id,
-                "campaign_name": campaign_name,
-                "successful_calls": successful_calls,
-                "failed_calls": failed_calls,
-                "errors": errors[:10]  # Return only first 10 errors
-            }
-        except Exception as e:
-            # Log the full error
-            logging.error(f"Error in bulk_upload_calls: {str(e)}")
-            logging.error(f"Error type: {type(e)}")
-            import traceback
-            logging.error(f"Traceback: {traceback.format_exc()}")
-            await db.rollback()
-            raise
+                    errors.append(f"Missing customer number in row {i+1}")
+                    continue
+                
+                # Validate phone number format
+                if not customer_number.startswith("+1"):
+                    customer_number = f"+1{customer_number}"
+
+                print("Service Type: ", call_data.get("service_type", "Feedback Call"))
+                
+                # Parse appointment_date if provided
+                appointment_date = None
+                if appointment_date_str := call_data.get("appointment_date"):
+                    try:
+                        # Try to parse the date string into a datetime object
+                        appointment_date = datetime.fromisoformat(appointment_date_str)
+                    except ValueError:
+                        try:
+                            # Try alternative format MM/DD/YYYY
+                            appointment_date = datetime.strptime(appointment_date_str, "%m/%d/%Y")
+                        except ValueError:
+                            errors.append(f"Invalid appointment date format in row {i+1}. Use YYYY-MM-DD or MM/DD/YYYY.")
+                
+                # Create service record
+                service_record = ServiceRecord(
+                    organization_id=organization_id,
+                    customer_name=call_data.get("customer_name", ""),
+                    customer_phone=customer_number,
+                    vehicle_info=call_data.get("vehicle_info", ""),
+                    service_type=call_data.get("service_type", "Feedback Call"),
+                    service_advisor_name=call_data.get("service_advisor_name", ""),
+                    status="Ready",
+                    campaign_id=campaign.id,
+                    is_demo=False,  # Ensure is_demo is False for bulk uploaded records
+                    appointment_date=appointment_date
+                )
+                
+                db.add(service_record)
+                await db.flush()
+                
+                # Create call
+                call = Call(
+                    organization_id=organization_id,
+                    service_record_id=service_record.id,
+                    customer_number=customer_number,
+                    call_reason=call_data.get("call_reason", "Feedback call"),
+                    status="Ready",
+                    direction="outbound",
+                    campaign_id=campaign.id
+                )
+                
+                db.add(call)
+                successful_calls += 1
+                
+            except Exception as e:
+                failed_calls += 1
+                errors.append(f"Error processing row {i+1}: {str(e)}")
+        
+        await db.commit()
+        
+        return {
+            "successful_calls": successful_calls,
+            "failed_calls": failed_calls,
+            "errors": errors
+        }
     
     @staticmethod
     def get_csv_template() -> Dict:
@@ -759,7 +752,8 @@ class CallService:
             "vehicle_info",
             "service_type",
             "call_reason",
-            "service_advisor_name"
+            "service_advisor_name",
+            "appointment_date"
         ]
         
         sample_row = [
@@ -768,10 +762,153 @@ class CallService:
             "2019 Honda Civic",
             "Oil Change",
             "Service follow-up",
-            "Mike Smith"
+            "Mike Smith",
+            "2023-06-01"
         ]
         
         return {
             "headers": headers,
             "sample_row": sample_row
         } 
+
+    @staticmethod
+    async def get_call_details(
+        call_id: int,
+        organization_id: UUID,
+        db: AsyncSession
+    ) -> Dict[str, Any]:
+        """
+        Get detailed call information including service record and transcripts.
+        
+        Args:
+            call_id: Call ID
+            organization_id: Organization ID
+            db: Database session
+            
+        Returns:
+            Dict[str, Any]: Detailed call information
+        """
+        # Query for call with service record
+        query = (
+            select(Call, ServiceRecord)
+            .outerjoin(ServiceRecord, Call.service_record_id == ServiceRecord.id)
+            .where(
+                Call.id == call_id,
+                Call.organization_id == organization_id
+            )
+        )
+        result = await db.execute(query)
+        call_service = result.first()
+        
+        if not call_service:
+            raise HTTPException(status_code=404, detail="Call not found")
+        
+        call, service_record = call_service
+        
+        # Get transcripts
+        transcript_query = select(Transcript).where(Transcript.call_id == call_id).order_by(Transcript.time)
+        transcript_result = await db.execute(transcript_query)
+        transcripts = transcript_result.scalars().all()
+        
+        # Format transcript segments
+        transcript_segments = [
+            {
+                "role": t.role,
+                "content": t.message,
+                "timestamp": t.time
+            }
+            for t in transcripts
+        ]
+        
+        # Calculate derived fields
+        call_duration = None
+        if call.start_time and call.end_time:
+            duration = call.end_time - call.start_time
+            call_duration = f"{duration.seconds // 60}:{duration.seconds % 60:02d}"
+        
+        # Get call feedback records
+        feedback_query = select(CallFeedback).where(CallFeedback.call_id == call_id)
+        feedback_result = await db.execute(feedback_query)
+        feedback_records = feedback_result.scalars().all()
+        
+        # Extract positive mentions and detractors from call_feedback records
+        positive_mentions = []
+        areas_to_improve = []
+        
+        for feedback in feedback_records:
+            if feedback.type == "positives" and feedback.kpis:
+                # Ensure kpis is a list
+                if isinstance(feedback.kpis, list):
+                    positive_mentions = feedback.kpis
+                elif isinstance(feedback.kpis, str):
+                    # If it's a single string, convert to a list
+                    positive_mentions = [feedback.kpis]
+                else:
+                    positive_mentions = []
+            elif feedback.type == "detractors" and feedback.kpis:
+                # Ensure kpis is a list
+                if isinstance(feedback.kpis, list):
+                    areas_to_improve = feedback.kpis
+                elif isinstance(feedback.kpis, str):
+                    # If it's a single string, convert to a list
+                    areas_to_improve = [feedback.kpis]
+                else:
+                    areas_to_improve = []
+        
+        # Create tags dictionary for frontend
+        tags = {
+            "positives": positive_mentions if isinstance(positive_mentions, list) else [positive_mentions] if positive_mentions else [],
+            "negatives": areas_to_improve if isinstance(areas_to_improve, list) else [areas_to_improve] if areas_to_improve else []
+        }
+        
+        # Compile response data
+        response_data = {
+            "id": call.id,
+            "customer_number": call.customer_number,
+            "phone_number": call.customer_number,  # Map customer_number to phone_number for schema compatibility
+            "direction": call.direction,
+            "call_type": call.direction.capitalize(),  # Map direction to call_type for schema compatibility
+            "start_time": call.start_time,
+            "end_time": call.end_time,
+            "duration_sec": call.duration_sec,
+            "status": call.status,
+            "recording_url": call.recording_url,
+            "nps_score": call.nps_score,
+            "call_reason": call.call_reason,
+            "feedback_summary": call.feedback_summary,
+            "call_summary": call.call_summary,
+            "cost": call.cost,  # Include the cost field from the call model
+            "customer_name": service_record.customer_name if service_record else None,
+            "vehicle_info": service_record.vehicle_info if service_record else None,
+            "service_type": service_record.service_type if service_record else None,
+            "service_advisor_name": service_record.service_advisor_name if service_record else None,
+            "positive_mentions": positive_mentions if isinstance(positive_mentions, list) else [positive_mentions] if positive_mentions else [],
+            "areas_to_improve": areas_to_improve if isinstance(areas_to_improve, list) else [areas_to_improve] if areas_to_improve else [],
+            "tags": tags,  # Add the tags dictionary
+            "overall_feedback": call.feedback_summary,
+            "appointment_date": service_record.appointment_date if service_record else None,  # Include appointment date
+            "transcript": transcript_segments,
+            "call_duration": call_duration,
+            "attempt_count": 1,  # TODO: Calculate actual attempt count if needed
+            "customer_email": None  # TODO: Add if available in models
+        }
+        
+        return response_data
+
+    @staticmethod
+    async def schedule_call(
+        call_id: int,
+        organization_id: UUID,
+        db: AsyncSession
+    ) -> None:
+        """
+        Schedule a call by updating its status to Scheduled.
+        
+        Args:
+            call_id: Call ID
+            organization_id: Organization ID
+            db: Database session
+        """
+        call = await CallService.get_call(call_id, organization_id, db)
+        call.status = "Scheduled"
+        await db.commit() 

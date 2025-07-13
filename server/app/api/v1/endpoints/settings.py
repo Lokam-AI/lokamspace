@@ -237,4 +237,39 @@ async def initialize_settings(
         db=db
     )
     
-    return {"message": "Default settings initialized successfully"} 
+    return {"message": "Default settings initialized successfully"}
+
+
+@router.put("/descriptions", status_code=status.HTTP_200_OK)
+async def update_organization_descriptions(
+    company_description: Optional[str] = Body(None, embed=True),
+    service_center_description: Optional[str] = Body(None, embed=True),
+    organization: Organization = Depends(get_current_organization),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_tenant_db),
+) -> dict:
+    """
+    Update organization descriptions.
+    
+    Args:
+        company_description: Company description
+        service_center_description: Service center description
+        organization: Current organization
+        current_user: Current authenticated user
+        db: Database session
+        
+    Returns:
+        dict: Success message
+    """
+    updated_org = await SettingsService.update_organization_descriptions(
+        organization_id=organization.id,
+        company_description=company_description,
+        service_center_description=service_center_description,
+        db=db
+    )
+    
+    return {
+        "message": "Organization descriptions updated successfully",
+        "description": updated_org.description,
+        "service_center_description": updated_org.service_center_description
+    } 

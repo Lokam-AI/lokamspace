@@ -213,11 +213,9 @@ export const CompletedCallsTab = ({
           <TableBody>
             {currentCalls.map((call) => (
               <TableRow key={call.id} className="hover:bg-muted/30">
-                <TableCell>
+                <TableCell className="font-medium text-foreground">
                   <div>
-                    <div className="font-medium text-foreground">
-                      {call.customer_name || call.customerName}
-                    </div>
+                    <div>{call.customer_name || call.customerName}</div>
                     <div className="text-sm text-foreground-secondary">
                       {formatDateTime(call.end_time || call.callDateTime || "")}
                     </div>
@@ -240,10 +238,10 @@ export const CompletedCallsTab = ({
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">
-                    {call.call_reason ||
-                      call.service_type ||
-                      call.callDetails?.split(" - ")[0] ||
-                      "N/A"}
+                    {call.service_type ||
+                      call.serviceType ||
+                      call.call_reason ||
+                      "Not specified"}
                   </Badge>
                 </TableCell>
                 <TableCell>

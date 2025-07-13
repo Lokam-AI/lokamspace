@@ -13,11 +13,14 @@ class AudioFile(Base):
     AudioFile model for storing call recording file information.
     """
     
+    # Table name - explicitly set
+    __tablename__ = "audio_files"
+    
     # Primary key
     id = Column(Integer, primary_key=True, autoincrement=True)
     
     # Call relationship - one call has one audio file
-    call_id = Column(Integer, ForeignKey("call.id"), nullable=False, unique=True)
+    call_id = Column(Integer, ForeignKey("calls.id"), nullable=False, unique=True)
     
     # File details
     file_path = Column(Text, nullable=False)

@@ -59,6 +59,17 @@ class Settings(BaseSettings):
     VAPI_DEMO_ASSISTANT_ID: str = "your_demo_assistant_id_here"
     VAPI_PHONE_NUMBER_ID: str = "your_phone_number_id_here"
     
+    # VAPI Webhook Settings
+    VAPI_WEBHOOK_SECRET: str = "your_webhook_secret_here"
+    VAPI_WEBHOOK_URL: str = "/api/v1/webhooks/vapi-webhook"
+    
+    # OpenAI Settings
+    OPENAI_BASE_URL: str = "https://api.openai.com/v1"
+    OPENAI_API_KEY: str = "your_openai_api_key_here"
+    OPENAI_MODEL: str = "gpt-4o-2024-08-06"  # Default model for call analysis
+    OPENAI_MAX_TOKENS: int = 1000
+    OPENAI_TEMPERATURE: float = 0.2
+    
     # Model configuration
     model_config = SettingsConfigDict(
         env_file=".env",

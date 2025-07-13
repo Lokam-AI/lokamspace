@@ -160,6 +160,11 @@ class CallDetailResponse(BaseModel):
     service_advisor_name: Optional[str] = None
     appointment_date: Optional[datetime] = None  # Added appointment date field
     
+    # Feedback and KPI fields
+    positive_mentions: Optional[List[str]] = None
+    areas_to_improve: Optional[List[str]] = None
+    tags: Optional[Dict[str, List[str]]] = None  # Dictionary of tag categories (positives, negatives)
+    
     # Transcript fields
     transcript: Optional[List[Dict[str, Any]]] = None  # List of transcript segments
     

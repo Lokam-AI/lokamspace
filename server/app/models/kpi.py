@@ -14,13 +14,20 @@ class KPI(Base):
     KPI model for tracking key performance indicators.
     """
     
+# Table name - explicitly set
+    
+    # Table name - explicitly set
+    __tablename__ = "kpis"
+    
+
+    
     # Primary key
     id = Column(Integer, primary_key=True, autoincrement=True)
     
     # Organization (tenant) relationship
     organization_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("organization.id"),
+        ForeignKey("organizations.id"),
         nullable=False
     )
     

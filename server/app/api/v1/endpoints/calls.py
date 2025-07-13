@@ -14,6 +14,7 @@ from app.dependencies import get_current_organization, get_current_user, get_ten
 from app.models import Organization, User, ServiceRecord
 from app.schemas import CallCreate, CallResponse, CallUpdate, CSVTemplateResponse, BulkCallUpload
 from app.schemas.demo_call import DemoCallCreate, DemoCallResponse
+from app.schemas.call import CallDetailResponse
 from app.services.call_service import CallService
 
 router = APIRouter()
@@ -60,12 +61,23 @@ async def list_calls(
     # Enhance calls with additional info
     result = []
     for call in calls:
-        call_with_info = await CallService.get_call_with_related_info(
-            call_id=call.id,
-            organization_id=organization.id,
-            db=db
-        )
-        result.append(call_with_info)
+        try:
+            call_with_info = await CallService.get_call_with_related_info(
+                call_id=call.id,
+                organization_id=organization.id,
+                db=db
+            )
+            # Ensure required fields for CallResponse schema
+            if "phone_number" not in call_with_info:
+                call_with_info["phone_number"] = call_with_info.get("customer_number", "")
+            if "call_type" not in call_with_info:
+                call_with_info["call_type"] = call_with_info.get("direction", "outbound").capitalize()
+            
+            result.append(call_with_info)
+        except Exception as call_error:
+            print(f"Error processing call {call.id}: {str(call_error)}")
+            # Continue with other calls rather than failing entirely
+            continue
     
     return result
 
@@ -165,13 +177,24 @@ async def list_ready_calls(
         # Enhance calls with additional info
         result = []
         for call in calls:
-            print(f"Processing call: {call.id}")
-            call_with_info = await CallService.get_call_with_related_info(
-                call_id=call.id,
-                organization_id=organization.id,
-                db=db
-            )
-            result.append(call_with_info)
+            try:
+                print(f"Processing call: {call.id}")
+                call_with_info = await CallService.get_call_with_related_info(
+                    call_id=call.id,
+                    organization_id=organization.id,
+                    db=db
+                )
+                # Ensure required fields for CallResponse schema
+                if "phone_number" not in call_with_info:
+                    call_with_info["phone_number"] = call_with_info.get("customer_number", "")
+                if "call_type" not in call_with_info:
+                    call_with_info["call_type"] = call_with_info.get("direction", "outbound").capitalize()
+                
+                result.append(call_with_info)
+            except Exception as call_error:
+                print(f"Error processing call {call.id}: {str(call_error)}")
+                # Continue with other calls rather than failing entirely
+                continue
         
         return result
     except Exception as e:
@@ -213,15 +236,27 @@ async def list_missed_calls(
         # Enhance calls with additional info
         result = []
         for call in calls:
-            call_with_info = await CallService.get_call_with_related_info(
-                call_id=call.id,
-                organization_id=organization.id,
-                db=db
-            )
-            result.append(call_with_info)
+            try:
+                call_with_info = await CallService.get_call_with_related_info(
+                    call_id=call.id,
+                    organization_id=organization.id,
+                    db=db
+                )
+                # Ensure required fields for CallResponse schema
+                if "phone_number" not in call_with_info:
+                    call_with_info["phone_number"] = call_with_info.get("customer_number", "")
+                if "call_type" not in call_with_info:
+                    call_with_info["call_type"] = call_with_info.get("direction", "outbound").capitalize()
+                
+                result.append(call_with_info)
+            except Exception as call_error:
+                print(f"Error processing call {call.id}: {str(call_error)}")
+                # Continue with other calls rather than failing entirely
+                continue
         
         return result
     except Exception as e:
+        print(f"Error retrieving missed calls: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve missed calls: {str(e)}"
@@ -259,15 +294,27 @@ async def list_completed_calls(
         # Enhance calls with additional info
         result = []
         for call in calls:
-            call_with_info = await CallService.get_call_with_related_info(
-                call_id=call.id,
-                organization_id=organization.id,
-                db=db
-            )
-            result.append(call_with_info)
+            try:
+                call_with_info = await CallService.get_call_with_related_info(
+                    call_id=call.id,
+                    organization_id=organization.id,
+                    db=db
+                )
+                # Ensure required fields for CallResponse schema
+                if "phone_number" not in call_with_info:
+                    call_with_info["phone_number"] = call_with_info.get("customer_number", "")
+                if "call_type" not in call_with_info:
+                    call_with_info["call_type"] = call_with_info.get("direction", "outbound").capitalize()
+                
+                result.append(call_with_info)
+            except Exception as call_error:
+                print(f"Error processing call {call.id}: {str(call_error)}")
+                # Continue with other calls rather than failing entirely
+                continue
         
         return result
     except Exception as e:
+        print(f"Error retrieving completed calls: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve completed calls: {str(e)}"
@@ -303,23 +350,33 @@ async def list_demo_calls(
             db=db
         )
         
-        # Enhance calls with related information
-        call_responses = []
+        # Enhance calls with additional info
+        result = []
         for call in calls:
-            call_info = await CallService.get_call_with_related_info(
-                call_id=call.id,
-                organization_id=organization.id,
-                db=db
-            )
-            call_responses.append(call_info)
+            try:
+                call_with_info = await CallService.get_call_with_related_info(
+                    call_id=call.id,
+                    organization_id=organization.id,
+                    db=db
+                )
+                # Ensure required fields for CallResponse schema
+                if "phone_number" not in call_with_info:
+                    call_with_info["phone_number"] = call_with_info.get("customer_number", "")
+                if "call_type" not in call_with_info:
+                    call_with_info["call_type"] = call_with_info.get("direction", "outbound").capitalize()
+                
+                result.append(call_with_info)
+            except Exception as call_error:
+                print(f"Error processing call {call.id}: {str(call_error)}")
+                # Continue with other calls rather than failing entirely
+                continue
         
-        return call_responses
+        return result
     except Exception as e:
-        # Log the error
-        logging.error(f"Error fetching demo calls: {str(e)}")
+        print(f"Error retrieving demo calls: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch demo calls"
+            detail=f"Failed to retrieve demo calls: {str(e)}"
         )
 
 
@@ -439,6 +496,30 @@ async def get_call(
         CallResponse: Call details
     """
     return await CallService.get_call_with_related_info(
+        call_id=call_id,
+        organization_id=organization.id,
+        db=db
+    )
+
+
+@router.get("/{call_id}/details", response_model=CallDetailResponse)
+async def get_call_details(
+    call_id: int = Path(..., ge=1),
+    organization: Organization = Depends(get_current_organization),
+    db: AsyncSession = Depends(get_tenant_db),
+) -> Any:
+    """
+    Get detailed call information including service record and transcripts.
+    
+    Args:
+        call_id: Call ID
+        organization: Current organization
+        db: Database session
+        
+    Returns:
+        CallDetailResponse: Detailed call information
+    """
+    return await CallService.get_call_details(
         call_id=call_id,
         organization_id=organization.id,
         db=db

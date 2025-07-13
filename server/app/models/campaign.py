@@ -14,6 +14,13 @@ class Campaign(Base):
     Campaign model for organizing outbound call campaigns.
     """
     
+# Table name - explicitly set
+    
+    # Table name - explicitly set
+    __tablename__ = "campaigns"
+    
+
+    
     # Primary key
     id = Column(Integer, primary_key=True, autoincrement=True)
     
@@ -24,7 +31,7 @@ class Campaign(Base):
     # Organization (tenant) relationship
     organization_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("organization.id"),
+        ForeignKey("organizations.id"),
         nullable=False
     )
     
@@ -32,8 +39,8 @@ class Campaign(Base):
     status = Column(String(20), nullable=False, default="Draft")
     
     # Audit fields
-    created_by = Column(Integer, ForeignKey("user.id"), nullable=False)
-    modified_by = Column(Integer, ForeignKey("user.id"), nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    modified_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # Relationships
     organization = relationship("Organization", back_populates="campaigns")

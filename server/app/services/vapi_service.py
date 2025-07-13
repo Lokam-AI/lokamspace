@@ -83,7 +83,7 @@ class VAPIService:
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"{self.base_url}/call",
+                    f"{self.base_url}/call",    
                     json=payload,
                     headers=self.headers
                 )
@@ -131,6 +131,7 @@ class VAPIService:
         assistant_overrides = {
             "variableValues": {
                 "customer_name": customer_name,
+                "customer_phone": phone,
                 "vehicle_info": vehicle_info,
                 "service_advisor_name": service_advisor_name,
                 "service_type": service_type,

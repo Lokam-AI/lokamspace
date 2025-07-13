@@ -27,6 +27,9 @@ class Organization(Base):
     Fields include basic info and metadata.
     """
     
+    # Table name - explicitly set
+    __tablename__ = "organizations"
+    
     # Primary key
     id = Column(
         UUID(as_uuid=True),
@@ -59,7 +62,7 @@ class Organization(Base):
     pci_compliant = Column(Boolean, nullable=False, default=False)
     
     # Plan and billing
-    plan_id = Column(Integer, ForeignKey("plan.id"))
+    plan_id = Column(Integer, ForeignKey("plans.id"))
     credit_balance = Column(Numeric(12, 2), nullable=False, default=0.00)
     
     # Relationships

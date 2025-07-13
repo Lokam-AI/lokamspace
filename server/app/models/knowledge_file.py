@@ -14,13 +14,16 @@ class KnowledgeFile(Base):
     KnowledgeFile model for storing inquiry knowledge source files.
     """
     
+    # Table name - explicitly set
+    __tablename__ = "knowledgefiles"
+    
     # Primary key
     id = Column(Integer, primary_key=True, autoincrement=True)
     
     # Organization (tenant) relationship
     organization_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("organization.id"),
+        ForeignKey("organizations.id"),
         nullable=False
     )
     
@@ -32,7 +35,7 @@ class KnowledgeFile(Base):
     description = Column(Text)
     
     # Metadata
-    uploaded_by = Column(Integer, ForeignKey("user.id"), nullable=False)
+    uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # Relationships
     organization = relationship("Organization", back_populates="knowledge_files")

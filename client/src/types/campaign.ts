@@ -19,4 +19,5 @@ export interface DemoCall {
   campaignId?: string;
   serviceType?: string;
   serviceAdvisorName?: string;
+  appointmentDate?: string;
 }

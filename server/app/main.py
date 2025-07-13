@@ -45,7 +45,10 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     description=settings.PROJECT_DESCRIPTION,
     version=settings.PROJECT_VERSION,
-    lifespan=lifespan
+    lifespan=lifespan,
+    # Disable automatic redirect with trailing slashes
+    # This prevents the 307 redirects
+    redirect_slashes=False
 )
 
 # Set up exception handlers

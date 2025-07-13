@@ -1,7 +1,18 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, Phone, CheckCircle, MessageCircle, Settings, Brain, BarChart3, Star, Users, TrendingUp, PlayCircle } from "lucide-react";
+import {
+  ArrowRight,
+  Phone,
+  CheckCircle,
+  MessageCircle,
+  Settings,
+  Brain,
+  BarChart3,
+  Star,
+  Users,
+  TrendingUp,
+  PlayCircle,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
@@ -18,18 +29,36 @@ const Index = () => {
               <span className="text-xl font-bold text-gray-900">AutoPulse</span>
             </div>
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">Features</a>
-              <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors">Pricing</a>
-              <a href="#demo" className="text-gray-600 hover:text-gray-900 transition-colors">Demo</a>
-              <Link 
-                to="/login" 
+              <a
+                href="#features"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Features
+              </a>
+              <a
+                href="#pricing"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Pricing
+              </a>
+              <a
+                href="#demo"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Demo
+              </a>
+              <Link
+                to="/login"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
               >
                 Login
               </Link>
             </nav>
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" className="hidden md:flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                className="hidden md:flex items-center space-x-2"
+              >
                 <PlayCircle className="h-4 w-4" />
                 <span>Watch Demo</span>
               </Button>
@@ -52,7 +81,7 @@ const Index = () => {
             <div className="absolute bottom-20 right-20 w-96 h-96 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-full blur-3xl"></div>
           </div>
         </div>
-        
+
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight">
@@ -62,19 +91,20 @@ const Index = () => {
               </span>
             </h1>
             <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
-              Automate booking, post-service feedback, and Q&A calls—all from one elegant platform.
+              Automate booking, post-service feedback, and Q&A calls—all from
+              one elegant platform.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link to="/signup">
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   className="bg-black hover:bg-gray-800 text-white text-lg px-10 py-4 h-auto rounded-full"
                 >
                   Get Started — It's Free
                 </Button>
               </Link>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="lg"
                 className="text-lg px-8 py-4 h-auto border-2 hover:bg-gray-50 rounded-full"
               >
@@ -87,10 +117,15 @@ const Index = () => {
         {/* Trusted By Section */}
         <div className="relative pb-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p className="text-sm text-gray-500 mb-8 uppercase tracking-wider">TRUSTED BY</p>
+            <p className="text-sm text-gray-500 mb-8 uppercase tracking-wider">
+              TRUSTED BY
+            </p>
             <div className="grid grid-cols-2 md:grid-cols-6 gap-8 items-center opacity-60">
               {[...Array(12)].map((_, i) => (
-                <div key={i} className="h-8 bg-gray-300 rounded animate-pulse"></div>
+                <div
+                  key={i}
+                  className="h-8 bg-gray-300 rounded animate-pulse"
+                ></div>
               ))}
             </div>
           </div>
@@ -106,9 +141,13 @@ const Index = () => {
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <CheckCircle className="h-8 w-8 text-blue-600" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Post-Service Feedback Call Assistant</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-4">
+                  Post-Service Feedback Call Assistant
+                </h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Boost customer satisfaction with automated follow-up calls after service. Capture NPS, identify detractor concerns, and generate actionable insights—all without lifting a finger.
+                  Boost customer satisfaction with automated follow-up calls
+                  after service. Capture NPS, identify detractor concerns, and
+                  generate actionable insights—all without lifting a finger.
                 </p>
               </CardContent>
             </Card>
@@ -118,9 +157,13 @@ const Index = () => {
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Phone className="h-8 w-8 text-green-600" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Booking Call Assistant</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-4">
+                  Booking Call Assistant
+                </h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Never miss a sale. Our inbound AI agent handles appointment bookings, confirms availability, and integrates seamlessly with your calendar—saving time and reducing no-shows.
+                  Never miss a sale. Our inbound AI agent handles appointment
+                  bookings, confirms availability, and integrates seamlessly
+                  with your calendar—saving time and reducing no-shows.
                 </p>
               </CardContent>
             </Card>
@@ -130,9 +173,13 @@ const Index = () => {
                 <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <MessageCircle className="h-8 w-8 text-purple-600" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Q&A Call Assistant</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-4">
+                  Q&A Call Assistant
+                </h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Resolve customer questions instantly. Our 24/7 AI dialer handles FAQs, provides real-time service information, and escalates complex queries to your team—all with a human touch.
+                  Resolve customer questions instantly. Our 24/7 AI dialer
+                  handles FAQs, provides real-time service information, and
+                  escalates complex queries to your team—all with a human touch.
                 </p>
               </CardContent>
             </Card>
@@ -148,11 +195,13 @@ const Index = () => {
               How It Works
             </h2>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div className="text-center">
               <div className="text-6xl font-bold text-blue-600 mb-6">01</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Setup in Minutes</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                Setup in Minutes
+              </h3>
               <p className="text-gray-600 leading-relaxed text-lg">
                 Input business info: services, schedules, questions.
               </p>
@@ -160,7 +209,9 @@ const Index = () => {
 
             <div className="text-center">
               <div className="text-6xl font-bold text-purple-600 mb-6">02</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">AI Takes Over</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                AI Takes Over
+              </h3>
               <p className="text-gray-600 leading-relaxed text-lg">
                 Calls initiate automatically—thanks to advanced AI logic.
               </p>
@@ -168,9 +219,12 @@ const Index = () => {
 
             <div className="text-center">
               <div className="text-6xl font-bold text-pink-600 mb-6">03</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Insights & Feedback</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                Insights & Feedback
+              </h3>
               <p className="text-gray-600 leading-relaxed text-lg">
-                Real-time dashboard: calls, NPS, topics, detractors, transcript-audio playback, and management alerts.
+                Real-time dashboard: calls, NPS, topics, detractors,
+                transcript-audio playback, and management alerts.
               </p>
             </div>
           </div>
@@ -185,14 +239,16 @@ const Index = () => {
               Why AutoPulse?
             </h2>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div className="flex items-start space-x-4">
               <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
                 <TrendingUp className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Reduce no-show rates by up to 30%</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  Reduce no-show rates by up to 30%
+                </h3>
               </div>
             </div>
 
@@ -201,7 +257,9 @@ const Index = () => {
                 <BarChart3 className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Boost NPS visibility with post-service feedback calls</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  Boost NPS visibility with post-service feedback calls
+                </h3>
               </div>
             </div>
 
@@ -210,7 +268,9 @@ const Index = () => {
                 <Settings className="h-5 w-5 text-purple-600" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Save time & money—let AI handle routine call work</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  Save time & money—let AI handle routine call work
+                </h3>
               </div>
             </div>
 
@@ -219,7 +279,10 @@ const Index = () => {
                 <Brain className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Get real-time alerts on critical detractor calls and poor feedback</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  Get real-time alerts on critical detractor calls and poor
+                  feedback
+                </h3>
               </div>
             </div>
 
@@ -228,7 +291,10 @@ const Index = () => {
                 <Users className="h-5 w-5 text-indigo-600" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Central dashboard: track calls, sentiment analysis, transcripts, and audio</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  Central dashboard: track calls, sentiment analysis,
+                  transcripts, and audio
+                </h3>
               </div>
             </div>
           </div>
@@ -242,20 +308,28 @@ const Index = () => {
             Your Command Center
           </h2>
           <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto">
-            See total and completed calls, NPS trends, top positive feedback, areas to improve, live-call statuses, and audio-transcript playback—all from one simple dashboard.
+            See total and completed calls, NPS trends, top positive feedback,
+            areas to improve, live-call statuses, and audio-transcript
+            playback—all from one simple dashboard.
           </p>
           <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-4xl mx-auto">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600 mb-1">1,247</div>
+                <div className="text-3xl font-bold text-blue-600 mb-1">
+                  1,247
+                </div>
                 <div className="text-sm text-gray-600">Total Calls</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-green-600 mb-1">1,089</div>
+                <div className="text-3xl font-bold text-green-600 mb-1">
+                  1,089
+                </div>
                 <div className="text-sm text-gray-600">Completed</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600 mb-1">7.8</div>
+                <div className="text-3xl font-bold text-purple-600 mb-1">
+                  7.8
+                </div>
                 <div className="text-sm text-gray-600">Avg NPS</div>
               </div>
               <div className="text-center">
@@ -276,11 +350,15 @@ const Index = () => {
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-3xl p-12">
             <div className="flex justify-center mb-6">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className="h-6 w-6 text-yellow-400 fill-current" />
+                <Star
+                  key={i}
+                  className="h-6 w-6 text-yellow-400 fill-current"
+                />
               ))}
             </div>
             <blockquote className="text-2xl md:text-3xl font-medium text-gray-900 mb-8 leading-relaxed">
-              "AutoPulse dramatically reduced our no-show rate and gave us deeper customer insights in days."
+              "AutoPulse dramatically reduced our no-show rate and gave us
+              deeper customer insights in days."
             </blockquote>
             <div className="text-lg text-gray-600">
               <strong>Service Manager</strong>, AutoCare Co.
@@ -297,16 +375,16 @@ const Index = () => {
           </h2>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/signup">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-10 py-4 h-auto font-semibold rounded-full"
               >
                 Start your Free Trial
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="lg"
               className="border-2 border-white text-white hover:bg-white hover:text-blue-600 text-lg px-8 py-4 h-auto rounded-full"
             >
@@ -331,34 +409,74 @@ const Index = () => {
                 AI-powered call assistants for seamless customer connections
               </p>
             </div>
-            
+
             <div>
               <h3 className="font-semibold mb-4">Product</h3>
               <div className="space-y-2">
-                <a href="#features" className="block text-gray-400 hover:text-white transition-colors">Features</a>
-                <a href="#pricing" className="block text-gray-400 hover:text-white transition-colors">Pricing</a>
-                <a href="#demo" className="block text-gray-400 hover:text-white transition-colors">Demo</a>
+                <a
+                  href="#features"
+                  className="block text-gray-400 hover:text-white transition-colors"
+                >
+                  Features
+                </a>
+                <a
+                  href="#pricing"
+                  className="block text-gray-400 hover:text-white transition-colors"
+                >
+                  Pricing
+                </a>
+                <a
+                  href="#demo"
+                  className="block text-gray-400 hover:text-white transition-colors"
+                >
+                  Demo
+                </a>
               </div>
             </div>
-            
+
             <div>
               <h3 className="font-semibold mb-4">Company</h3>
               <div className="space-y-2">
-                <a href="#about" className="block text-gray-400 hover:text-white transition-colors">About</a>
-                <a href="#blog" className="block text-gray-400 hover:text-white transition-colors">Blog</a>
-                <a href="#careers" className="block text-gray-400 hover:text-white transition-colors">Careers</a>
+                <a
+                  href="#about"
+                  className="block text-gray-400 hover:text-white transition-colors"
+                >
+                  About
+                </a>
+                <a
+                  href="#blog"
+                  className="block text-gray-400 hover:text-white transition-colors"
+                >
+                  Blog
+                </a>
+                <a
+                  href="#careers"
+                  className="block text-gray-400 hover:text-white transition-colors"
+                >
+                  Careers
+                </a>
               </div>
             </div>
-            
+
             <div>
               <h3 className="font-semibold mb-4">Legal</h3>
               <div className="space-y-2">
-                <a href="#privacy" className="block text-gray-400 hover:text-white transition-colors">Privacy</a>
-                <a href="#terms" className="block text-gray-400 hover:text-white transition-colors">Terms of Service</a>
+                <a
+                  href="#privacy"
+                  className="block text-gray-400 hover:text-white transition-colors"
+                >
+                  Privacy
+                </a>
+                <a
+                  href="#terms"
+                  className="block text-gray-400 hover:text-white transition-colors"
+                >
+                  Terms of Service
+                </a>
               </div>
             </div>
           </div>
-          
+
           <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
             <p>&copy; 2024 AutoPulse. All rights reserved.</p>
           </div>

@@ -13,6 +13,13 @@ class Plan(Base):
     Plan model for subscription tiers.
     """
     
+# Table name - explicitly set
+    
+    # Table name - explicitly set
+    __tablename__ = "plans"
+    
+
+    
     # Primary key
     id = Column(Integer, primary_key=True, autoincrement=True)
     

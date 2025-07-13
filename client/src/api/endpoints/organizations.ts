@@ -30,7 +30,7 @@ export interface OrganizationSettings {
  * @returns Organization details
  */
 export const getOrganizationSettings = async (): Promise<Organization> => {
-  const response = await fetch(`${API_BASE_URL}/organizations`, {
+  const response = await fetch(`${API_BASE_URL}/organizations/`, {
     method: "GET",
     headers: getHeaders(),
   });

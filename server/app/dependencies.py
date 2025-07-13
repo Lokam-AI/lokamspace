@@ -4,7 +4,7 @@ FastAPI dependencies for authentication, database access, and more.
 
 from typing import AsyncGenerator, Optional, Union
 
-from fastapi import Depends, HTTPException, Request, Security, status
+from fastapi import Depends, HTTPException, Request, Security, status, Header
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlalchemy import select
@@ -14,6 +14,7 @@ from app.core.database import get_db
 from app.core.middleware import TenantQueryFilter
 from app.core.security import TokenData, decode_access_token
 from app.models import Organization, User
+from app.core.config import settings
 
 # OAuth2 configuration
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -148,4 +149,34 @@ def check_role(required_role: str):
 
 # Common role dependencies
 get_admin_user = check_role("Admin")
-get_manager_user = check_role("Manager") 
+get_manager_user = check_role("Manager")
+
+
+async def verify_vapi_secret(
+    x_vapi_secret: str = Header(None)
+) -> str:
+    """
+    Verify the VAPI secret token for webhook endpoints.
+    
+    Args:
+        x_vapi_secret: The secret token from VAPI webhook request header
+        
+    Returns:
+        str: The verified secret token
+        
+    Raises:
+        HTTPException: If the secret token is missing or invalid
+    """
+    if not x_vapi_secret:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing VAPI secret token"
+        )
+    
+    if x_vapi_secret != settings.VAPI_WEBHOOK_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid VAPI secret token"
+        )
+    
+    return x_vapi_secret 

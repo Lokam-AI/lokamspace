@@ -370,7 +370,9 @@ export const BulkUploadModal = ({
                 </p>
                 <p className="text-sm text-blue-700 mt-1">
                   Download the template to see the required format. Make sure
-                  phone numbers are in the format: +19029897685
+                  phone numbers are in the format: +1XXXXXXXXXX for US or
+                  +91XXXXXXXXXX for India. The appointment date should be in
+                  YYYY-MM-DD format.
                 </p>
               </div>
             </div>

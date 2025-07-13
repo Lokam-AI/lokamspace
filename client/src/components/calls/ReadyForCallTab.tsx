@@ -204,24 +204,29 @@ export const ReadyForCallTab = ({
                   />
                 </TableCell>
                 <TableCell className="font-medium text-foreground">
-                  {call.customer_name}
+                  {call.customer_name || call.customerName}
                 </TableCell>
                 <TableCell>
                   <span className="font-mono text-sm bg-muted text-foreground px-2 py-1 rounded">
-                    {call.vehicle_info}
+                    {call.vehicle_info || call.vehicleNumber || "N/A"}
                   </span>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-2">
                     <User className="h-4 w-4 text-foreground-secondary" />
                     <span className="text-foreground-secondary">
-                      {call.service_advisor_name}
+                      {call.service_advisor_name ||
+                        call.serviceAdvisor ||
+                        "Unassigned"}
                     </span>
                   </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">
-                    {call.call_reason || "Not specified"}
+                    {call.service_type ||
+                      call.serviceType ||
+                      call.call_reason ||
+                      "Not specified"}
                   </Badge>
                 </TableCell>
                 <TableCell>

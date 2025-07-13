@@ -2,6 +2,7 @@
 Demo call schemas.
 """
 
+from datetime import datetime
 from typing import Dict, Optional, Any
 from uuid import UUID
 
@@ -18,6 +19,7 @@ class DemoCallCreate(BaseModel):
     service_type: Optional[str] = "Feedback Call"
     campaign_id: Optional[int] = None
     organization_id: Optional[UUID] = None
+    appointment_date: Optional[datetime] = None
 
 
 class DemoCallResponse(BaseModel):
@@ -30,3 +32,4 @@ class DemoCallResponse(BaseModel):
     campaign_id: Optional[int] = None
     status: str
     vapi_response: Optional[Dict[str, Any]] = None 
+    appointment_date: Optional[datetime] = None 

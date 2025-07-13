@@ -14,13 +14,20 @@ class Setting(Base):
     Setting model for organization-specific settings.
     """
     
+# Table name - explicitly set
+    
+    # Table name - explicitly set
+    __tablename__ = "settings"
+    
+
+    
     # Primary key
     id = Column(Integer, primary_key=True, autoincrement=True)
     
     # Organization (tenant) relationship
     organization_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("organization.id"),
+        ForeignKey("organizations.id"),
         nullable=False
     )
     

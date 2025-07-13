@@ -6,11 +6,11 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID
 import json
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundException
-from app.models import Setting
+from app.models import Setting, Organization
 from app.schemas import SettingCreate, SettingUpdate
 
 
@@ -87,7 +87,7 @@ class SettingsService:
             db: Database session
             
         Returns:
-            Optional[Setting]: Setting object or None if not found
+            Optional[Setting]: Setting object or None
         """
         query = select(Setting).where(
             Setting.key == key,
@@ -126,7 +126,7 @@ class SettingsService:
         organization_id: UUID,
         setting_data: SettingUpdate) -> Setting:
         """
-        Update setting.
+        Update a setting.
         
         Args:
             setting_id: Setting ID
@@ -146,10 +146,10 @@ class SettingsService:
             db=db
         )
         
-        # Update fields
-        update_data = setting_data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(setting, field, value)
+        # Update setting
+        data = setting_data.model_dump(exclude_unset=True)
+        for key, value in data.items():
+            setattr(setting, key, value)
         
         await db.commit()
         await db.refresh(setting)
@@ -162,22 +162,19 @@ class SettingsService:
         key: str,
         organization_id: UUID,
         value: Any,
-        description: Optional[str]) -> Setting:
+        description: Optional[str] = None) -> Setting:
         """
-        Update setting by key.
+        Update a setting by key or create it if it doesn't exist.
         
         Args:
             key: Setting key
             organization_id: Organization ID
-            value: New value
-            description: New description
+            value: Setting value
+            description: Setting description
             db: Database session
             
         Returns:
-            Setting: Updated setting
-            
-        Raises:
-            NotFoundException: If setting not found
+            Setting: Updated or created setting
         """
         setting = await SettingsService.get_setting_by_key(
             key=key,
@@ -185,62 +182,28 @@ class SettingsService:
             db=db
         )
         
-        if setting is None:
-            raise NotFoundException(f"Setting with key '{key}' not found")
-        
-        # Update fields
-        setting.value = value
-        if description is not None:
-            setting.description = description
-        
-        await db.commit()
-        await db.refresh(setting)
+        if setting:
+            # Update existing setting
+            setting.value = value
+            if description:
+                setting.description = description
+            
+            await db.commit()
+            await db.refresh(setting)
+        else:
+            # Create new setting
+            setting = Setting()
+            setting.organization_id = organization_id
+            setting.key = key
+            setting.value = value
+            setting.category = "general"
+            setting.description = description or f"Setting for {key}"
+            
+            db.add(setting)
+            await db.commit()
+            await db.refresh(setting)
         
         return setting
-    
-    @staticmethod
-    async def initialize_default_settings(
-        db: AsyncSession,
-        organization_id: UUID) -> None:
-        """
-        Initialize default settings for a new organization.
-        
-        Args:
-            organization_id: Organization ID
-            db: Database session
-        """
-        # Default inquiry topics
-        default_inquiry_topics = [
-            "Service Estimate Request",
-            "Appointment Scheduling",
-            "Service Status Update",
-            "Billing & Payment Questions",
-            "Warranty Information",
-            "Parts Availability",
-            "Customer Complaints",
-            "General Information Request",
-        ]
-        
-        # Check if inquiry_topics setting exists
-        setting = await SettingsService.get_setting_by_key(
-            key="inquiry_topics",
-            organization_id=organization_id,
-            db=db
-        )
-        
-        # Create if it doesn't exist
-        if setting is None:
-            setting_data = SettingCreate(
-                key="inquiry_topics",
-                value=default_inquiry_topics,  # JSONB can handle Python lists directly
-                description="Types of inquiries expected from customers",
-                category="inquiries",
-                organization_id=organization_id
-            )
-            await SettingsService.create_setting(
-                setting_data=setting_data,
-                db=db
-            )
     
     @staticmethod
     async def delete_setting(
@@ -248,7 +211,7 @@ class SettingsService:
         setting_id: int,
         organization_id: UUID) -> None:
         """
-        Delete setting.
+        Delete a setting.
         
         Args:
             setting_id: Setting ID
@@ -270,34 +233,164 @@ class SettingsService:
     @staticmethod
     async def get_settings_by_category(
         db: AsyncSession,
-        organization_id: UUID) -> Dict[str, Dict[str, Any]]:
+        organization_id: UUID) -> Dict[str, List[Dict[str, Any]]]:
         """
-        Get all settings organized by category.
+        Get settings organized by category.
         
         Args:
             organization_id: Organization ID
             db: Database session
             
         Returns:
-            Dict[str, Dict[str, Any]]: Settings organized by category
+            Dict[str, List[Dict[str, Any]]]: Settings by category
         """
         settings = await SettingsService.list_settings(
             organization_id=organization_id,
-            db=db,
-            category=None
+            category=None,
+            db=db
         )
         
-        # Organize settings by category
+        # Organize by category
         result = {}
         for setting in settings:
-            category = setting.category
-            if category not in result:
-                result[category] = {}
+            if setting.category not in result:
+                result[setting.category] = []
             
-            result[category][setting.key] = {
+            result[setting.category].append({
                 "id": setting.id,
+                "key": setting.key,
                 "value": setting.value,
-                "description": setting.description
-            }
+                "description": setting.description,
+                "created_at": setting.created_at.isoformat() if setting.created_at else None,
+                "updated_at": setting.updated_at.isoformat() if setting.updated_at else None
+            })
         
-        return result 
+        return result
+    
+    @staticmethod
+    async def initialize_default_settings(
+        db: AsyncSession,
+        organization_id: UUID) -> None:
+        """
+        Initialize default settings for an organization.
+        
+        Args:
+            organization_id: Organization ID
+            db: Database session
+        """
+        # Default settings
+        default_settings = [
+            # Notification settings
+            {
+                "key": "email_notifications",
+                "value": True,
+                "category": "notifications",
+                "description": "Enable email notifications"
+            },
+            {
+                "key": "sms_notifications",
+                "value": True,
+                "category": "notifications",
+                "description": "Enable SMS notifications"
+            },
+            
+            # Call settings
+            {
+                "key": "call_recording",
+                "value": True,
+                "category": "calls",
+                "description": "Enable call recording"
+            },
+            {
+                "key": "call_transcription",
+                "value": True,
+                "category": "calls",
+                "description": "Enable call transcription"
+            },
+            
+            # AI settings
+            {
+                "key": "ai_sentiment_analysis",
+                "value": True,
+                "category": "ai",
+                "description": "Enable AI sentiment analysis"
+            },
+            {
+                "key": "ai_call_summarization",
+                "value": True,
+                "category": "ai",
+                "description": "Enable AI call summarization"
+            },
+            
+            # Tag settings for default inquiry topics
+            {
+                "key": "inquiry_topics",
+                "value": [
+                    "Service Estimate Request",
+                    "Appointment Scheduling",
+                    "Service Status Update",
+                    "Billing & Payment Questions",
+                    "Warranty Information",
+                    "Parts Availability",
+                    "Customer Complaints",
+                    "General Information Request"
+                ],
+                "category": "tags",
+                "description": "Default inquiry topics"
+            },
+        ]
+        
+        # Create settings if they don't exist
+        for setting_data in default_settings:
+            existing = await SettingsService.get_setting_by_key(
+                key=setting_data["key"],
+                organization_id=organization_id,
+                db=db
+            )
+            
+            if not existing:
+                setting = Setting()
+                setting.organization_id = organization_id
+                setting.key = setting_data["key"]
+                setting.value = setting_data["value"]
+                setting.category = setting_data["category"]
+                setting.description = setting_data["description"]
+                db.add(setting)
+        
+        await db.commit()
+
+    @staticmethod
+    async def update_organization_descriptions(
+        db: AsyncSession,
+        organization_id: UUID,
+        company_description: Optional[str] = None,
+        service_center_description: Optional[str] = None) -> Organization:
+        """
+        Update organization descriptions.
+        
+        Args:
+            organization_id: Organization ID
+            company_description: Company description
+            service_center_description: Service center description
+            db: Database session
+            
+        Returns:
+            Organization: Updated organization
+        """
+        query = select(Organization).where(Organization.id == organization_id)
+        result = await db.execute(query)
+        organization = result.scalar_one_or_none()
+        
+        if organization is None:
+            raise NotFoundException(f"Organization with ID {organization_id} not found")
+        
+        if company_description is not None:
+            organization.description = company_description
+            
+        if service_center_description is not None:
+            organization.service_center_description = service_center_description
+        
+        await db.commit()
+        await db.refresh(organization)
+        
+        return organization 

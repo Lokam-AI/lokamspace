@@ -252,3 +252,20 @@ class OrganizationService:
             "total_service_records": total_service_records,
             "credit_balance": float(organization.credit_balance),
         } 
+
+    @staticmethod
+    async def check_and_initialize_descriptions(
+        db: AsyncSession,
+        organization_id: UUID
+    ) -> None:
+        organization = await OrganizationService.get_organization(db, organization_id)
+        updated = False
+        if not organization.description or not organization.description.strip():
+            organization.description = "We are a customer-first automobile service company committed to delivering fast, transparent, and high-quality service experiences for every vehicle owner."
+            updated = True
+        if not organization.service_center_description or not organization.service_center_description.strip():
+            organization.service_center_description = "Our service center specializes in diagnostics, repairs, and preventive maintenance, equipped with certified technicians and state-of-the-art tools."
+            updated = True
+        if updated:
+            await db.commit()
+            await db.refresh(organization) 
