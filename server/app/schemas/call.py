@@ -3,7 +3,7 @@ Call schemas.
 """
 
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field, validator
@@ -29,12 +29,12 @@ class CallBase(BaseModel):
     nps_score: Optional[int] = None
     call_reason: Optional[str] = None
     feedback_summary: Optional[str] = None
+    call_summary: Optional[str] = None  # New field for call summary
     service_advisor_id: Optional[int] = None
     service_advisor_name: Optional[str] = None
     vehicle_info: Optional[str] = None
-    positive_mentions: Optional[List[str]] = None
-    areas_to_improve: Optional[List[str]] = None
-    
+    service_type: Optional[str] = None  # Added service type from service record
+
     # Flag for demo calls
     is_demo: bool = False
 
@@ -65,11 +65,11 @@ class CallUpdate(BaseModel):
     nps_score: Optional[int] = None
     call_reason: Optional[str] = None
     feedback_summary: Optional[str] = None
+    call_summary: Optional[str] = None  # New field for call summary
     service_advisor_id: Optional[int] = None
     service_advisor_name: Optional[str] = None
     vehicle_info: Optional[str] = None
-    positive_mentions: Optional[List[str]] = None
-    areas_to_improve: Optional[List[str]] = None
+    service_type: Optional[str] = None  # Added service type from service record
     
     # Flag for demo calls
     is_demo: Optional[bool] = None
@@ -112,7 +112,7 @@ class BulkCallUpload(BaseModel):
     
     class Config:
         """Config for BulkCallUpload."""
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "campaign_name": "Spring Service Follow-up",
                 "calls": [
@@ -133,3 +133,60 @@ class CSVTemplateResponse(BaseModel):
     """Response model for CSV template."""
     headers: List[str]
     sample_row: List[str]
+
+
+class CallDetailResponse(BaseModel):
+    """Detailed call response schema."""
+    
+    # Call fields
+    id: int
+    customer_number: str
+    direction: str
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    duration_sec: Optional[int] = None
+    status: str
+    recording_url: Optional[str] = None
+    nps_score: Optional[int] = None
+    call_reason: Optional[str] = None
+    feedback_summary: Optional[str] = None
+    call_summary: Optional[str] = None  # New field for call summary
+    cost: Optional[float] = None  # Added cost field for call details
+    
+    # ServiceRecord fields
+    customer_name: Optional[str] = None
+    vehicle_info: Optional[str] = None
+    service_type: Optional[str] = None
+    service_advisor_name: Optional[str] = None
+    appointment_date: Optional[datetime] = None  # Added appointment date field
+    
+    # Transcript fields
+    transcript: Optional[List[Dict[str, Any]]] = None  # List of transcript segments
+    
+    # Derived fields
+    call_duration: Optional[str] = None  # Formatted duration
+    attempt_count: int = 1  # Default to 1, can be calculated if needed
+    customer_email: Optional[str] = None  # If available
+    
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "id": 1,
+                "organization_id": "123e4567-e89b-12d3-a456-426614174000",
+                "service_record_id": 1,
+                "customer_number": "+1234567890",
+                "direction": "outbound",
+                "start_time": "2023-06-01T12:00:00Z",
+                "end_time": "2023-06-01T12:05:00Z",
+                "duration_sec": 300,
+                "status": "Completed",
+                "recording_url": "https://example.com/recording.mp3",
+                "nps_score": 9,
+                "call_reason": "Service Feedback",
+                "feedback_summary": "Customer was very satisfied",
+                "cost": 0.25,
+                "created_at": "2023-06-01T12:00:00Z",
+                "updated_at": "2023-06-01T12:05:00Z"
+            }
+        }

@@ -14,12 +14,31 @@ from app.schemas.call import (
     BulkCallUpload,
     CSVTemplateResponse,
 )
+from app.schemas.call_feedback import (
+    CallFeedbackBase,
+    CallFeedbackCreate,
+    CallFeedbackUpdate,
+    CallFeedbackInDB,
+    CallFeedbackResponse,
+)
 from app.schemas.campaign import (
     CampaignBase,
     CampaignCreate,
     CampaignUpdate,
     CampaignDB,
     CampaignResponse,
+)
+from app.schemas.dms_integration import (
+    DMSIntegrationBase,
+    DMSIntegrationCreate,
+    DMSIntegrationUpdate,
+    DMSIntegrationResponse,
+)
+from app.schemas.knowledge_file import (
+    KnowledgeFileBase,
+    KnowledgeFileCreate,
+    KnowledgeFileUpdate,
+    KnowledgeFileResponse,
 )
 from app.schemas.organization import (
     OrganizationBase,
@@ -43,6 +62,14 @@ from app.schemas.setting import (
     SettingDB,
     SettingResponse,
     OrganizationSettingsResponse,
+)
+from app.schemas.tag import (
+    TagBase,
+    TagCreate,
+    TagUpdate,
+    TagInDB,
+    TagResponse,
+    TagsCheckResponse,
 )
 from app.schemas.transcript import (
     TranscriptBase,
@@ -102,6 +129,21 @@ __all__ = [
     "TranscriptSnippet",
     "BulkCallUpload",
     "CSVTemplateResponse",
+
+    # Call feedback schemas
+    "CallFeedbackBase",
+    "CallFeedbackCreate",
+    "CallFeedbackUpdate",
+    "CallFeedbackInDB",
+    "CallFeedbackResponse",
+    
+    # Tag schemas
+    "TagBase",
+    "TagCreate",
+    "TagUpdate",
+    "TagInDB",
+    "TagResponse",
+    "TagsCheckResponse",
     
     # Transcript schemas
     "TranscriptBase",
@@ -118,4 +160,16 @@ __all__ = [
     "SettingDB",
     "SettingResponse",
     "OrganizationSettingsResponse",
+    
+    # DMS integration schemas
+    "DMSIntegrationBase",
+    "DMSIntegrationCreate",
+    "DMSIntegrationUpdate",
+    "DMSIntegrationResponse",
+    
+    # Knowledge file schemas
+    "KnowledgeFileBase",
+    "KnowledgeFileCreate",
+    "KnowledgeFileUpdate",
+    "KnowledgeFileResponse",
 ]

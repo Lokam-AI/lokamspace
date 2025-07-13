@@ -15,18 +15,21 @@ class ServiceRecord(Base):
     ServiceRecord model for tracking customer service information.
     """
     
+    # Table name - explicitly set
+    __tablename__ = "servicerecords"
+    
     # Primary key
     id = Column(Integer, primary_key=True, autoincrement=True)
     
     # Organization (tenant) relationship
     organization_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("organization.id"),
+        ForeignKey("organizations.id"),
         nullable=False
     )
     
     # Campaign relationship
-    campaign_id = Column(Integer, ForeignKey("campaign.id"), nullable=True)
+    campaign_id = Column(Integer, ForeignKey("campaigns.id"), nullable=True)
     
     # Customer information
     customer_name = Column(String(100), nullable=False)
@@ -38,30 +41,23 @@ class ServiceRecord(Base):
     status = Column(String(20), nullable=False, default="Scheduled")
     appointment_date = Column(DateTime(timezone=True))
     
-    # Service advisor information
-    service_advisor_id = Column(Integer, ForeignKey("user.id"), nullable=True)
-    service_advisor_name = Column(String(100), nullable=True)
-    
-    # Feedback
-    feedback = Column(Text)
-    rating = Column(SmallInteger)
-    overall_feedback = Column(Text, nullable=True)
-    positive_mentions = Column(ARRAY(String), nullable=True)
-    areas_to_improve = Column(ARRAY(String), nullable=True)
-    
-    # Flag for demo service records
+    # Boolean flag to indicate if this is a demo record
     is_demo = Column(Boolean, nullable=False, default=False)
     
+    # Service advisor information - keeping the name but removing the ID
+    service_advisor_name = Column(String(100), nullable=True)
+    
+    # Feedback fields removed
+    
     # Audit fields
-    created_by = Column(Integer, ForeignKey("user.id"))
-    modified_by = Column(Integer, ForeignKey("user.id"))
+    created_by = Column(Integer, ForeignKey("users.id"))
+    modified_by = Column(Integer, ForeignKey("users.id"))
     
     # Relationships
     organization = relationship("Organization", back_populates="service_records")
     campaign = relationship("Campaign", back_populates="service_records")
     creator = relationship("User", foreign_keys=[created_by])
     modifier = relationship("User", foreign_keys=[modified_by])
-    service_advisor = relationship("User", foreign_keys=[service_advisor_id])
     calls = relationship("Call", back_populates="service_record")
     
     def __repr__(self) -> str:
