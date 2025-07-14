@@ -1,134 +1,206 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Phone, User, Eye } from "lucide-react";
+import { Phone, User, Eye, Loader2, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Campaign } from "@/types/campaign";
 import { Call } from "@/pages/Calls";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { CallsPagination } from "./CallsPagination";
 import { DemoCallSection } from "./DemoCallSection";
+import { getDemoCalls } from "@/api/endpoints/calls";
 
 interface DemoCallTabProps {
   campaigns: Campaign[];
   onViewDetails: (call: Call) => void;
 }
 
-export const DemoCallTab = ({
-  campaigns,
-  onViewDetails
-}: DemoCallTabProps) => {
-  const {
-    toast
-  } = useToast();
+export const DemoCallTab = ({ campaigns, onViewDetails }: DemoCallTabProps) => {
+  const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [demoCalls, setDemoCalls] = useState<Call[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [autoRefreshInterval, setAutoRefreshInterval] =
+    useState<NodeJS.Timeout | null>(null);
 
-  // Enhanced demo calls with realistic data for CallDetailPanel
-  const [demoCalls] = useState<Call[]>([{
-    id: "demo-1",
-    customerName: "John Smith",
-    phoneNumber: "+1 (555) 123-4567",
-    vehicleNumber: "ABC-123",
-    serviceAdvisor: "Mike Torres",
-    serviceType: "Oil Change",
-    callDetails: "Routine maintenance reminder - Customer very satisfied with service",
-    campaignId: "demo",
-    campaignName: "Demo Campaign",
-    status: "completed",
-    callDateTime: "2024-06-28T10:30:00",
-    npsScore: 9,
-    transcript: "Thank you for calling about my recent oil change. I was very impressed with the service. The technician explained everything clearly and the work was completed quickly. I'll definitely be back for future maintenance.",
-    audioUrl: "demo-audio-1.mp3",
-    tags: ["positive", "satisfied", "will-return"]
-  }, {
-    id: "demo-2",
-    customerName: "Sarah Johnson",
-    phoneNumber: "+1 (555) 987-6543",
-    vehicleNumber: "XYZ-789",
-    serviceAdvisor: "Lisa Park",
-    serviceType: "Brake Inspection",
-    callDetails: "Follow up on brake service - Customer appreciated thorough explanation",
-    campaignId: "demo",
-    campaignName: "Demo Campaign",
-    status: "completed",
-    callDateTime: "2024-06-27T14:15:00",
-    npsScore: 8,
-    transcript: "The brake inspection was very thorough. I appreciated that the technician showed me exactly what needed to be done and provided a clear estimate. The work was done on time and within budget.",
-    audioUrl: "demo-audio-2.mp3",
-    tags: ["positive", "thorough", "on-time"]
-  }, {
-    id: "demo-3",
-    customerName: "Robert Wilson",
-    phoneNumber: "+1 (555) 456-7890",
-    vehicleNumber: "DEF-456",
-    serviceAdvisor: "John Smith",
-    serviceType: "Tire Rotation",
-    callDetails: "Tire service follow-up - Minor concerns about scheduling",
-    campaignId: "demo",
-    campaignName: "Demo Campaign",
-    status: "completed",
-    callDateTime: "2024-06-26T16:45:00",
-    npsScore: 7,
-    transcript: "The tire rotation service was good overall. My only complaint was that I had to wait longer than expected. The work quality was fine, but better scheduling would improve the experience.",
-    audioUrl: "demo-audio-3.mp3",
-    tags: ["neutral", "scheduling-issue", "good-quality"]
-  }, {
-    id: "demo-4",
-    customerName: "Emily Davis",
-    phoneNumber: "+1 (555) 321-6540",
-    vehicleNumber: "GHI-789",
-    serviceAdvisor: "Sarah Johnson",
-    serviceType: "AC Service",
-    callDetails: "Air conditioning repair follow-up - Customer had billing concerns",
-    campaignId: "demo",
-    campaignName: "Demo Campaign",
-    status: "completed",
-    callDateTime: "2024-06-25T11:20:00",
-    npsScore: 4,
-    transcript: "I'm not happy with the AC service. The repair seems fine, but I was charged more than the original estimate without proper explanation. I expected better communication about additional costs.",
-    audioUrl: "demo-audio-4.mp3",
-    tags: ["negative", "billing-issue", "poor-communication"]
-  }, {
-    id: "demo-5",
-    customerName: "Michael Brown",
-    phoneNumber: "+1 (555) 654-3210",
-    vehicleNumber: "JKL-012",
-    serviceAdvisor: "Mike Chen",
-    serviceType: "General Service",
-    callDetails: "Routine maintenance - Customer extremely satisfied",
-    campaignId: "demo",
-    campaignName: "Demo Campaign",
-    status: "completed",
-    callDateTime: "2024-06-24T09:15:00",
-    npsScore: 10,
-    transcript: "Outstanding service! The team went above and beyond. They completed the work ahead of schedule, found and fixed an additional issue at no extra charge, and the facility was clean and professional. Highly recommend!",
-    audioUrl: "demo-audio-5.mp3",
-    tags: ["positive", "exceeded-expectations", "professional", "highly-recommend"]
-  }]);
-  const totalPages = Math.ceil(demoCalls.length / itemsPerPage);
-  const currentCalls = demoCalls.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const fetchDemoCalls = useCallback(async () => {
+    const isInitialLoad = isLoading;
+    if (!isInitialLoad) setIsRefreshing(true);
+
+    try {
+      const filters = {
+        skip: (currentPage - 1) * itemsPerPage,
+        limit: itemsPerPage,
+      };
+
+      const response = await getDemoCalls(filters);
+
+      if (!response || !Array.isArray(response)) {
+        console.error("Unexpected response format:", response);
+        throw new Error("Invalid response format");
+      }
+
+      // Transform API response to match Call type
+      const formattedCalls = response.map((call: any): Call => {
+        const baseCall: Call = {
+          id: call.id?.toString() || "",
+          customer_name: call.customer_name || "",
+          phone_number: call.customer_number || call.phone_number || "",
+          vehicle_info: call.vehicle_info || call.vehicle_number || "",
+          service_advisor_name: call.service_advisor_name || "",
+          service_type: call.service_type || "",
+          call_reason: call.call_reason || "",
+          campaign_id: call.campaign_id?.toString() || "",
+          campaign_name: call.campaign_name || "Demo Campaign",
+          status: call.status?.toLowerCase() || "unknown",
+          scheduled_time: call.scheduled_time || "",
+          start_time: call.start_time || "",
+          end_time: call.end_time || "",
+          nps_score: call.nps_score || 0,
+          transcript:
+            call.transcript_snippets?.map((s: any) => s.text).join("\n") ||
+            call.transcript ||
+            "",
+          recording_url: call.audio_url || call.recording_url || "",
+          tags: call.tags || [],
+          duration: call.duration || 0,
+          direction: call.direction || "outbound",
+        };
+
+        // UI-specific fields
+        baseCall.customerName = call.customer_name || "";
+        baseCall.vehicleNumber = call.vehicle_info || call.vehicle_number || "";
+        baseCall.serviceAdvisor = call.service_advisor_name || "";
+        baseCall.callDetails = call.call_reason || "";
+        baseCall.scheduledDateTime = call.scheduled_time || "";
+        baseCall.callDateTime =
+          call.start_time || call.scheduled_time || new Date().toISOString();
+        baseCall.audioUrl = call.audio_url || call.recording_url || "";
+        baseCall.serviceType = call.service_type || "";
+
+        return baseCall;
+      });
+
+      setDemoCalls(formattedCalls);
+      setTotalCount(
+        response.length > 0 ? response[0].total_count || response.length : 0
+      );
+
+      // Check if there are any calls in progress - if so, schedule a refresh
+      const hasInProgressCalls = formattedCalls.some(
+        (call) => call.status === "in progress" || call.status === "ringing"
+      );
+
+      if (hasInProgressCalls) {
+        startAutoRefresh();
+      } else if (autoRefreshInterval) {
+        stopAutoRefresh();
+      }
+    } catch (error) {
+      console.error("Error fetching demo calls:", error);
+      toast({
+        title: "Failed to load demo calls",
+        description: "There was a problem loading the demo calls",
+        variant: "destructive",
+      });
+      setDemoCalls([]);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [currentPage, itemsPerPage, toast, autoRefreshInterval, isLoading]);
+
+  // Setup initial fetch
+  useEffect(() => {
+    fetchDemoCalls();
+  }, [fetchDemoCalls, currentPage]);
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+    };
+  }, [autoRefreshInterval]);
+
+  const startAutoRefresh = () => {
+    // Don't create a new interval if one already exists
+    if (autoRefreshInterval) return;
+
+    const interval = setInterval(() => {
+      fetchDemoCalls();
+    }, 5000); // Refresh every 5 seconds
+
+    setAutoRefreshInterval(interval);
+  };
+
+  const stopAutoRefresh = () => {
+    if (autoRefreshInterval) {
+      clearInterval(autoRefreshInterval);
+      setAutoRefreshInterval(null);
+    }
+  };
+
+  const handleManualRefresh = () => {
+    fetchDemoCalls();
+  };
+
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+
   const formatDateTime = (dateTime: string) => {
     return new Date(dateTime).toLocaleDateString();
   };
-  const getNPSBadgeVariant = (score: number) => {
-    if (score >= 9) return 'default';
-    if (score >= 7) return 'secondary';
-    return 'destructive';
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "completed":
+        return "default";
+      case "in progress":
+      case "ringing":
+        return "secondary"; // Changed from 'warning' to 'secondary'
+      case "ready":
+        return "secondary";
+      case "failed":
+        return "destructive";
+      default:
+        return "secondary";
+    }
   };
-  const getNPSLabel = (score: number) => {
-    if (score >= 9) return 'Promoter';
-    if (score >= 7) return 'Passive';
-    return 'Detractor';
-  };
+
   return (
     <div className="space-y-2">
       {/* Demo Call Section - for initiating new demo calls */}
-      <DemoCallSection campaigns={campaigns} />
+      <DemoCallSection
+        campaigns={campaigns}
+        onDemoCallCreated={fetchDemoCalls}
+      />
 
-      {/* Demo Calls Table - Same format as Completed Calls */}
+      {/* Demo Calls Table */}
       <div className="border border-border rounded-lg">
+        <div className="flex justify-between items-center p-4 border-b border-border">
+          <h3 className="text-lg font-medium">Demo Calls</h3>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </Button>
+        </div>
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -136,63 +208,111 @@ export const DemoCallTab = ({
               <TableHead className="text-foreground">Vehicle</TableHead>
               <TableHead className="text-foreground">Service Advisor</TableHead>
               <TableHead className="text-foreground">Service Type</TableHead>
-              <TableHead className="text-foreground">NPS Score</TableHead>
-              <TableHead className="text-right text-foreground">Actions</TableHead>
+              <TableHead className="text-foreground">Status</TableHead>
+              <TableHead className="text-right text-foreground">
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {currentCalls.map(call => (
-              <TableRow key={call.id} className="hover:bg-muted/30">
-                <TableCell>
-                  <div>
-                    <div className="font-medium text-foreground">{call.customerName}</div>
-                    <div className="text-sm text-foreground-secondary">{formatDateTime(call.callDateTime!)}</div>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  <div className="flex justify-center items-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                </TableCell>
-                <TableCell>
-                  <span className="font-mono text-sm bg-muted text-foreground px-2 py-1 rounded">
-                    {call.vehicleNumber}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 text-foreground-secondary" />
-                    <span className="text-foreground-secondary">{call.serviceAdvisor}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{call.serviceType}</Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant={getNPSBadgeVariant(call.npsScore!)}>
-                      {call.npsScore}/10
-                    </Badge>
-                    <span className="text-xs text-foreground-secondary">
-                      {getNPSLabel(call.npsScore!)}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button size="sm" variant="outline" onClick={() => onViewDetails(call)}>
-                    <Eye className="h-4 w-4 mr-2" />
-                    View Details
-                  </Button>
                 </TableCell>
               </TableRow>
-            ))}
+            ) : demoCalls.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  <p className="text-muted-foreground">No demo calls found</p>
+                  <p className="text-sm text-muted-foreground">
+                    Create a new demo call using the form above
+                  </p>
+                </TableCell>
+              </TableRow>
+            ) : (
+              demoCalls.map((call) => (
+                <TableRow key={call.id} className="hover:bg-muted/30">
+                  <TableCell>
+                    <div>
+                      <div className="font-medium text-foreground">
+                        {call.customerName || call.customer_name}
+                      </div>
+                      <div className="text-sm text-foreground-secondary">
+                        {formatDateTime(
+                          call.callDateTime ||
+                            call.start_time ||
+                            call.scheduled_time ||
+                            ""
+                        )}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-mono text-sm bg-muted text-foreground px-2 py-1 rounded">
+                      {call.vehicleNumber || call.vehicle_info || "N/A"}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <User className="h-4 w-4 text-foreground-secondary" />
+                      <span className="text-foreground-secondary">
+                        {call.serviceAdvisor ||
+                          call.service_advisor_name ||
+                          "N/A"}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {call.serviceType || call.service_type || "Demo"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={getStatusBadgeVariant(call.status)}
+                      className={
+                        call.status.toLowerCase() === "in progress"
+                          ? "animate-pulse"
+                          : ""
+                      }
+                    >
+                      {call.status === "in progress"
+                        ? "In Progress"
+                        : call.status.charAt(0).toUpperCase() +
+                          call.status.slice(1)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onViewDetails(call)}
+                      disabled={call.status.toLowerCase() !== "completed"} // Only enable for completed calls
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Details
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
 
       {/* Pagination */}
-      <CallsPagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-        totalItems={demoCalls.length}
-        itemsPerPage={itemsPerPage}
-      />
+      {demoCalls.length > 0 && (
+        <CallsPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalItems={totalCount}
+          itemsPerPage={itemsPerPage}
+        />
+      )}
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 export interface Campaign {
   id: string;
   name: string;
@@ -18,4 +17,7 @@ export interface DemoCall {
   phoneNumber: string;
   vehicleNumber?: string;
   campaignId?: string;
+  serviceType?: string;
+  serviceAdvisorName?: string;
+  appointmentDate?: string;
 }

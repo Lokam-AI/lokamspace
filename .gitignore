@@ -1,7 +1,4 @@
 # IDE and Editor files
-.cursor/*
-!.cursor/rules/
-!.cursor/rules/**
 .idea/
 .vscode/*
 !.vscode/extensions.json
@@ -24,12 +21,7 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-# Environment and secrets
-.env
-.env.local
-.env.*
-!.env.example
+guides/
 
 notes.md
 
@@ -62,8 +54,6 @@ coverage.xml
 # Database and Migrations
 *.sqlite3
 *.db
-server/alembic/versions/*.py
-server/alembic.ini
 
 # Node.js - Client
 node_modules/
@@ -112,3 +102,5 @@ terraform.tfstate.backup
 *~
 __pycache__/
 *.pyc
+
+# plans/

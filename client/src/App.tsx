@@ -1,10 +1,10 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
@@ -21,33 +21,98 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Protected Route component
+const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, loading } = useAuth();
+
+  // While checking authentication status, show nothing
+  if (loading) {
+    return null;
+  }
+
+  // If not authenticated, redirect to login
+  if (!isAuthenticated) {
+    // Store the current path for redirect after login
+    localStorage.setItem("redirectAfterLogin", window.location.pathname);
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const App = () => (
-  <ThemeProvider>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+  <AuthProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
           <Routes>
+            {/* Public routes */}
             <Route path="/" element={<Index />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/invite/accept" element={<InviteAccept />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/metrics" element={<Metrics />} />
-            <Route path="/calls" element={<Calls />} />
-            <Route path="/bookings" element={<Bookings />} />
-            <Route path="/inquiries" element={<Inquiries />} />
-            <Route path="/settings" element={<Settings />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
+            {/* Protected routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <PrivateRoute>
+                  <Dashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/metrics"
+              element={
+                <PrivateRoute>
+                  <Metrics />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/calls"
+              element={
+                <PrivateRoute>
+                  <Calls />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/bookings"
+              element={
+                <PrivateRoute>
+                  <Bookings />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/inquiries"
+              element={
+                <PrivateRoute>
+                  <Inquiries />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <PrivateRoute>
+                  <Settings />
+                </PrivateRoute>
+              }
+            />
+
+            {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ThemeProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  </AuthProvider>
 );
 
 export default App;

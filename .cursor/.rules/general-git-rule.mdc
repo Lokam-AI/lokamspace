@@ -1,0 +1,6 @@
+---
+alwaysApply: true
+---
+
+- Ensure that you activate the virtual environment named 'venv' before executing any commands in the server module.
+- After making significant changes, remember to commit and push your changes.
