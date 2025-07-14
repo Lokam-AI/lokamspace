@@ -1,7 +1,4 @@
 # IDE and Editor files
-.cursor/*
-!.cursor/rules/
-!.cursor/rules/**
 .idea/
 .vscode/*
 !.vscode/extensions.json
@@ -24,8 +21,7 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-
+guides/
 
 notes.md
 

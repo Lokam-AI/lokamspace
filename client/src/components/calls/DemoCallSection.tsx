@@ -304,7 +304,7 @@ export const DemoCallSection = ({
               }
               placeholder="Enter customer name"
               className="mt-1"
-              disabled={isCreating || isCallInProgress}
+              disabled={isCreating}
             />
           </div>
 
@@ -318,7 +318,7 @@ export const DemoCallSection = ({
               onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
               placeholder="+1 (555) 123-4567"
               className="mt-1"
-              disabled={isCreating || isCallInProgress}
+              disabled={isCreating}
             />
           </div>
 
@@ -334,7 +334,7 @@ export const DemoCallSection = ({
               }
               placeholder="ABC-123"
               className="mt-1"
-              disabled={isCreating || isCallInProgress}
+              disabled={isCreating}
             />
           </div>
 
@@ -355,7 +355,7 @@ export const DemoCallSection = ({
                   handleInputChange("appointmentDate", e.target.value)
                 }
                 className="mt-0"
-                disabled={isCreating || isCallInProgress}
+                disabled={isCreating}
               />
             </div>
           </div>
@@ -369,7 +369,7 @@ export const DemoCallSection = ({
               value={demoCall.serviceType}
               onChange={(e) => handleInputChange("serviceType", e.target.value)}
               className="mt-1"
-              disabled={isCreating || isCallInProgress}
+              disabled={isCreating}
             />
           </div>
 
@@ -388,7 +388,7 @@ export const DemoCallSection = ({
               }
               placeholder="John Smith"
               className="mt-1"
-              disabled={isCreating || isCallInProgress}
+              disabled={isCreating}
             />
           </div>
         </div>
@@ -406,10 +406,7 @@ export const DemoCallSection = ({
             <Button
               onClick={handleInitiateCall}
               disabled={
-                isCallInProgress ||
-                isCreating ||
-                !demoCall.customerName ||
-                !demoCall.phoneNumber
+                isCreating || !demoCall.customerName || !demoCall.phoneNumber
               }
               className="bg-primary hover:bg-primary/90 text-primary-foreground w-full"
             >
@@ -420,8 +417,8 @@ export const DemoCallSection = ({
                 </>
               ) : isCallInProgress ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Call In Progress...
+                  <Phone className="h-4 w-4 mr-2" />
+                  Initiate Another Call
                 </>
               ) : (
                 <>

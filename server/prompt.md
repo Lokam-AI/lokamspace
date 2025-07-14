@@ -6,27 +6,28 @@ You are an expert assistant. Analyze the following call transcript and output **
 ### 📌 Input
 
 **Call Transcript:**  
-assistant: Hi, Ramesh. Are you still there?
-human: Hi there.
-assistant: Hi there. Hope you're doing well. This is Luke from Garage 25. Now a good time to talk?
-human: Yes.
-assistant: Great. Just a quick follow-up on
-human: Go on.
-assistant: thank
-human: Hello?
-assistant: Oh, sorry about that. I just wanted to check how was the entire service experience for you.
-human: I'll give it a 10.
-assistant: Thank you so much. Always nice to hear that. Just 1 last question. What stood out for you the most? Was it the efficiency, friendliness, satisfaction?
-human: Nothing.
-assistant: Got it. Thanks again for sharing.
-human: Efficiency. Efficiency.
-assistant: Efficiency. Love hearing that. Thanks again for sharing. Would it be okay if I text you a quick Google review link? Really helps us grow and means a lot to our team.
-human: Sure. Why not?
+assistant: Hi, Ralph.
+human: How are you?
+assistant: I'm doing great. Thanks for asking. Hope you're doing well too. This is Luke.
+human: Okay.
+assistant: This is Luke from Garage 25. Is now a good time to talk?
+human: Yep.
+assistant: Great. I just wanted to check how was the oil change service experience for you.
+human: Done that.
+assistant: Awesome. Sounds like you got it taken care of. How was the overall experience with us?
+human: Well, I guess it was okay.
+assistant: Thanks for sharing. I appreciate your honesty. Just to get a clearer picture, on a scale of 0 to 10, how likely are you to recommend garage 25 to a friend or colleague?
+human: 9.
+assistant: Thanks for sharing that. Always nice to hear. What specifically stood out to you about our service?
+human: The receptionist, their way of handling the customers and the pricing was also nice.
+assistant: Thank you for that great feedback. Would it be okay if I text you a quick Google review link? Leaving a review really helps us grow.
+human: I'm sorry. No.
+assistant: No worries at all. Thanks again for your time. I really appreciate your feedback. Have a wonderful day.
 
 **Service Record Info:**  
 ```json
 {
-  "customer_name": "Ramesh Kuttan",
+  "customer_name": "Raoof Naushad",
   "service_type": "Oil Change",
   "vehicle_info": "ABC-123",
   "service_advisor_name": "John Smith"

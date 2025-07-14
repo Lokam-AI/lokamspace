@@ -22,7 +22,7 @@ services:
       - JWT_EXPIRATION=86400
     depends_on:
       - db
-    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8002
 
   db:
     image: postgres:15
@@ -54,4 +54,4 @@ services:
 
 volumes:
   postgres_data:
-  redis_data: 
+  redis_data:
