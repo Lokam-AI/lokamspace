@@ -54,14 +54,10 @@ app = FastAPI(
 # Set up exception handlers
 setup_exception_handlers(app)
 
-# Set up CORS middleware with explicit origins for development
-frontend_origins = [
-    "http://localhost:8080",
-]
-
+# Set up CORS middleware to allow all origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=frontend_origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
