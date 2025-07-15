@@ -7,33 +7,22 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
-    environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=autopulse
-      - DB_PASSWORD=autopulse
-      - DB_NAME=autopulse
-      - ENVIRONMENT=development
-      - LOG_LEVEL=debug
-      - SECRET_KEY=dev_secret_key_replace_in_production
-      - CORS_ORIGINS=["http://localhost:3000", "http://localhost:5173"]
-      - JWT_SECRET=dev_jwt_secret_replace_in_production
-      - JWT_ALGORITHM=HS256
-      - JWT_EXPIRATION=86400
+    env_file:
+      - .env
     depends_on:
       - db
     command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-  # db:
-  #   image: postgres:15
-  #   ports:
-  #     - "5433:5432"
-  #   environment:
-  #     - DB_USER=autopulse
-  #     - DB_PASSWORD=autopulse
-  #     - DB_NAME=autopulse
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
+  db:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=autopulse
+      - POSTGRES_PASSWORD=autopulse
+      - POSTGRES_DB=autopulse
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   pgadmin:
     image: dpage/pgadmin4
