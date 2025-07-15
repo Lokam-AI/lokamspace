@@ -38,9 +38,7 @@ def get_engine(db_url: Optional[str] = None) -> AsyncEngine:
         url = db_url
     else:
         # Construct URL from components if DATABASE_URL is not provided
-        url = settings.DATABASE_URL
-        if not url:
-            url = f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
+        url = f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
     
     if not url:
         raise ValueError("Database URL is not configured properly")
