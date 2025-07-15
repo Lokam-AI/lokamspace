@@ -34,11 +34,11 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Build database URL from environment variables
-host = os.getenv('POSTGRES_HOST', 'localhost')
-port = os.getenv('POSTGRES_PORT', '5433')
-user = os.getenv('POSTGRES_USER', 'autopulse')
-password = os.getenv('POSTGRES_PASSWORD', 'autopulse')
-database = os.getenv('POSTGRES_DB', 'autopulse')
+host = os.getenv('DB_HOST', 'localhost')
+port = os.getenv('DB_PORT', '5433')
+user = os.getenv('DB_USER', 'autopulse')
+password = os.getenv('DB_PASSWORD', 'autopulse')
+database = os.getenv('DB_NAME', 'autopulse')
 db_url = f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{database}"
 
 # Set SQLAlchemy URL

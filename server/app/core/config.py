@@ -37,11 +37,11 @@ class Settings(BaseSettings):
     
     # Database - Direct URL takes precedence if provided
     DATABASE_URL: Optional[str] = None
-    POSTGRES_HOST: str = "localhost"
-    POSTGRES_PORT: str = "5433"
-    POSTGRES_USER: str = "autopulse"
-    POSTGRES_PASSWORD: str = "autopulse"
-    POSTGRES_DB: str = "autopulse"
+    DB_HOST: str = "localhost"
+    DB_PORT: str = "5433"
+    DB_USER: str = "autopulse"
+    DB_PASSWORD: str = "autopulse"
+    DB_NAME: str = "autopulse"
     
     # Database settings
     DB_POOL_SIZE: int = 5
@@ -85,7 +85,7 @@ class Settings(BaseSettings):
             return self.DATABASE_URL
         
         # Construct URL from components
-        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
     
     @field_validator("LOG_LEVEL")
     @classmethod
