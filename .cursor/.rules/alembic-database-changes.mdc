@@ -1,0 +1,23 @@
+---
+description: Modifying models or database schema change
+alwaysApply: false
+---
+
+When modifying a model, follow these steps:
+
+1. Create a migration:
+
+   - Run: `alembic revision --autogenerate -m "description_of_change"`
+
+2. Review the migration:
+
+   - Carefully check the generated migration before applying.
+
+3. Apply the migration:
+   - Execute: `alembic upgrade head`
+
+For effective schema management, integrate these practices into your workflow:
+
+- Use explicit table names in all models.
+- Synchronize models and database schema by generating migrations promptly.
+- Regularly test database queries against the actual schema.

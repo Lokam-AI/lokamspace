@@ -1,100 +1,100 @@
-
-import { useState } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useState, useEffect } from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Phone, Calendar, User } from "lucide-react";
+import { Phone, Calendar, User, Loader2 } from "lucide-react";
 import { CallFilters, Call } from "@/pages/Calls";
 import { CallsPagination } from "./CallsPagination";
+import { getCallsByStatus } from "@/api/endpoints/calls";
 
 interface ReadyForCallTabProps {
   filters: CallFilters;
-  onCallAction: (callId: string, action: 'call' | 'retry') => void;
+  onCallAction: (callId: string, action: "call" | "retry") => void;
 }
 
-// Updated mock data with Service Type
-const mockReadyCalls: Call[] = [
-  {
-    id: "1",
-    customerName: "John Doe",
-    vehicleNumber: "VH001",
-    serviceAdvisor: "Sarah Johnson",
-    serviceType: "Oil Change",
-    callDetails: "Oil change reminder - Due in 3 days",
-    scheduledDateTime: "2024-06-28T14:00:00",
-    status: "ready"
-  },
-  {
-    id: "2",
-    customerName: "Jane Smith",
-    vehicleNumber: "VH002",
-    serviceAdvisor: "Mike Chen",
-    serviceType: "Brake Inspection",
-    callDetails: "Brake inspection follow-up",
-    scheduledDateTime: "2024-06-28T15:30:00",
-    status: "ready"
-  },
-  {
-    id: "3",
-    customerName: "Robert Brown",
-    vehicleNumber: "VH003",
-    serviceAdvisor: "Lisa Rodriguez",
-    serviceType: "Warranty Service",
-    callDetails: "Warranty reminder call",
-    scheduledDateTime: "2024-06-28T16:00:00",
-    status: "ready"
-  },
-  {
-    id: "4",
-    customerName: "Emily Davis",
-    vehicleNumber: "VH004",
-    serviceAdvisor: "John Smith",
-    serviceType: "General Service",
-    callDetails: "Service appointment confirmation",
-    scheduledDateTime: "2024-06-29T09:00:00",
-    status: "ready"
-  },
-  {
-    id: "5",
-    customerName: "Michael Wilson",
-    vehicleNumber: "VH005",
-    serviceAdvisor: "Sarah Johnson",
-    serviceType: "Recall Notice",
-    callDetails: "Recall notification",
-    scheduledDateTime: "2024-06-29T10:30:00",
-    status: "ready"
-  }
-];
-
-export const ReadyForCallTab = ({ filters, onCallAction }: ReadyForCallTabProps) => {
+export const ReadyForCallTab = ({
+  filters,
+  onCallAction,
+}: ReadyForCallTabProps) => {
   const [selectedCalls, setSelectedCalls] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [callStatuses, setCallStatuses] = useState<Record<string, string>>({});
+  const [calls, setCalls] = useState<Call[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const itemsPerPage = 10;
 
-  // Filter calls based on filters
-  const filteredCalls = mockReadyCalls.filter(call => {
-    if (filters.searchTerm) {
-      const searchLower = filters.searchTerm.toLowerCase();
-      if (!call.customerName.toLowerCase().includes(searchLower) &&
-          !call.vehicleNumber.toLowerCase().includes(searchLower) &&
-          !call.serviceAdvisor.toLowerCase().includes(searchLower)) {
-        return false;
-      }
-    }
-    if (filters.advisor && filters.advisor !== "all" && !call.serviceAdvisor.toLowerCase().includes(filters.advisor.toLowerCase())) {
-      return false;
-    }
-    return true;
-  });
+  // Fetch calls from API
+  useEffect(() => {
+    const fetchCalls = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        // Convert filters to query params
+        const apiFilters: Record<string, string> = {};
+        if (filters.searchTerm) {
+          apiFilters.search = filters.searchTerm;
+        }
+        if (filters.advisor && filters.advisor !== "all") {
+          apiFilters.advisor = filters.advisor;
+        }
 
+        const data = await getCallsByStatus("ready", apiFilters);
+        setCalls(data);
+      } catch (err) {
+        console.error("Failed to fetch ready calls:", err);
+        setError("Failed to load calls. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCalls();
+  }, [filters]);
+
+  const handleRetryFetch = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Convert filters to query params
+      const apiFilters: Record<string, string> = {};
+      if (filters.searchTerm) {
+        apiFilters.search = filters.searchTerm;
+      }
+      if (filters.advisor && filters.advisor !== "all") {
+        apiFilters.advisor = filters.advisor;
+      }
+
+      const data = await getCallsByStatus("ready", apiFilters);
+      setCalls(data);
+      setCurrentPage(1);
+    } catch (err) {
+      console.error("Failed to fetch ready calls:", err);
+      setError("Failed to load calls. Please try again later.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Filter calls client-side for additional filtering if needed
+  const filteredCalls = calls;
   const totalPages = Math.ceil(filteredCalls.length / itemsPerPage);
-  const currentCalls = filteredCalls.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const currentCalls = filteredCalls.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedCalls(currentCalls.map(call => call.id));
+      setSelectedCalls(currentCalls.map((call) => call.id));
     } else {
       setSelectedCalls([]);
     }
@@ -104,22 +104,53 @@ export const ReadyForCallTab = ({ filters, onCallAction }: ReadyForCallTabProps)
     if (checked) {
       setSelectedCalls([...selectedCalls, callId]);
     } else {
-      setSelectedCalls(selectedCalls.filter(id => id !== callId));
+      setSelectedCalls(selectedCalls.filter((id) => id !== callId));
     }
   };
 
   const handleBatchCall = () => {
-    selectedCalls.forEach(callId => {
-      onCallAction(callId, 'call');
-      setCallStatuses(prev => ({ ...prev, [callId]: 'in-progress' }));
+    selectedCalls.forEach((callId) => {
+      onCallAction(callId, "call");
+      setCallStatuses((prev) => ({ ...prev, [callId]: "in-progress" }));
     });
     setSelectedCalls([]);
   };
 
   const handleSingleCall = (callId: string) => {
-    onCallAction(callId, 'call');
-    setCallStatuses(prev => ({ ...prev, [callId]: 'in-progress' }));
+    onCallAction(callId, "call");
+    setCallStatuses((prev) => ({ ...prev, [callId]: "in-progress" }));
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading calls...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
+        <p className="text-destructive font-medium">{error}</p>
+        <Button onClick={handleRetryFetch} variant="outline" className="mt-2">
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
+  if (filteredCalls.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">No ready calls available</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          There are currently no calls in the ready status.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -127,7 +158,8 @@ export const ReadyForCallTab = ({ filters, onCallAction }: ReadyForCallTabProps)
       {selectedCalls.length > 0 && (
         <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg">
           <span className="text-sm font-medium text-foreground">
-            {selectedCalls.length} call{selectedCalls.length > 1 ? 's' : ''} selected
+            {selectedCalls.length} call{selectedCalls.length > 1 ? "s" : ""}{" "}
+            selected
           </span>
           <Button onClick={handleBatchCall} size="sm">
             <Phone className="h-4 w-4 mr-2" />
@@ -143,7 +175,10 @@ export const ReadyForCallTab = ({ filters, onCallAction }: ReadyForCallTabProps)
             <TableRow className="bg-muted/50">
               <TableHead className="w-12">
                 <Checkbox
-                  checked={selectedCalls.length === currentCalls.length && currentCalls.length > 0}
+                  checked={
+                    selectedCalls.length === currentCalls.length &&
+                    currentCalls.length > 0
+                  }
                   onCheckedChange={handleSelectAll}
                 />
               </TableHead>
@@ -152,7 +187,9 @@ export const ReadyForCallTab = ({ filters, onCallAction }: ReadyForCallTabProps)
               <TableHead className="text-foreground">Service Advisor</TableHead>
               <TableHead className="text-foreground">Service Type</TableHead>
               <TableHead className="text-foreground">Status</TableHead>
-              <TableHead className="text-right text-foreground">Actions</TableHead>
+              <TableHead className="text-right text-foreground">
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -161,37 +198,60 @@ export const ReadyForCallTab = ({ filters, onCallAction }: ReadyForCallTabProps)
                 <TableCell>
                   <Checkbox
                     checked={selectedCalls.includes(call.id)}
-                    onCheckedChange={(checked) => handleSelectCall(call.id, !!checked)}
+                    onCheckedChange={(checked) =>
+                      handleSelectCall(call.id, !!checked)
+                    }
                   />
                 </TableCell>
-                <TableCell className="font-medium text-foreground">{call.customerName}</TableCell>
+                <TableCell className="font-medium text-foreground">
+                  {call.customer_name || call.customerName}
+                </TableCell>
                 <TableCell>
                   <span className="font-mono text-sm bg-muted text-foreground px-2 py-1 rounded">
-                    {call.vehicleNumber}
+                    {call.vehicle_info || call.vehicleNumber || "N/A"}
                   </span>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-2">
                     <User className="h-4 w-4 text-foreground-secondary" />
-                    <span className="text-foreground-secondary">{call.serviceAdvisor}</span>
+                    <span className="text-foreground-secondary">
+                      {call.service_advisor_name ||
+                        call.serviceAdvisor ||
+                        "Unassigned"}
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{call.serviceType}</Badge>
+                  <Badge variant="outline">
+                    {call.service_type ||
+                      call.serviceType ||
+                      call.call_reason ||
+                      "Not specified"}
+                  </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={callStatuses[call.id] === 'in-progress' ? 'default' : 'secondary'}>
-                    {callStatuses[call.id] === 'in-progress' ? 'In Progress' : 'Ready'}
+                  <Badge
+                    variant={
+                      callStatuses[call.id] === "in-progress"
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    {callStatuses[call.id] === "in-progress"
+                      ? "In Progress"
+                      : "Ready"}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
                   <Button
                     size="sm"
                     onClick={() => handleSingleCall(call.id)}
-                    disabled={callStatuses[call.id] === 'in-progress'}
+                    disabled={callStatuses[call.id] === "in-progress"}
                   >
                     <Phone className="h-4 w-4 mr-2" />
-                    {callStatuses[call.id] === 'in-progress' ? 'Calling...' : 'Call Now'}
+                    {callStatuses[call.id] === "in-progress"
+                      ? "Calling..."
+                      : "Call Now"}
                   </Button>
                 </TableCell>
               </TableRow>

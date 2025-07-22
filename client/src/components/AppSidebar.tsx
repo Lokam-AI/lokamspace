@@ -1,10 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LayoutDashboard, Phone, Calendar, MessageSquare, Settings, User, LogOut, HelpCircle, Palette, BarChart3 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator, SidebarFooter, SidebarHeader, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { UserDropdown } from "@/components/UserDropdown";
+import { getOrganizationSettings, Organization } from "@/api/endpoints/organizations";
+import { useAuth } from "@/contexts/AuthContext";
 
 const primaryNavItems = [
   {
@@ -47,8 +49,28 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const currentPath = location.pathname;
+  const { user } = useAuth();
+  const [organization, setOrganization] = useState<Organization | null>(null);
+  const [loadingOrg, setLoadingOrg] = useState(false);
 
   const isActive = (path: string) => currentPath === path;
+
+  // Fetch organization details when user is available
+  useEffect(() => {
+    if (user && user.organization_id) {
+      setLoadingOrg(true);
+      getOrganizationSettings()
+        .then((orgData) => {
+          setOrganization(orgData);
+        })
+        .catch((error) => {
+          console.error('Failed to fetch organization:', error);
+        })
+        .finally(() => {
+          setLoadingOrg(false);
+        });
+    }
+  }, [user]);
 
   return (
     <Sidebar collapsible="icon" className="w-64 group-data-[collapsible=icon]:w-16 border-r border-border">
@@ -68,7 +90,11 @@ export function AppSidebar() {
           {/* Organization Name */}
           {!collapsed && (
             <div className="text-sm text-foreground-secondary truncate">
-              raoof@lokam.ai's Org
+              {loadingOrg ? (
+                <span className="animate-pulse">Loading...</span>
+              ) : (
+                organization?.name || "Organization"
+              )}
             </div>
           )}
           
