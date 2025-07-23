@@ -2,7 +2,7 @@
 Call API endpoints.
 """
 
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 from uuid import UUID
 import logging
 from datetime import date
@@ -318,6 +318,35 @@ async def list_completed_calls(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve completed calls: {str(e)}"
+        )
+
+
+@router.get("/stats", response_model=Dict[str, int])
+async def get_call_stats(
+    organization: Organization = Depends(get_current_organization),
+    db: AsyncSession = Depends(get_tenant_db),
+) -> Any:
+    """
+    Get call statistics by status (ready, missed, completed).
+    
+    Args:
+        organization: Current organization
+        db: Database session
+        
+    Returns:
+        Dict[str, int]: Call statistics by status
+    """
+    try:
+        stats = await CallService.get_call_stats_by_status(
+            organization_id=organization.id,
+            db=db
+        )
+        return stats
+    except Exception as e:
+        print(f"Error retrieving call stats: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve call stats: {str(e)}"
         )
 
 

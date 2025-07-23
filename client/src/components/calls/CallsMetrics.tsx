@@ -7,8 +7,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { CallFilters } from "@/pages/Calls";
-import { useEffect, useState } from "react";
-import { getCallSummaryMetrics } from "@/api/endpoints/calls";
+import { useCallStats } from "@/api/queries/calls";
 import { Button } from "@/components/ui/button";
 
 interface CallsMetricsProps {
@@ -16,50 +15,28 @@ interface CallsMetricsProps {
   activeTab: string;
 }
 
-interface CallMetrics {
-  ready_count: number;
-  missed_count: number;
-  completed_count: number;
-  avg_nps: number;
-  promoters_count: number;
-  detractors_count: number;
+interface CallStats {
+  ready: number;
+  missed: number;
+  completed: number;
+  total: number;
 }
 
 export const CallsMetrics = ({ filters, activeTab }: CallsMetricsProps) => {
-  const [metrics, setMetrics] = useState<CallMetrics>({
-    ready_count: 0,
-    missed_count: 0,
-    completed_count: 0,
-    avg_nps: 0,
-    promoters_count: 0,
-    detractors_count: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: stats, isLoading: loading, error, refetch } = useCallStats();
 
-  const fetchMetrics = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getCallSummaryMetrics();
-      setMetrics(data);
-    } catch (err) {
-      console.error("Failed to fetch call metrics:", err);
-      setError("Failed to load metrics. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+  const metrics = stats || {
+    ready: 0,
+    missed: 0,
+    completed: 0,
+    total: 0,
   };
-
-  useEffect(() => {
-    fetchMetrics();
-  }, []);
 
   // Always show all metrics regardless of active tab
   const metricCards = [
     {
       title: "Ready for Call",
-      value: metrics.ready_count,
+      value: metrics.ready,
       icon: Phone,
       color: "text-blue-600 dark:text-blue-400",
       bgColor: "bg-blue-50 dark:bg-blue-950/50",
@@ -67,7 +44,7 @@ export const CallsMetrics = ({ filters, activeTab }: CallsMetricsProps) => {
     },
     {
       title: "Missed Calls",
-      value: metrics.missed_count,
+      value: metrics.missed,
       icon: AlertTriangle,
       color: "text-orange-600 dark:text-orange-400",
       bgColor: "bg-orange-50 dark:bg-orange-950/50",
@@ -75,43 +52,19 @@ export const CallsMetrics = ({ filters, activeTab }: CallsMetricsProps) => {
     },
     {
       title: "Completed Calls",
-      value: metrics.completed_count,
+      value: metrics.completed,
       icon: CheckCircle,
       color: "text-green-600 dark:text-green-400",
       bgColor: "bg-green-50 dark:bg-green-950/50",
       borderColor: "border-green-200 dark:border-green-800",
     },
-    // {
-    //   title: "Average NPS",
-    //   value: metrics.avg_nps,
-    //   icon: Star,
-    //   color: "text-purple-600 dark:text-purple-400",
-    //   bgColor: "bg-purple-50 dark:bg-purple-950/50",
-    //   borderColor: "border-purple-200 dark:border-purple-800",
-    // },
-    // {
-    //   title: "Promoters",
-    //   value: metrics.promoters_count,
-    //   icon: CheckCircle,
-    //   color: "text-green-600 dark:text-green-400",
-    //   bgColor: "bg-green-50 dark:bg-green-950/50",
-    //   borderColor: "border-green-200 dark:border-green-800",
-    // },
-    // {
-    //   title: "Detractors",
-    //   value: metrics.detractors_count,
-    //   icon: AlertTriangle,
-    //   color: "text-red-600 dark:text-red-400",
-    //   bgColor: "bg-red-50 dark:bg-red-950/50",
-    //   borderColor: "border-red-200 dark:border-red-800",
-    // },
   ];
 
   if (error) {
     return (
       <div className="bg-card border border-border rounded-lg p-6 text-center">
-        <p className="text-red-500 mb-4">{error}</p>
-        <Button onClick={fetchMetrics} variant="outline" size="sm">
+        <p className="text-red-500 mb-4">Failed to load metrics. Please try again.</p>
+        <Button onClick={() => refetch()} variant="outline" size="sm">
           <RefreshCw className="h-4 w-4 mr-2" />
           Retry
         </Button>

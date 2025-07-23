@@ -2,6 +2,24 @@
 import { API_BASE_URL, getHeaders, handleApiError } from "../config";
 
 /**
+ * Get call statistics by status (ready, missed, completed)
+ */
+export const getCallStats = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/calls/stats`, {
+      method: "GET",
+      headers: getHeaders(),
+    });
+
+    await handleApiError(response);
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching call stats:`, error);
+    throw error;
+  }
+};
+
+/**
  * Get calls by status (ready, missed, completed)
  */
 export const getCallsByStatus = async (status: string, filters: any = {}) => {

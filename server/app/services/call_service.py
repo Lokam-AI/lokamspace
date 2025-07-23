@@ -377,6 +377,60 @@ class CallService:
         }
 
     @staticmethod
+    async def get_call_stats_by_status(
+        db: AsyncSession,
+        organization_id: UUID,
+    ) -> Dict:
+        """
+        Get call statistics grouped by status (ready, missed, completed).
+        
+        Args:
+            db: Database session
+            organization_id: Organization ID
+            
+        Returns:
+            Dict: Call statistics by status
+        """
+        # Query counts for each status
+        ready_query = select(func.count()).where(
+            and_(
+                Call.organization_id == organization_id,
+                Call.status == "Ready"
+            )
+        )
+        ready_result = await db.execute(ready_query)
+        ready_count = ready_result.scalar_one_or_none() or 0
+        
+        missed_query = select(func.count()).where(
+            and_(
+                Call.organization_id == organization_id,
+                or_(
+                    Call.status == "Missed",
+                    Call.status == "Failed"
+                )
+            )
+        )
+
+        missed_result = await db.execute(missed_query)
+        missed_count = missed_result.scalar_one_or_none() or 0
+        
+        completed_query = select(func.count()).where(
+            and_(
+                Call.organization_id == organization_id,
+                Call.status == "Completed"
+            )
+        )
+        completed_result = await db.execute(completed_query)
+        completed_count = completed_result.scalar_one_or_none() or 0
+        
+        return {
+            "ready": ready_count,
+            "missed": missed_count,
+            "completed": completed_count,
+            "total": ready_count + missed_count + completed_count
+        }
+
+    @staticmethod
     async def create_demo_call(
         demo_data: DemoCallCreate,
         current_user_id: int,
