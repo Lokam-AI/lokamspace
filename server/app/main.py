@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.core.database import create_db_and_tables
 from app.core.exceptions import setup_exception_handlers
 from app.core.middleware import TenantMiddleware
+from app.core.logging_middleware import RequestLoggingMiddleware
 
 
 # Configure logging
@@ -62,6 +63,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add request logging middleware (logs body, query params, URL params, endpoint, org ID)
+app.add_middleware(RequestLoggingMiddleware)
 
 # Add tenant middleware
 app.add_middleware(TenantMiddleware)
