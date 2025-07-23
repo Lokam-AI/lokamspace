@@ -4,7 +4,7 @@ Call service implementation.
 This module provides services for handling calls.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import Dict, List, Optional, Any
 from uuid import UUID
 import logging
@@ -553,69 +553,63 @@ class CallService:
         status: str,
         skip: int = 0,
         limit: int = 100,
-        db: AsyncSession = None
+        db: AsyncSession = None,
+        service_advisor_name: Optional[str] = None,
+        campaign_id: Optional[int] = None,
+        search: Optional[str] = None,
+        appointment_date: Optional[date] = None,
     ) -> List[Call]:
         """
-        List calls by status.
-        
-        Args:
-            organization_id: Organization ID
-            status: Call status (Ready, Completed, Failed, Missed, Demo)
-            skip: Number of calls to skip
-            limit: Maximum number of calls to return
-            db: Database session
-            
-        Returns:
-            List[Call]: List of calls with the specified status
+        List calls by status, with optional filters.
         """
-        # Always load the service record relationship to ensure it's available
         options = [
             joinedload(Call.service_record)
         ]
-        
         if status.lower() == "ready":
-            # Ready for call status - exclude demo records
             query = select(Call).join(ServiceRecord).where(
                 and_(
                     Call.organization_id == organization_id,
-                    Call.status.in_(["Ready", "Scheduled"]),  # Look for both Ready and Scheduled status
-                    ServiceRecord.is_demo == False  # Exclude demo records
+                    Call.status.in_(["Ready", "Scheduled"]),
+                    ServiceRecord.is_demo == False
                 )
             ).options(*options)
         elif status.lower() == "missed":
-            # Missed calls include both Failed and Missed status - exclude demo records
             query = select(Call).join(ServiceRecord).where(
                 and_(
                     Call.organization_id == organization_id,
                     Call.status.in_(["Failed", "Missed"]),
-                    ServiceRecord.is_demo == False  # Exclude demo records
+                    ServiceRecord.is_demo == False
                 )
             ).options(*options)
         elif status.lower() == "completed":
-            # Completed calls - exclude demo records
             query = select(Call).join(ServiceRecord).where(
                 and_(
                     Call.organization_id == organization_id,
                     Call.status == "Completed",
-                    ServiceRecord.is_demo == False  # Exclude demo records
+                    ServiceRecord.is_demo == False
                 )
             ).options(*options)
         elif status.lower() == "demo":
-            # Demo calls - include all demo records regardless of status
             query = select(Call).join(ServiceRecord).where(
                 and_(
                     Call.organization_id == organization_id,
-                    ServiceRecord.is_demo == True  # Only demo records
+                    ServiceRecord.is_demo == True
                 )
             ).options(*options)
         else:
-            # Invalid status
             return []
-        
-        # Add order by and pagination
+
+        if service_advisor_name:
+            query = query.where(ServiceRecord.service_advisor_name == service_advisor_name)
+        if campaign_id:
+            query = query.where(ServiceRecord.campaign_id == campaign_id)
+        if search:
+            query = query.where(ServiceRecord.customer_name.ilike(f"%{search}%"))
+        if appointment_date:
+            query = query.where(func.date(ServiceRecord.appointment_date) == appointment_date)
+
         query = query.order_by(Call.created_at.desc())
         query = query.offset(skip).limit(limit)
-        
         result = await db.execute(query)
         return list(result.scalars().all())
 

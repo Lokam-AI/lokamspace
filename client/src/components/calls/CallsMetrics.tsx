@@ -81,30 +81,30 @@ export const CallsMetrics = ({ filters, activeTab }: CallsMetricsProps) => {
       bgColor: "bg-green-50 dark:bg-green-950/50",
       borderColor: "border-green-200 dark:border-green-800",
     },
-    {
-      title: "Average NPS",
-      value: metrics.avg_nps,
-      icon: Star,
-      color: "text-purple-600 dark:text-purple-400",
-      bgColor: "bg-purple-50 dark:bg-purple-950/50",
-      borderColor: "border-purple-200 dark:border-purple-800",
-    },
-    {
-      title: "Promoters",
-      value: metrics.promoters_count,
-      icon: CheckCircle,
-      color: "text-green-600 dark:text-green-400",
-      bgColor: "bg-green-50 dark:bg-green-950/50",
-      borderColor: "border-green-200 dark:border-green-800",
-    },
-    {
-      title: "Detractors",
-      value: metrics.detractors_count,
-      icon: AlertTriangle,
-      color: "text-red-600 dark:text-red-400",
-      bgColor: "bg-red-50 dark:bg-red-950/50",
-      borderColor: "border-red-200 dark:border-red-800",
-    },
+    // {
+    //   title: "Average NPS",
+    //   value: metrics.avg_nps,
+    //   icon: Star,
+    //   color: "text-purple-600 dark:text-purple-400",
+    //   bgColor: "bg-purple-50 dark:bg-purple-950/50",
+    //   borderColor: "border-purple-200 dark:border-purple-800",
+    // },
+    // {
+    //   title: "Promoters",
+    //   value: metrics.promoters_count,
+    //   icon: CheckCircle,
+    //   color: "text-green-600 dark:text-green-400",
+    //   bgColor: "bg-green-50 dark:bg-green-950/50",
+    //   borderColor: "border-green-200 dark:border-green-800",
+    // },
+    // {
+    //   title: "Detractors",
+    //   value: metrics.detractors_count,
+    //   icon: AlertTriangle,
+    //   color: "text-red-600 dark:text-red-400",
+    //   bgColor: "bg-red-50 dark:bg-red-950/50",
+    //   borderColor: "border-red-200 dark:border-red-800",
+    // },
   ];
 
   if (error) {
@@ -120,7 +120,7 @@ export const CallsMetrics = ({ filters, activeTab }: CallsMetricsProps) => {
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-4">
       {metricCards.map((metric, index) => {
         const Icon = metric.icon;
         return (

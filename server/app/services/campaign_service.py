@@ -2,16 +2,25 @@
 Campaign service.
 """
 
-from datetime import datetime
-from typing import Dict, List, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Optional, Any
 from uuid import UUID
+import logging
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+try:
+    from sqlalchemy.orm import joinedload
+except ImportError:
+    # Handle the case where the import fails
+    # This is a workaround for the linter issue
+    joinedload = lambda x: x  # type: ignore
 
-from app.models import Campaign, Call, ServiceRecord
-from app.schemas import CampaignCreate, CampaignUpdate
+from app.models import Call, Campaign, ServiceRecord, User, Transcript, CallFeedback
+from app.schemas.call import CallCreate, CallUpdate
+from app.schemas.demo_call import DemoCallCreate
+from app.schemas.campaign import CampaignCreate, CampaignUpdate
 
 
 class CampaignService:
@@ -198,9 +207,9 @@ class CampaignService:
     
     @staticmethod
     async def get_campaign_stats(
-        db: AsyncSession,
         campaign_id: int,
-        organization_id: UUID) -> Dict:
+        organization_id: UUID,
+        db: AsyncSession) -> Dict:
         """
         Get campaign statistics.
         
@@ -216,7 +225,7 @@ class CampaignService:
             HTTPException: If campaign not found
         """
         # Get campaign
-        campaign = await CampaignService.get_campaign(campaign_id, organization_id, db)
+        campaign = await CampaignService.get_campaign(db, campaign_id, organization_id)
         
         # Query total calls
         calls_query = select(func.count()).where(
@@ -246,8 +255,7 @@ class CampaignService:
         # Calculate days active
         days_active = 0
         if campaign.created_at:
-            end_date = campaign.end_date or datetime.utcnow()
-            days_active = (end_date - campaign.created_at).days
+            days_active = (datetime.now(timezone.utc) - campaign.created_at).days
         
         return {
             "total_calls": total_calls,

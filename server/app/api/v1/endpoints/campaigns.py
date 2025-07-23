@@ -43,7 +43,6 @@ async def list_campaigns(
         status=status,
         db=db
     )
-    
     # Enhance campaigns with additional info
     result = []
     for campaign in campaigns:

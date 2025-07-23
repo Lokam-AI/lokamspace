@@ -91,10 +91,10 @@ export const CallsFilters = ({ filters, onFiltersChange, campaigns }: CallsFilte
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Advisors</SelectItem>
-              <SelectItem value="john-smith">John Smith</SelectItem>
-              <SelectItem value="sarah-johnson">Sarah Johnson</SelectItem>
-              <SelectItem value="mike-chen">Mike Chen</SelectItem>
-              <SelectItem value="lisa-rodriguez">Lisa Rodriguez</SelectItem>
+              <SelectItem value="John Smith">John Smith</SelectItem>
+              <SelectItem value="Sarah Johnson">Sarah Johnson</SelectItem>
+              <SelectItem value="Mike Chen">Mike Chen</SelectItem>
+              <SelectItem value="Lisa Rodriguez">Lisa Rodriguez</SelectItem>
             </SelectContent>
           </Select>
 

@@ -19,6 +19,7 @@ interface BulkUploadModalProps {
   onClose: () => void;
   campaigns: Campaign[];
   onCampaignCreated: (campaignName: string) => void;
+  onSuccess?: () => void;
 }
 
 export const BulkUploadModal = ({
@@ -26,6 +27,7 @@ export const BulkUploadModal = ({
   onClose,
   campaigns,
   onCampaignCreated,
+  onSuccess,
 }: BulkUploadModalProps) => {
   const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -220,6 +222,8 @@ export const BulkUploadModal = ({
             : ""
         }`,
       });
+
+      if (onSuccess) onSuccess();
 
       if (result.failed_calls === 0) {
         handleClose();

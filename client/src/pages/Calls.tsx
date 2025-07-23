@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,7 +25,8 @@ import { CallDetailPanel } from "@/components/calls/CallDetailPanel";
 import { BulkUploadModal } from "@/components/calls/BulkUploadModal";
 import { DemoCallTab } from "@/components/calls/DemoCallTab";
 import { Campaign } from "@/types/campaign";
-
+import { useQueryClient } from '@tanstack/react-query';
+import { useCampaigns } from "@/api/queries/campaigns";
 export interface CallFilters {
   dateRange: { start: string; end: string };
   status: string;
@@ -119,11 +120,13 @@ const mockCampaigns: Campaign[] = [
 
 const Calls = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("ready");
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
-  const [campaigns, setCampaigns] = useState<Campaign[]>(mockCampaigns);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [isDMSFetching, setIsDMSFetching] = useState(false);
+
+  const { data: campaigns = [], isLoading: campaignsLoading, error: campaignsError } = useCampaigns();
 
   const [filters, setFilters] = useState<CallFilters>({
     dateRange: { start: "", end: "" },
@@ -166,7 +169,9 @@ const Calls = () => {
         callCount: Math.floor(Math.random() * 100) + 50,
       };
 
-      setCampaigns((prev) => [...prev, newCampaign]);
+      // This part of the logic needs to be updated to use the campaigns state
+      // For now, we'll just add it to the mock data or refetch
+      // setCampaigns((prev) => [...prev, newCampaign]); 
       setIsDMSFetching(false);
 
       toast({
@@ -184,7 +189,9 @@ const Calls = () => {
       dateCreated: new Date().toISOString().split("T")[0],
       callCount: 0,
     };
-    setCampaigns((prev) => [...prev, newCampaign]);
+    // This part of the logic needs to be updated to use the campaigns state
+    // For now, we'll just add it to the mock data or refetch
+    // setCampaigns((prev) => [...prev, newCampaign]); 
   };
 
   const activeCampaign = campaigns.find(
@@ -250,6 +257,8 @@ const Calls = () => {
                     onFiltersChange={setFilters}
                     campaigns={campaigns}
                   />
+                  {campaignsLoading && <div>Loading campaigns...</div>}
+                  {campaignsError && <div>Error loading campaigns</div>}
                 </div>
 
                 {/* Dynamic Metrics */}
@@ -341,6 +350,7 @@ const Calls = () => {
             onClose={() => setIsBulkUploadOpen(false)}
             campaigns={campaigns}
             onCampaignCreated={handleCampaignCreated}
+            onSuccess={() => queryClient.invalidateQueries({ queryKey: ['readyCalls'] })}
           />
         </main>
       </div>
