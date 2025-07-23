@@ -4,6 +4,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card } from "../components/ui/card";
 import { useAuth } from "../contexts/AuthContext";
+import LokamLogo from "../../assets/LOKAM_PRIMARY_LOGO_BLACK.svg";
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
@@ -68,10 +69,14 @@ export default function SignUp() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <Card className="w-full max-w-md p-8 space-y-6 bg-white shadow-lg rounded-lg">
+        <div className="flex justify-center mb-6">
+          <img src={LokamLogo} alt="Lokam Logo" className="h-16" />
+        </div>
+        
         <div className="text-center">
           <h1 className="text-2xl font-bold">Create your account</h1>
           <p className="text-sm text-gray-500 mt-2">
-            Join AutoPulse to manage your calls and campaigns
+            Join Lokam to manage your feedback calls and campaigns
           </p>
         </div>
 

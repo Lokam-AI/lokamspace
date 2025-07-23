@@ -3,6 +3,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card } from "../components/ui/card";
+import LokamLogo from "../../assets/LOKAM_PRIMARY_LOGO_BLACK.svg";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -31,8 +32,12 @@ export default function Login() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <Card className="w-full max-w-md p-8 space-y-6 bg-white shadow-lg rounded-lg">
+        <div className="flex justify-center mb-6">
+          <img src={LokamLogo} alt="Lokam Logo" className="h-16" />
+        </div>
+        
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Login to AutoPulse</h1>
+          <h1 className="text-2xl font-bold">Welcome to LokamSpace</h1>
           <p className="text-sm text-gray-500 mt-2">
             Enter your credentials to access your account
           </p>
