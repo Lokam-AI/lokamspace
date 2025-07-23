@@ -24,7 +24,7 @@ export const InsightsPanels = () => {
       {/* Positive Insights */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg text-success">
+          <CardTitle className="text-lg">
             Top Positive Mentions
           </CardTitle>
         </CardHeader>
@@ -51,7 +51,7 @@ export const InsightsPanels = () => {
       {/* Areas to Improve */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg text-warning">
+          <CardTitle className="text-lg">
             Areas to Improve
           </CardTitle>
         </CardHeader>
