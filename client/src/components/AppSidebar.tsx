@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { UserDropdown } from "@/components/UserDropdown";
 import { getOrganizationSettings, Organization } from "@/api/endpoints/organizations";
 import { useAuth } from "@/contexts/AuthContext";
+import FullLogo from "../../assets/LOKAM_PRIMARY_FULL_LOGO_BLACK.svg";
+import SecondaryLogo from "../../assets/LOKAM_SECONDARY_LOGO_BLACK.svg";
 
 const primaryNavItems = [
   {
@@ -78,12 +80,13 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-border">
         <div className="flex flex-col space-y-3 p-4">
           {/* Logo and Brand */}
-          <div className="flex items-center space-x-2 min-w-0">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-primary-foreground font-bold text-sm">A</span>
-            </div>
-            {!collapsed && (
-              <span className="font-bold text-xl text-foreground truncate">Autopulse</span>
+          <div className={`flex ${collapsed ? 'justify-center' : 'justify-start'} items-center w-full`}>
+            {collapsed ? (
+              <div className="w-full flex justify-center">
+                <img src={SecondaryLogo} alt="Lokam Logo" className="h-12 w-12" />
+              </div>
+            ) : (
+              <img src={FullLogo} alt="Lokam Logo" className="h-7 max-w-full" style={{ objectFit: 'contain', objectPosition: 'left' }} />
             )}
           </div>
           
