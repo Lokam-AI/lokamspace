@@ -2,9 +2,10 @@
 Call API endpoints.
 """
 
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 from uuid import UUID
 import logging
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy import select
@@ -147,20 +148,15 @@ async def create_call(
 async def list_ready_calls(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
+    service_advisor_name: Optional[str] = Query(None),
+    campaign_id: Optional[int] = Query(None),
+    search: Optional[str] = Query(None),
+    appointment_date: Optional[date] = Query(None),
     organization: Organization = Depends(get_current_organization),
     db: AsyncSession = Depends(get_tenant_db),
 ) -> Any:
     """
-    Get calls with 'Ready' status.
-    
-    Args:
-        skip: Number of calls to skip
-        limit: Maximum number of calls to return
-        organization: Current organization
-        db: Database session
-        
-    Returns:
-        List[CallResponse]: List of calls with 'Ready' status
+    Get calls with 'Ready' status, with optional filters.
     """
     try:
         print(f"Fetching ready calls for organization: {organization.id}")
@@ -169,7 +165,11 @@ async def list_ready_calls(
             status="ready",
             skip=skip,
             limit=limit,
-            db=db
+            db=db,
+            service_advisor_name=service_advisor_name,
+            campaign_id=campaign_id,
+            search=search,
+            appointment_date=appointment_date,
         )
         
         print(f"Found {len(calls)} ready calls")
@@ -318,6 +318,35 @@ async def list_completed_calls(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve completed calls: {str(e)}"
+        )
+
+
+@router.get("/stats", response_model=Dict[str, int])
+async def get_call_stats(
+    organization: Organization = Depends(get_current_organization),
+    db: AsyncSession = Depends(get_tenant_db),
+) -> Any:
+    """
+    Get call statistics by status (ready, missed, completed).
+    
+    Args:
+        organization: Current organization
+        db: Database session
+        
+    Returns:
+        Dict[str, int]: Call statistics by status
+    """
+    try:
+        stats = await CallService.get_call_stats_by_status(
+            organization_id=organization.id,
+            db=db
+        )
+        return stats
+    except Exception as e:
+        print(f"Error retrieving call stats: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve call stats: {str(e)}"
         )
 
 

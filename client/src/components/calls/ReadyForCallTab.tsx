@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -14,6 +14,7 @@ import { Phone, Calendar, User, Loader2 } from "lucide-react";
 import { CallFilters, Call } from "@/pages/Calls";
 import { CallsPagination } from "./CallsPagination";
 import { getCallsByStatus } from "@/api/endpoints/calls";
+import { useQuery } from '@tanstack/react-query';
 
 interface ReadyForCallTabProps {
   filters: CallFilters;
@@ -27,62 +28,24 @@ export const ReadyForCallTab = ({
   const [selectedCalls, setSelectedCalls] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [callStatuses, setCallStatuses] = useState<Record<string, string>>({});
-  const [calls, setCalls] = useState<Call[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const itemsPerPage = 10;
 
-  // Fetch calls from API
-  useEffect(() => {
-    const fetchCalls = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        // Convert filters to query params
-        const apiFilters: Record<string, string> = {};
-        if (filters.searchTerm) {
-          apiFilters.search = filters.searchTerm;
-        }
-        if (filters.advisor && filters.advisor !== "all") {
-          apiFilters.advisor = filters.advisor;
-        }
-
-        const data = await getCallsByStatus("ready", apiFilters);
-        setCalls(data);
-      } catch (err) {
-        console.error("Failed to fetch ready calls:", err);
-        setError("Failed to load calls. Please try again later.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCalls();
-  }, [filters]);
-
-  const handleRetryFetch = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      // Convert filters to query params
+  const {
+    data: calls = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['readyCalls', filters],
+    queryFn: async () => {
       const apiFilters: Record<string, string> = {};
-      if (filters.searchTerm) {
-        apiFilters.search = filters.searchTerm;
-      }
-      if (filters.advisor && filters.advisor !== "all") {
-        apiFilters.advisor = filters.advisor;
-      }
-
-      const data = await getCallsByStatus("ready", apiFilters);
-      setCalls(data);
-      setCurrentPage(1);
-    } catch (err) {
-      console.error("Failed to fetch ready calls:", err);
-      setError("Failed to load calls. Please try again later.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      if (filters.searchTerm) apiFilters.search = filters.searchTerm;
+      if (filters.advisor && filters.advisor !== 'all') apiFilters.service_advisor_name = filters.advisor;
+      if (filters.campaignId && filters.campaignId !== 'all') apiFilters.campaign_id = filters.campaignId;
+      if (filters.dateRange.start) apiFilters.appointment_date = filters.dateRange.start;
+      return getCallsByStatus('ready', apiFilters);
+    },
+  });
 
   // Filter calls client-side for additional filtering if needed
   const filteredCalls = calls;
@@ -133,8 +96,8 @@ export const ReadyForCallTab = ({
   if (error) {
     return (
       <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
-        <p className="text-destructive font-medium">{error}</p>
-        <Button onClick={handleRetryFetch} variant="outline" className="mt-2">
+        <p className="text-destructive font-medium">{(error as Error).message || 'Failed to load calls. Please try again later.'}</p>
+        <Button onClick={() => refetch()} variant="outline" className="mt-2">
           Try Again
         </Button>
       </div>

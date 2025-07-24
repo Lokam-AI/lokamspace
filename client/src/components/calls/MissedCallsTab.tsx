@@ -44,7 +44,13 @@ export const MissedCallsTab = ({
           apiFilters.search = filters.searchTerm;
         }
         if (filters.advisor && filters.advisor !== "all") {
-          apiFilters.advisor = filters.advisor;
+          apiFilters.service_advisor_name = filters.advisor;
+        }
+        if (filters.campaignId && filters.campaignId !== "all") {
+          apiFilters.campaign_id = filters.campaignId;
+        }
+        if (filters.dateRange.start) {
+          apiFilters.appointment_date = filters.dateRange.start;
         }
 
         const data = await getCallsByStatus("missed", apiFilters);
@@ -70,7 +76,13 @@ export const MissedCallsTab = ({
         apiFilters.search = filters.searchTerm;
       }
       if (filters.advisor && filters.advisor !== "all") {
-        apiFilters.advisor = filters.advisor;
+        apiFilters.service_advisor_name = filters.advisor;
+      }
+      if (filters.campaignId && filters.campaignId !== "all") {
+        apiFilters.campaign_id = filters.campaignId;
+      }
+      if (filters.dateRange.start) {
+        apiFilters.appointment_date = filters.dateRange.start;
       }
 
       const data = await getCallsByStatus("missed", apiFilters);
