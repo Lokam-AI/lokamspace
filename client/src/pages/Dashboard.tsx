@@ -58,17 +58,17 @@ const Dashboard = () => {
                 <MetricsGrid />
 
                 {/* Insights and Recent Activity */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                   <div className="lg:col-span-2">
                     <InsightsPanels />
                   </div>
-                  <div>
+                  <div className="h-full">
                     {/* Quick Stats */}
-                    <Card>
+                    <Card className="h-full">
                       <CardHeader>
                         <CardTitle className="text-lg">Recent Activity</CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-4">
+                      <CardContent className="space-y-3">
                         <div className="flex items-center justify-between p-3 bg-destructive/10 rounded-lg border border-destructive/20">
                           <div className="flex items-center space-x-3">
                             <AlertTriangle className="h-5 w-5 text-destructive" />
@@ -100,6 +100,28 @@ const Dashboard = () => {
                             </div>
                           </div>
                           <Badge>Ready</Badge>
+                        </div>
+
+                        <div className="flex items-center justify-between p-3 bg-warning/10 rounded-lg border border-warning/20">
+                          <div className="flex items-center space-x-3">
+                            <Users className="h-5 w-5 text-warning" />
+                            <div>
+                              <p className="font-medium text-sm text-foreground">New Customer</p>
+                              <p className="text-sm text-foreground-secondary">Registration completed</p>
+                            </div>
+                          </div>
+                          <Badge variant="secondary">15 min ago</Badge>
+                        </div>
+
+                        <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg border border-success/20">
+                          <div className="flex items-center space-x-3">
+                            <TrendingUp className="h-5 w-5 text-success" />
+                            <div>
+                              <p className="font-medium text-sm text-foreground">Goal Achieved</p>
+                              <p className="text-sm text-foreground-secondary">Monthly target reached</p>
+                            </div>
+                          </div>
+                          <Badge variant="outline">1 hour ago</Badge>
                         </div>
                       </CardContent>
                     </Card>
