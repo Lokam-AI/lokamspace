@@ -30,7 +30,7 @@ export const InsightsPanels = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           {positiveInsights.map((insight, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-success/10 rounded-lg border border-success/20">
+            <div key={index} className="flex items-center justify-between p-3 bg-success/10 rounded-lg border border-success/20 h-16">
               <div className="flex-1">
                 <p className="font-medium text-foreground text-sm">{insight.topic}</p>
                 <div className="w-full bg-success/20 rounded-full h-2 mt-2">
@@ -57,7 +57,7 @@ export const InsightsPanels = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           {improvementAreas.map((area, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-warning/10 rounded-lg border border-warning/20">
+            <div key={index} className="flex items-center justify-between p-3 bg-warning/10 rounded-lg border border-warning/20 h-16">
               <div className="flex-1">
                 <p className="font-medium text-foreground text-sm">{area.topic}</p>
                 <div className="w-full bg-warning/20 rounded-full h-2 mt-2">
