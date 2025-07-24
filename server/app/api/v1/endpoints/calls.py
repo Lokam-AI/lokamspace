@@ -323,23 +323,24 @@ async def list_completed_calls(
 
 @router.get("/stats", response_model=Dict[str, int])
 async def get_call_stats(
+    search: Optional[str] = Query(None),
+    service_advisor_name: Optional[str] = Query(None),
+    campaign_id: Optional[int] = Query(None),
+    appointment_date: Optional[str] = Query(None),
     organization: Organization = Depends(get_current_organization),
     db: AsyncSession = Depends(get_tenant_db),
 ) -> Any:
     """
-    Get call statistics by status (ready, missed, completed).
-    
-    Args:
-        organization: Current organization
-        db: Database session
-        
-    Returns:
-        Dict[str, int]: Call statistics by status
+    Get call statistics by status (ready, missed, completed), with optional filters.
     """
     try:
         stats = await CallService.get_call_stats_by_status(
             organization_id=organization.id,
-            db=db
+            db=db,
+            search=search,
+            service_advisor_name=service_advisor_name,
+            campaign_id=campaign_id,
+            appointment_date=appointment_date
         )
         return stats
     except Exception as e:

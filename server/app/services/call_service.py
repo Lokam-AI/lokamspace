@@ -380,49 +380,59 @@ class CallService:
     async def get_call_stats_by_status(
         db: AsyncSession,
         organization_id: UUID,
+        search: Optional[str] = None,
+        service_advisor_name: Optional[str] = None,
+        campaign_id: Optional[int] = None,
+        appointment_date: Optional[str] = None,
     ) -> Dict:
         """
-        Get call statistics grouped by status (ready, missed, completed).
-        
-        Args:
-            db: Database session
-            organization_id: Organization ID
-            
-        Returns:
-            Dict: Call statistics by status
+        Get call statistics grouped by status (ready, missed, completed), with optional filters.
         """
-        # Query counts for each status
-        ready_query = select(func.count()).where(
-            and_(
-                Call.organization_id == organization_id,
-                Call.status == "Ready"
-            )
-        )
+        from app.models.service_record import ServiceRecord
+        from sqlalchemy import cast, Date
+        from datetime import datetime
+        filters = [Call.organization_id == organization_id]
+        join_service_record = False
+        service_record_filters = []
+
+        if service_advisor_name:
+            join_service_record = True
+            service_record_filters.append(ServiceRecord.service_advisor_name == service_advisor_name)
+        if appointment_date:
+            join_service_record = True
+            # Parse the string to a date object
+            try:
+                parsed_date = datetime.strptime(appointment_date, "%Y-%m-%d").date()
+                service_record_filters.append(cast(ServiceRecord.appointment_date, Date) == parsed_date)
+            except Exception as e:
+                raise ValueError(f"Invalid appointment_date format: {appointment_date}. Expected YYYY-MM-DD.")
+        if search:
+            join_service_record = True
+            service_record_filters.append(ServiceRecord.customer_name.ilike(f"%{search}%"))
+        if campaign_id:
+            filters.append(Call.campaign_id == campaign_id)
+
+        def build_query(status_filter):
+            query = select(func.count())
+            if join_service_record:
+                query = query.select_from(Call).join(ServiceRecord, Call.service_record_id == ServiceRecord.id)
+                query = query.where(and_(*filters, *service_record_filters, status_filter))
+            else:
+                query = query.where(and_(*filters, status_filter))
+            return query
+
+        ready_query = build_query(Call.status == "Ready")
         ready_result = await db.execute(ready_query)
         ready_count = ready_result.scalar_one_or_none() or 0
-        
-        missed_query = select(func.count()).where(
-            and_(
-                Call.organization_id == organization_id,
-                or_(
-                    Call.status == "Missed",
-                    Call.status == "Failed"
-                )
-            )
-        )
 
+        missed_query = build_query(or_(Call.status == "Missed", Call.status == "Failed"))
         missed_result = await db.execute(missed_query)
         missed_count = missed_result.scalar_one_or_none() or 0
-        
-        completed_query = select(func.count()).where(
-            and_(
-                Call.organization_id == organization_id,
-                Call.status == "Completed"
-            )
-        )
+
+        completed_query = build_query(Call.status == "Completed")
         completed_result = await db.execute(completed_query)
         completed_count = completed_result.scalar_one_or_none() or 0
-        
+
         return {
             "ready": ready_count,
             "missed": missed_count,

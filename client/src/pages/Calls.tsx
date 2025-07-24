@@ -27,6 +27,7 @@ import { DemoCallTab } from "@/components/calls/DemoCallTab";
 import { Campaign } from "@/types/campaign";
 import { useQueryClient } from '@tanstack/react-query';
 import { useCampaigns } from "@/api/queries/campaigns";
+import { mapFiltersForApi } from "@/utils/callFilters";
 export interface CallFilters {
   dateRange: { start: string; end: string };
   status: string;
@@ -262,7 +263,7 @@ const Calls = () => {
                 </div>
 
                 {/* Dynamic Metrics */}
-                <CallsMetrics filters={filters} activeTab={activeTab} />
+                <CallsMetrics filters={mapFiltersForApi(filters)} activeTab={activeTab} />
 
                 {/* Tab Navigation */}
                 <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden">

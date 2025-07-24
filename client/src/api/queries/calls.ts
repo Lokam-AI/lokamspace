@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import api from "../axios";
 
-export const useCallStats = () =>
+export const useCallStats = (filters: Record<string, any> = {}) =>
   useQuery({
-    queryKey: ["call-stats"],
+    queryKey: ["call-stats", filters],
     queryFn: async () => {
-      const { data } = await api.get("/calls/stats");
+      const queryParams = new URLSearchParams(filters).toString();
+      const { data } = await api.get(`/calls/stats${queryParams ? `?${queryParams}` : ""}`);
       return data;
     },
     refetchInterval: 30000, // Refetch every 30 seconds
