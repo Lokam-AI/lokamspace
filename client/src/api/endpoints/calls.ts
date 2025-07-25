@@ -203,6 +203,27 @@ export const initiateDemoCall = async (callId: string) => {
 };
 
 /**
+ * Initiate a regular call
+ */
+export const initiateCall = async (callId: string) => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/calls/${callId}/initiate`,
+      {
+        method: "POST",
+        headers: getHeaders(),
+      }
+    );
+
+    await handleApiError(response);
+    return await response.json();
+  } catch (error) {
+    console.error(`Error initiating call ID ${callId}:`, error);
+    throw error;
+  }
+};
+
+/**
  * Get call summary metrics
  */
 export const getCallSummaryMetrics = async () => {
@@ -256,6 +277,26 @@ export const bulkUploadCalls = async (campaignName: string, calls: any[]) => {
     return await response.json();
   } catch (error) {
     console.error("Error uploading calls:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get recent calls (across all statuses, excluding demos)
+ */
+export const getRecentCalls = async (limit = 6) => {
+  const url = `${API_BASE_URL}/calls/recent?limit=${limit}`;
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: getHeaders(),
+    });
+
+    await handleApiError(response);
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching recent calls:", error);
     throw error;
   }
 };

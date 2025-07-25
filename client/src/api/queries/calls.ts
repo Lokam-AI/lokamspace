@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import api from "../axios";
+import { getRecentCalls } from "../endpoints/calls";
 
 export const useCallStats = (filters: Record<string, any> = {}) =>
   useQuery({
@@ -22,4 +23,13 @@ export const useCallsByStatus = (status: string, filters: any = {}) =>
       return data;
     },
     enabled: !!status,
+  });
+
+export const useRecentCalls = (limit = 6) =>
+  useQuery({
+    queryKey: ["recent-calls", limit],
+    queryFn: async () => {
+      return getRecentCalls(limit);
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
