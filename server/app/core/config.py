@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     # Database - Direct URL takes precedence if provided
     DATABASE_URL: Optional[str] = None
     DB_HOST: str = "localhost"
-    DB_PORT: str = "5433"
+    DB_PORT: str = "5432"
     DB_USER: str = "autopulse"
     DB_PASSWORD: str = "autopulse"
     DB_NAME: str = "autopulse"
