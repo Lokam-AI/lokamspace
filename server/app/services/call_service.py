@@ -723,7 +723,7 @@ class CallService:
             query = select(Call).join(ServiceRecord).where(
                 and_(
                     Call.organization_id == organization_id,
-                    Call.status.in_(["Ready", "Scheduled"]),
+                    Call.status.in_(["Ready", "Scheduled", "In Progress", "Ringing"]),
                     ServiceRecord.is_demo == False
                 )
             ).options(*options)
