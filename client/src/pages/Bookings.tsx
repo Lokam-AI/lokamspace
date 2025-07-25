@@ -69,14 +69,11 @@ const Bookings = () => {
         <AppSidebar />
         <SidebarInset>
           {/* Header */}
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background px-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-foreground">AutoPulse - Bookings</span>
-            </div>
-          </header>
+                     <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background px-4">
+             <div className="flex items-center">
+               <span className="text-xl font-bold text-foreground">Lokam Space - Bookings</span>
+             </div>
+           </header>
 
           {/* Main Content */}
           <main className="flex flex-1 flex-col gap-4 p-4 pt-0">

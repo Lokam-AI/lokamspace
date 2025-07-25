@@ -54,14 +54,11 @@ const Inquiries = () => {
         <AppSidebar />
         <SidebarInset>
           {/* Header */}
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border bg-card px-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-primary to-primary/80 rounded-lg flex items-center justify-center">
-                <MessageSquare className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold text-foreground">AutoPulse - Inquiries</span>
-            </div>
-          </header>
+                     <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border bg-card px-4">
+             <div className="flex items-center">
+               <span className="text-xl font-bold text-foreground">Lokam Space - Inquiries</span>
+             </div>
+           </header>
 
           {/* Main Content */}
           <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
