@@ -517,6 +517,96 @@ class CallService:
         return call
 
     @staticmethod
+    async def initiate_call(
+        call_id: int,
+        organization_id: UUID,
+        db: AsyncSession = None
+    ) -> Dict:
+        """
+        Initiate a regular call using VAPI service.
+        
+        Args:
+            call_id: Call ID
+            organization_id: Organization ID
+            db: Database session
+            
+        Returns:
+            Dict: Dictionary with call details and VAPI response
+        """
+        from app.services.vapi_service import VAPIService
+        from app.models import Organization
+
+        # Get the call and associated data
+        query = select(Call).where(
+            and_(
+                Call.id == call_id,
+                Call.organization_id == organization_id
+            )
+        )
+        result = await db.execute(query)
+        call = result.scalar_one_or_none()
+        
+        if not call:
+            raise ValueError(f"Call with ID {call_id} not found")
+            
+        # Get service record
+        service_query = select(ServiceRecord).where(ServiceRecord.id == call.service_record_id)
+        service_result = await db.execute(service_query)
+        service_record = service_result.scalar_one_or_none()
+        
+        if not service_record:
+            raise ValueError(f"Service record for call ID {call_id} not found")
+            
+        # Get organization
+        org_query = select(Organization).where(Organization.id == call.organization_id)
+        org_result = await db.execute(org_query)
+        organization = org_result.scalar_one_or_none()
+        
+        if not organization:
+            raise ValueError(f"Organization for call ID {call_id} not found")
+        
+        # Initialize VAPI service
+        vapi_service = VAPIService()
+        
+        try:
+            # Make the call to VAPI
+            vapi_response = await vapi_service.create_call(
+                phone=service_record.customer_phone,
+                customer_name=service_record.customer_name,
+                service_advisor_name=service_record.service_advisor_name or "Service Advisor",
+                service_type=service_record.service_type or "Service Call",
+                organization_name=organization.name,
+                location=organization.location or "Main Location",
+                call_id=call.id
+            )
+            
+            # Update call status
+            call.status = "In Progress"
+            call.start_time = datetime.utcnow()
+            await db.commit()
+            await db.refresh(call)
+            
+            # Update service record status too
+            service_record.status = "In Progress"
+            await db.commit()
+            
+            # Return response with call details in CallResponse format
+            response = await CallService.get_call_with_related_info(
+                call_id=call.id,
+                organization_id=organization_id,
+                db=db
+            )
+            
+            # Add the VAPI response to the result
+            response["vapi_response"] = vapi_response
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error initiating call {call_id}: {str(e)}")
+            raise
+
+    @staticmethod
     async def initiate_demo_call(
         call_id: int,
         organization_id: UUID,

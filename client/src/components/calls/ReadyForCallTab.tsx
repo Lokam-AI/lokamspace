@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -10,24 +10,28 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Phone, Calendar, User, Loader2 } from "lucide-react";
+import { Phone, Calendar, User, Loader2, RefreshCw } from "lucide-react";
 import { CallFilters, Call } from "@/pages/Calls";
 import { CallsPagination } from "./CallsPagination";
-import { getCallsByStatus } from "@/api/endpoints/calls";
+import { getCallsByStatus, getCallDetails } from "@/api/endpoints/calls";
 import { useQuery } from '@tanstack/react-query';
+import { useToast } from "@/hooks/use-toast";
 
 interface ReadyForCallTabProps {
   filters: CallFilters;
-  onCallAction: (callId: string, action: "call" | "retry") => void;
+  onCallAction: (callId: string, action: "call" | "retry", isDemo?: boolean) => void;
 }
 
 export const ReadyForCallTab = ({
   filters,
   onCallAction,
 }: ReadyForCallTabProps) => {
+  const { toast } = useToast();
   const [selectedCalls, setSelectedCalls] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [callStatuses, setCallStatuses] = useState<Record<string, string>>({});
+  const [pollingCalls, setPollingCalls] = useState<Record<string, boolean>>({});
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const itemsPerPage = 10;
 
   const {
@@ -46,6 +50,73 @@ export const ReadyForCallTab = ({
       return getCallsByStatus('ready', apiFilters);
     },
   });
+
+  // Poll for call status updates
+  const startStatusPolling = useCallback((callId: string) => {
+    // Add this call to polling list
+    setPollingCalls(prev => ({ ...prev, [callId]: true }));
+    
+    // If we're not already polling, start the interval
+    if (!pollingInterval) {
+      const interval = setInterval(async () => {
+        // Check all calls that we're polling
+        const callsToCheck = Object.keys(pollingCalls).filter(id => pollingCalls[id]);
+        
+        for (const id of callsToCheck) {
+          try {
+            const callDetails = await getCallDetails(id);
+            setCallStatuses(prev => ({ ...prev, [id]: callDetails.status.toLowerCase() }));
+            
+            // If the call is completed or failed, stop polling for this call
+            if (
+              callDetails.status.toLowerCase() === "completed" ||
+              callDetails.status.toLowerCase() === "failed"
+            ) {
+              setPollingCalls(prev => ({ ...prev, [id]: false }));
+              
+              // Show appropriate toast
+              if (callDetails.status.toLowerCase() === "completed") {
+                toast({
+                  title: "Call completed",
+                  description: "Call transcript is now available for review",
+                });
+              } else {
+                toast({
+                  title: "Call failed",
+                  description: "There was a problem with the call",
+                  variant: "destructive",
+                });
+              }
+              
+              // Refresh the calls list
+              refetch();
+            }
+          } catch (error) {
+            console.error(`Error polling status for call ${id}:`, error);
+          }
+        }
+        
+        // If no calls are being polled anymore, clear the interval
+        if (Object.values(pollingCalls).every(polling => !polling)) {
+          if (pollingInterval) {
+            clearInterval(pollingInterval);
+            setPollingInterval(null);
+          }
+        }
+      }, 3000); // Poll every 3 seconds
+      
+      setPollingInterval(interval);
+    }
+  }, [pollingCalls, pollingInterval, toast, refetch]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
 
   // Filter calls client-side for additional filtering if needed
   const filteredCalls = calls;
@@ -74,14 +145,20 @@ export const ReadyForCallTab = ({
   const handleBatchCall = () => {
     selectedCalls.forEach((callId) => {
       onCallAction(callId, "call");
-      setCallStatuses((prev) => ({ ...prev, [callId]: "in-progress" }));
+      setCallStatuses((prev) => ({ ...prev, [callId]: "in progress" }));
+      startStatusPolling(callId);
     });
     setSelectedCalls([]);
   };
 
   const handleSingleCall = (callId: string) => {
     onCallAction(callId, "call");
-    setCallStatuses((prev) => ({ ...prev, [callId]: "in-progress" }));
+    setCallStatuses((prev) => ({ ...prev, [callId]: "in progress" }));
+    startStatusPolling(callId);
+  };
+
+  const handleRefresh = () => {
+    refetch();
   };
 
   if (isLoading) {
@@ -133,6 +210,20 @@ export const ReadyForCallTab = ({
 
       {/* Table */}
       <div className="border border-border rounded-lg">
+        <div className="flex justify-between items-center p-4 border-b border-border">
+          <h3 className="text-lg font-medium">Ready for Call</h3>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={isLoading}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </Button>
+        </div>
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -156,69 +247,90 @@ export const ReadyForCallTab = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {currentCalls.map((call) => (
-              <TableRow key={call.id} className="hover:bg-muted/30">
-                <TableCell>
-                  <Checkbox
-                    checked={selectedCalls.includes(call.id)}
-                    onCheckedChange={(checked) =>
-                      handleSelectCall(call.id, !!checked)
-                    }
-                  />
-                </TableCell>
-                <TableCell className="font-medium text-foreground">
-                  {call.customer_name || call.customerName}
-                </TableCell>
-                <TableCell>
-                  <span className="font-mono text-sm bg-muted text-foreground px-2 py-1 rounded">
-                    {call.vehicle_info || call.vehicleNumber || "N/A"}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 text-foreground-secondary" />
-                    <span className="text-foreground-secondary">
-                      {call.service_advisor_name ||
-                        call.serviceAdvisor ||
-                        "Unassigned"}
+            {currentCalls.map((call) => {
+              const status = callStatuses[call.id] || call.status;
+              const isInProgress = status === "in progress" || status === "ringing";
+              const isCompleted = status === "completed";
+              const isFailed = status === "failed";
+              
+              return (
+                <TableRow key={call.id} className="hover:bg-muted/30">
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedCalls.includes(call.id)}
+                      onCheckedChange={(checked) =>
+                        handleSelectCall(call.id, !!checked)
+                      }
+                      disabled={isInProgress || isCompleted || isFailed}
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium text-foreground">
+                    {call.customer_name || call.customerName}
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-mono text-sm bg-muted text-foreground px-2 py-1 rounded">
+                      {call.vehicle_info || call.vehicleNumber || "N/A"}
                     </span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">
-                    {call.service_type ||
-                      call.serviceType ||
-                      call.call_reason ||
-                      "Not specified"}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      callStatuses[call.id] === "in-progress"
-                        ? "default"
-                        : "secondary"
-                    }
-                  >
-                    {callStatuses[call.id] === "in-progress"
-                      ? "In Progress"
-                      : "Ready"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    size="sm"
-                    onClick={() => handleSingleCall(call.id)}
-                    disabled={callStatuses[call.id] === "in-progress"}
-                  >
-                    <Phone className="h-4 w-4 mr-2" />
-                    {callStatuses[call.id] === "in-progress"
-                      ? "Calling..."
-                      : "Call Now"}
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <User className="h-4 w-4 text-foreground-secondary" />
+                      <span className="text-foreground-secondary">
+                        {call.service_advisor_name ||
+                          call.serviceAdvisor ||
+                          "Unassigned"}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {call.service_type ||
+                        call.serviceType ||
+                        call.call_reason ||
+                        "Not specified"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        isInProgress
+                          ? "secondary"
+                          : isCompleted
+                          ? "default"
+                          : isFailed
+                          ? "destructive"
+                          : "secondary"
+                      }
+                      className={isInProgress ? "animate-pulse" : ""}
+                    >
+                      {status === "in progress"
+                        ? "In Progress"
+                        : status.charAt(0).toUpperCase() +
+                          status.slice(1)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      size="sm"
+                      onClick={() => handleSingleCall(call.id)}
+                      disabled={isInProgress || isCompleted || isFailed}
+                    >
+                      {isInProgress ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Calling...
+                        </>
+                      ) : (
+                        <>
+                          <Phone className="h-4 w-4 mr-2" />
+                          Call Now
+                        </>
+                      )}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>

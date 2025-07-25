@@ -28,6 +28,8 @@ import { Campaign } from "@/types/campaign";
 import { useQueryClient } from '@tanstack/react-query';
 import { useCampaigns } from "@/api/queries/campaigns";
 import { mapFiltersForApi } from "@/utils/callFilters";
+import { initiateCall, initiateDemoCall } from "@/api/endpoints/calls";
+
 export interface CallFilters {
   dateRange: { start: string; end: string };
   status: string;
@@ -139,13 +141,33 @@ const Calls = () => {
     scheduledDays: [],
   });
 
-  const handleCallAction = (callId: string, action: "call" | "retry") => {
-    const actionText =
-      action === "call" ? "Call initiated" : "Call retry initiated";
-    toast({
-      title: actionText,
-      description: `Starting ${action} for call ID: ${callId}`,
-    });
+  const handleCallAction = async (callId: string, action: "call" | "retry", isDemo: boolean = false) => {
+    try {
+      if (isDemo) {
+        await initiateDemoCall(callId);
+      } else {
+        await initiateCall(callId);
+      }
+      
+      const actionText = action === "call" ? "Call initiated" : "Call retry initiated";
+      toast({
+        title: actionText,
+        description: `Starting ${action} for call ID: ${callId}`,
+      });
+      
+      // Invalidate queries to refresh the calls lists
+      queryClient.invalidateQueries({ queryKey: ['readyCalls'] });
+      queryClient.invalidateQueries({ queryKey: ['missedCalls'] });
+      queryClient.invalidateQueries({ queryKey: ['completedCalls'] });
+      queryClient.invalidateQueries({ queryKey: ['demoCalls'] });
+    } catch (error) {
+      console.error(`Error ${action === "call" ? "initiating" : "retrying"} call:`, error);
+      toast({
+        title: "Call Failed",
+        description: `There was a problem ${action === "call" ? "initiating" : "retrying"} the call.`,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleViewDetails = (call: Call) => {
