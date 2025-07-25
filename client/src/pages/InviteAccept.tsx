@@ -54,7 +54,7 @@ const InviteAccept = () => {
       // Mock invitation data - in real app, this would come from API
       const mockData = {
         email: "john.doe@example.com",
-        organizationName: "AutoPulse Motors",
+        organizationName: "Lokam Space Motors",
         inviterName: "Sarah Johnson",
         inviterRole: "Sales Manager",
         isValid: true
@@ -176,7 +176,7 @@ const InviteAccept = () => {
               <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
                 <Phone className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">AutoPulse</span>
+              <span className="text-xl font-bold text-gray-900">Lokam Space</span>
             </div>
           </div>
           
@@ -200,7 +200,7 @@ const InviteAccept = () => {
               <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
                 <Phone className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">AutoPulse</span>
+              <span className="text-xl font-bold text-gray-900">Lokam Space</span>
             </div>
           </div>
           
@@ -243,7 +243,7 @@ const InviteAccept = () => {
               <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
                 <Phone className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">AutoPulse</span>
+              <span className="text-xl font-bold text-gray-900">Lokam Space</span>
             </div>
           </div>
           
@@ -252,7 +252,7 @@ const InviteAccept = () => {
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome to AutoPulse!</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome to Lokam Space!</h2>
               <p className="text-gray-600 mb-6">
                 Your account has been successfully activated. You're being redirected to your dashboard...
               </p>
@@ -273,16 +273,16 @@ const InviteAccept = () => {
             <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
               <Phone className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">AutoPulse</span>
+            <span className="text-xl font-bold text-gray-900">Lokam Space</span>
           </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          {/* AutoPulse Value Proposition */}
+          {/* Lokam Space Value Proposition */}
           <Card className="border-0 shadow-xl">
             <CardHeader>
               <CardTitle className="text-xl font-bold text-gray-900">
-                Welcome to AutoPulse
+                Welcome to Lokam Space
               </CardTitle>
               <CardDescription className="text-gray-600">
                 Transform your automotive sales with AI-powered phone automation

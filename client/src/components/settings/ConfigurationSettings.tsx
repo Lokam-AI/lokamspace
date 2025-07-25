@@ -873,7 +873,7 @@ export function ConfigurationSettings() {
               placeholder="https://your-dms-server.com/api"
             />
             <div className="text-sm text-gray-500">
-              Enter the URL to your DMS server endpoint. AutoPulse uses this to
+              Enter the URL to your DMS server endpoint. Lokam Space uses this to
               fetch service records and customer data.
             </div>
           </div>

@@ -26,7 +26,7 @@ const Index = () => {
               <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                 <Phone className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">AutoPulse</span>
+              <span className="text-xl font-bold text-gray-900">Lokam Space</span>
             </div>
             <nav className="hidden md:flex items-center space-x-8">
               <a
@@ -231,12 +231,12 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Why AutoPulse Section */}
+      {/* Why Lokam Space Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Why AutoPulse?
+              Why Lokam Space?
             </h2>
           </div>
 
@@ -357,7 +357,7 @@ const Index = () => {
               ))}
             </div>
             <blockquote className="text-2xl md:text-3xl font-medium text-gray-900 mb-8 leading-relaxed">
-              "AutoPulse dramatically reduced our no-show rate and gave us
+              "Lokam Space dramatically reduced our no-show rate and gave us
               deeper customer insights in days."
             </blockquote>
             <div className="text-lg text-gray-600">
@@ -403,7 +403,7 @@ const Index = () => {
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                   <Phone className="h-5 w-5 text-white" />
                 </div>
-                <span className="text-xl font-bold">AutoPulse</span>
+                <span className="text-xl font-bold">Lokam Space</span>
               </div>
               <p className="text-gray-400">
                 AI-powered call assistants for seamless customer connections
@@ -478,7 +478,7 @@ const Index = () => {
           </div>
 
           <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 AutoPulse. All rights reserved.</p>
+            <p>&copy; 2024 Lokam Space. All rights reserved.</p>
           </div>
         </div>
       </footer>
