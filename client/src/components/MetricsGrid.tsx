@@ -1,272 +1,143 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Phone, CheckCircle, TrendingUp, AlertTriangle } from "lucide-react";
+import React from 'react';
+import { 
+  Phone, 
+  CheckCircle, 
+  TrendingUp, 
+  AlertTriangle,
+  RefreshCw,
+  BarChart3,
+  TrendingDown
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useCallsSummaryMetrics } from '@/api/queries/calls';
+import { CallsSummaryMetrics } from '@/types/analytics';
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 
+interface MetricData {
+  title: string;
+  value: string;
+  change: string;
+  changeType: "positive" | "negative";
+  icon: React.ComponentType<any>;
+  description: string;
+  data: Array<{ name: string; value: number }>;
+  color: string;
+}
+
 export const MetricsGrid = () => {
-  // Sample data for charts with proper weekly dates
-  const totalCallsData = [{
-    date: "May 28",
-    value: 95,
-    fullDate: "May 28, 2024"
-  }, {
-    date: "May 30",
-    value: 102,
-    fullDate: "May 30, 2024"
-  }, {
-    date: "Jun 1",
-    value: 89,
-    fullDate: "Jun 1, 2024"
-  }, {
-    date: "Jun 3",
-    value: 115,
-    fullDate: "Jun 3, 2024"
-  }, {
-    date: "Jun 5",
-    value: 108,
-    fullDate: "Jun 5, 2024"
-  }, {
-    date: "Jun 7",
-    value: 125,
-    fullDate: "Jun 7, 2024"
-  }, {
-    date: "Jun 9",
-    value: 112,
-    fullDate: "Jun 9, 2024"
-  }, {
-    date: "Jun 11",
-    value: 98,
-    fullDate: "Jun 11, 2024"
-  }, {
-    date: "Jun 13",
-    value: 135,
-    fullDate: "Jun 13, 2024"
-  }, {
-    date: "Jun 15",
-    value: 118,
-    fullDate: "Jun 15, 2024"
-  }, {
-    date: "Jun 17",
-    value: 142,
-    fullDate: "Jun 17, 2024"
-  }, {
-    date: "Jun 19",
-    value: 128,
-    fullDate: "Jun 19, 2024"
-  }, {
-    date: "Jun 21",
-    value: 156,
-    fullDate: "Jun 21, 2024"
-  }, {
-    date: "Jun 23",
-    value: 134,
-    fullDate: "Jun 23, 2024"
-  }, {
-    date: "Jun 25",
-    value: 147,
-    fullDate: "Jun 25, 2024"
-  }, {
-    date: "Jun 27",
-    value: 162,
-    fullDate: "Jun 27, 2024"
-  }];
+  const { data: summaryData, isLoading, error, refetch } = useCallsSummaryMetrics();
 
-  const completedCallsData = [{
-    date: "May 28",
-    value: 88,
-    fullDate: "May 28, 2024"
-  }, {
-    date: "May 30",
-    value: 95,
-    fullDate: "May 30, 2024"
-  }, {
-    date: "Jun 1",
-    value: 82,
-    fullDate: "Jun 1, 2024"
-  }, {
-    date: "Jun 3",
-    value: 105,
-    fullDate: "Jun 3, 2024"
-  }, {
-    date: "Jun 5",
-    value: 98,
-    fullDate: "Jun 5, 2024"
-  }, {
-    date: "Jun 7",
-    value: 115,
-    fullDate: "Jun 7, 2024"
-  }, {
-    date: "Jun 9",
-    value: 102,
-    fullDate: "Jun 9, 2024"
-  }, {
-    date: "Jun 11",
-    value: 89,
-    fullDate: "Jun 11, 2024"
-  }, {
-    date: "Jun 13",
-    value: 122,
-    fullDate: "Jun 13, 2024"
-  }, {
-    date: "Jun 15",
-    value: 108,
-    fullDate: "Jun 15, 2024"
-  }, {
-    date: "Jun 17",
-    value: 128,
-    fullDate: "Jun 17, 2024"
-  }, {
-    date: "Jun 19",
-    value: 115,
-    fullDate: "Jun 19, 2024"
-  }, {
-    date: "Jun 21",
-    value: 138,
-    fullDate: "Jun 21, 2024"
-  }, {
-    date: "Jun 23",
-    value: 121,
-    fullDate: "Jun 23, 2024"
-  }, {
-    date: "Jun 25",
-    value: 132,
-    fullDate: "Jun 25, 2024"
-  }, {
-    date: "Jun 27",
-    value: 145,
-    fullDate: "Jun 27, 2024"
-  }];
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="h-4 w-24 bg-muted rounded"></div>
+              <div className="h-4 w-4 bg-muted rounded"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 w-16 bg-muted rounded mb-2"></div>
+              <div className="h-3 w-32 bg-muted rounded"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
-  const npsData = [{
-    date: "May 28",
-    value: 7.2,
-    fullDate: "May 28, 2024"
-  }, {
-    date: "May 30",
-    value: 7.4,
-    fullDate: "May 30, 2024"
-  }, {
-    date: "Jun 1",
-    value: 7.1,
-    fullDate: "Jun 1, 2024"
-  }, {
-    date: "Jun 3",
-    value: 7.6,
-    fullDate: "Jun 3, 2024"
-  }, {
-    date: "Jun 5",
-    value: 7.3,
-    fullDate: "Jun 5, 2024"
-  }, {
-    date: "Jun 7",
-    value: 7.8,
-    fullDate: "Jun 7, 2024"
-  }, {
-    date: "Jun 9",
-    value: 7.5,
-    fullDate: "Jun 9, 2024"
-  }, {
-    date: "Jun 11",
-    value: 7.2,
-    fullDate: "Jun 11, 2024"
-  }, {
-    date: "Jun 13",
-    value: 8.1,
-    fullDate: "Jun 13, 2024"
-  }, {
-    date: "Jun 15",
-    value: 7.7,
-    fullDate: "Jun 15, 2024"
-  }, {
-    date: "Jun 17",
-    value: 8.2,
-    fullDate: "Jun 17, 2024"
-  }, {
-    date: "Jun 19",
-    value: 7.9,
-    fullDate: "Jun 19, 2024"
-  }, {
-    date: "Jun 21",
-    value: 8.4,
-    fullDate: "Jun 21, 2024"
-  }, {
-    date: "Jun 23",
-    value: 7.6,
-    fullDate: "Jun 23, 2024"
-  }, {
-    date: "Jun 25",
-    value: 8.0,
-    fullDate: "Jun 25, 2024"
-  }, {
-    date: "Jun 27",
-    value: 8.2,
-    fullDate: "Jun 27, 2024"
-  }];
+  // Handle error state
+  if (error) {
+    return (
+      <div className="bg-card border border-border rounded-lg p-6 text-center">
+        <p className="text-red-500 mb-4">Failed to load dashboard metrics. Please try again.</p>
+        <Button onClick={() => refetch()} variant="outline" size="sm">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
-  const detractorsData = [{
-    date: "May 28",
-    value: 52,
-    fullDate: "May 28, 2024"
+  // Default values if no data
+  const metrics: CallsSummaryMetrics = summaryData || { total_count: 0, completed_count: 0, avg_nps: 0, detractors_count: 0 };
+
+  // Static chart data (can be enhanced later with real historical data)
+  const totalCallsData = [
+    { name: "Jan", value: 800 },
+    { name: "Feb", value: 950 },
+    { name: "Mar", value: 1100 },
+    { name: "Apr", value: 1200 },
+    { name: "May", value: 1150 },
+    { name: "Jun", value: metrics.total_count || 1247 }
+  ];
+
+  const completedCallsData = [
+    { name: "Jan", value: 720 },
+    { name: "Feb", value: 850 },
+    { name: "Mar", value: 980 },
+    { name: "Apr", value: 1050 },
+    { name: "May", value: 1000 },
+    { name: "Jun", value: metrics.completed_count || 1089 }
+  ];
+
+  const npsData = [
+    { name: "Jan", value: 7.2 },
+    { name: "Feb", value: 7.4 },
+    { name: "Mar", value: 7.6 },
+    { name: "Apr", value: 7.5 },
+    { name: "May", value: 7.7 },
+    { name: "Jun", value: metrics.avg_nps || 7.8 }
+  ];
+
+  const detractorsData = [
+    { name: "Jan", value: 60 },
+    { name: "Feb", value: 55 },
+    { name: "Mar", value: 50 },
+    { name: "Apr", value: 48 },
+    { name: "May", value: 45 },
+    { name: "Jun", value: metrics.detractors_count || 43 }
+  ];
+
+  const metricsConfig: MetricData[] = [{
+    title: "Total Calls",
+    value: metrics.total_count.toLocaleString(),
+    change: "+12%",
+    changeType: "positive" as const,
+    icon: Phone,
+    description: "Compared to previous month",
+    data: totalCallsData,
+    color: "#10b981"
   }, {
-    date: "May 30",
-    value: 48,
-    fullDate: "May 30, 2024"
+    title: "Completed Calls",
+    value: metrics.completed_count.toLocaleString(),
+    change: "+8%",
+    changeType: "positive" as const,
+    icon: CheckCircle,
+    description: "Compared to previous month",
+    data: completedCallsData,
+    color: "#3b82f6"
   }, {
-    date: "Jun 1",
-    value: 55,
-    fullDate: "Jun 1, 2024"
+    title: "Average NPS",
+    value: metrics.avg_nps.toString(),
+    change: "+0.3",
+    changeType: "positive" as const,
+    icon: TrendingUp,
+    description: "Compared to previous month",
+    data: npsData,
+    color: "#8b5cf6"
   }, {
-    date: "Jun 3",
-    value: 42,
-    fullDate: "Jun 3, 2024"
-  }, {
-    date: "Jun 5",
-    value: 45,
-    fullDate: "Jun 5, 2024"
-  }, {
-    date: "Jun 7",
-    value: 38,
-    fullDate: "Jun 7, 2024"
-  }, {
-    date: "Jun 9",
-    value: 41,
-    fullDate: "Jun 9, 2024"
-  }, {
-    date: "Jun 11",
-    value: 47,
-    fullDate: "Jun 11, 2024"
-  }, {
-    date: "Jun 13",
-    value: 35,
-    fullDate: "Jun 13, 2024"
-  }, {
-    date: "Jun 15",
-    value: 39,
-    fullDate: "Jun 15, 2024"
-  }, {
-    date: "Jun 17",
-    value: 32,
-    fullDate: "Jun 17, 2024"
-  }, {
-    date: "Jun 19",
-    value: 36,
-    fullDate: "Jun 19, 2024"
-  }, {
-    date: "Jun 21",
-    value: 28,
-    fullDate: "Jun 21, 2024"
-  }, {
-    date: "Jun 23",
-    value: 40,
-    fullDate: "Jun 23, 2024"
-  }, {
-    date: "Jun 25",
-    value: 33,
-    fullDate: "Jun 25, 2024"
-  }, {
-    date: "Jun 27",
-    value: 29,
-    fullDate: "Jun 27, 2024"
+    title: "Detractors",
+    value: metrics.detractors_count.toString(),
+    change: "-5",
+    changeType: "negative" as const,
+    icon: AlertTriangle,
+    description: "Compared to previous month",
+    data: detractorsData,
+    color: "#ef4444"
   }];
 
   // Custom tooltip component with theme-aware colors
@@ -279,7 +150,7 @@ export const MetricsGrid = () => {
       const data = payload[0].payload;
       return (
         <div className="bg-card p-3 border border-border rounded-lg shadow-lg">
-          <p className="text-sm font-medium text-foreground">{data.fullDate}</p>
+          <p className="text-sm font-medium text-foreground">{data.name}</p>
           <p className="text-sm text-foreground-secondary">
             Value: <span className="font-semibold text-foreground">{payload[0].value}</span>
           </p>
@@ -289,47 +160,9 @@ export const MetricsGrid = () => {
     return null;
   };
 
-  const metrics = [{
-    title: "Total Calls",
-    value: "1,247",
-    change: "+12%",
-    changeType: "positive" as const,
-    icon: Phone,
-    description: "Compared to previous month",
-    data: totalCallsData,
-    color: "#10b981"
-  }, {
-    title: "Completed Calls",
-    value: "1,089",
-    change: "+8%",
-    changeType: "positive" as const,
-    icon: CheckCircle,
-    description: "Compared to previous month",
-    data: completedCallsData,
-    color: "#3b82f6"
-  }, {
-    title: "Average NPS",
-    value: "7.8",
-    change: "+0.3",
-    changeType: "positive" as const,
-    icon: TrendingUp,
-    description: "Compared to previous month",
-    data: npsData,
-    color: "#8b5cf6"
-  }, {
-    title: "Detractors",
-    value: "43",
-    change: "-5",
-    changeType: "negative" as const,
-    icon: AlertTriangle,
-    description: "Compared to previous month",
-    data: detractorsData,
-    color: "#ef4444"
-  }];
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      {metrics.map((metric, index) => {
+      {metricsConfig.map((metric, index) => {
         const Icon = metric.icon;
         return (
           <Card key={index} className="border-0 shadow-md hover:shadow-lg transition-shadow">
@@ -361,7 +194,7 @@ export const MetricsGrid = () => {
                     bottom: 5
                   }}>
                     <XAxis 
-                      dataKey="date" 
+                      dataKey="name" 
                       axisLine={false} 
                       tickLine={false} 
                       tick={{

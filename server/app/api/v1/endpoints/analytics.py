@@ -208,11 +208,9 @@ async def get_calls_summary_metrics(
         
     Returns:
         Dict[str, Any]: Call summary metrics including:
-            - ready_count: Number of calls in Ready/Scheduled status
-            - missed_count: Number of calls in Failed/Missed status
+            - total_count: Total number of calls (excluding demo calls)
             - completed_count: Number of calls in Completed status
             - avg_nps: Average NPS score for completed calls
-            - promoters_count: Number of completed calls with NPS >= 7
             - detractors_count: Number of completed calls with NPS <= 5
     """
     return await AnalyticsService.get_calls_summary_metrics(

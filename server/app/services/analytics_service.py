@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import BadRequestException
@@ -665,45 +665,40 @@ class AnalyticsService:
             
         Returns:
             Dict[str, Any]: Call summary metrics including:
-                - ready_count: Number of calls in Ready/Scheduled status
-                - missed_count: Number of calls in Failed/Missed status
+                - total_count: Total number of calls (excluding demo calls)
                 - completed_count: Number of calls in Completed status
                 - avg_nps: Average NPS score for completed calls
-                - promoters_count: Number of completed calls with NPS >= 7
                 - detractors_count: Number of completed calls with NPS <= 5
         """
-        # Query for all calls for this organization
-        query = select(Call).where(Call.organization_id == organization_id)
+        # Query for all calls for this organization, excluding demo calls
+        # Join with ServiceRecord to filter out demo calls
+        query = select(Call).join(ServiceRecord).where(
+            and_(
+                Call.organization_id == organization_id,
+                ServiceRecord.is_demo == False  # Exclude demo calls
+            )
+        )
         result = await db.execute(query)
         calls = result.scalars().all()
         
-        # Calculate metrics
-        ready_calls = [call for call in calls if call.status == "Scheduled"]
-        missed_calls = [call for call in calls if call.status in ["Failed", "Missed"]]
+        # Filter calls by status
         completed_calls = [call for call in calls if call.status == "Completed"]
         
         # Count metrics
-        ready_count = len(ready_calls)
-        missed_count = len(missed_calls)
+        total_count = len(calls)  # Total calls excluding demo calls
         completed_count = len(completed_calls)
         
-        # NPS metrics
+        # NPS metrics for completed calls only
         nps_scores = [call.nps_score for call in completed_calls if call.nps_score is not None]
-        avg_nps = sum(nps_scores) / len(nps_scores) if nps_scores else 0
+        avg_nps = round(sum(nps_scores) / len(nps_scores), 1) if nps_scores else 0
         
-        # Promoters (NPS >= 7)
-        promoters = [score for score in nps_scores if score >= 7]
-        promoters_count = len(promoters)
-        
-        # Detractors (NPS <= 5)
+        # Detractors (NPS <= 5) - only from completed calls
         detractors = [score for score in nps_scores if score <= 5]
         detractors_count = len(detractors)
         
         return {
-            "ready_count": ready_count,
-            "missed_count": missed_count,
+            "total_count": total_count,
             "completed_count": completed_count,
-            "avg_nps": round(avg_nps, 1),
-            "promoters_count": promoters_count,
+            "avg_nps": avg_nps,
             "detractors_count": detractors_count
         } 
