@@ -45,7 +45,7 @@ def get_engine(db_url: Optional[str] = None) -> AsyncEngine:
     
     # Check if engine already exists for this URL
     if url not in _engines:
-        logger.info(f"Creating new database engine for {url}")
+        logger.info(f"Creating new database engine")
         
         # Configure engine based on environment
         if settings.ENVIRONMENT == "testing":

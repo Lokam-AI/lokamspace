@@ -106,8 +106,8 @@ const Dashboard = () => {
                           <div className="flex items-center space-x-3">
                             <Users className="h-5 w-5 text-warning" />
                             <div>
-                              <p className="font-medium text-sm text-foreground">New Customer</p>
-                              <p className="text-sm text-foreground-secondary">Registration completed</p>
+                              <p className="font-medium text-sm text-foreground">New Promoter</p>
+                              <p className="text-sm text-foreground-secondary">NPS Score: 9</p>
                             </div>
                           </div>
                           <Badge variant="secondary">15 min ago</Badge>
@@ -117,8 +117,8 @@ const Dashboard = () => {
                           <div className="flex items-center space-x-3">
                             <TrendingUp className="h-5 w-5 text-success" />
                             <div>
-                              <p className="font-medium text-sm text-foreground">Goal Achieved</p>
-                              <p className="text-sm text-foreground-secondary">Monthly target reached</p>
+                              <p className="font-medium text-sm text-foreground">DMS Integration</p>
+                              <p className="text-sm text-foreground-secondary">14 service records fetched</p>
                             </div>
                           </div>
                           <Badge variant="outline">1 hour ago</Badge>
