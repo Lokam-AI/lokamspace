@@ -78,12 +78,12 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="w-64 group-data-[collapsible=icon]:w-16 border-r border-border">
       {/* Section 1: Brand & Controls */}
       <SidebarHeader className="border-b border-border">
-        <div className="flex flex-col space-y-3 p-4">
+        <div className={`flex flex-col space-y-3 ${collapsed ? 'p-2' : 'p-4'}`}>
           {/* Logo and Brand */}
           <div className={`flex ${collapsed ? 'justify-center' : 'justify-start'} items-center w-full`}>
             {collapsed ? (
-              <div className="w-full flex justify-center">
-                <img src={SecondaryLogo} alt="Lokam Logo" className="h-12 w-12" />
+              <div className="w-8 h-8 flex items-center justify-center">
+                <img src={SecondaryLogo} alt="Lokam Logo" className="h-8 w-8" />
               </div>
             ) : (
               <img src={FullLogo} alt="Lokam Logo" className="h-7 max-w-full" style={{ objectFit: 'contain', objectPosition: 'left' }} />
@@ -102,13 +102,13 @@ export function AppSidebar() {
           )}
           
           {/* Trigger Button */}
-          <div className="flex justify-start">
+          <div className={`flex ${collapsed ? 'justify-center' : 'justify-start'}`}>
             <SidebarTrigger className="h-7 w-7 flex-shrink-0" />
           </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-4">
+      <SidebarContent className={`${collapsed ? 'px-2' : 'px-4'}`}>
         {/* Section 2: Primary Navigation */}
         <div className="pt-4">
           <SidebarGroup>
@@ -120,7 +120,7 @@ export function AppSidebar() {
                       asChild 
                       isActive={isActive(item.url)}
                       tooltip={collapsed ? item.title : undefined}
-                      className="w-full justify-start"
+                      className={`w-full ${collapsed ? 'justify-center' : 'justify-start'}`}
                     >
                       <NavLink 
                         to={item.url}
@@ -128,9 +128,18 @@ export function AppSidebar() {
                           // Don't prevent navigation, just ensure it doesn't auto-expand
                           e.stopPropagation();
                         }}
+                        className={`flex items-center ${collapsed ? 'justify-center' : 'justify-start'}`}
                       >
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
+                        {collapsed ? (
+                          <div className="w-8 h-8 flex items-center justify-center">
+                            <item.icon className="h-4 w-4" />
+                          </div>
+                        ) : (
+                          <>
+                            <item.icon className="h-4 w-4" />
+                            <span className="ml-2">{item.title}</span>
+                          </>
+                        )}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -154,7 +163,7 @@ export function AppSidebar() {
                       asChild 
                       isActive={isActive(item.url)}
                       tooltip={collapsed ? item.title : undefined}
-                      className="w-full justify-start"
+                      className={`w-full ${collapsed ? 'justify-center' : 'justify-start'}`}
                     >
                       <NavLink 
                         to={item.url}
@@ -162,9 +171,18 @@ export function AppSidebar() {
                           // Don't prevent navigation, just ensure it doesn't auto-expand
                           e.stopPropagation();
                         }}
+                        className={`flex items-center ${collapsed ? 'justify-center' : 'justify-start'}`}
                       >
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
+                        {collapsed ? (
+                          <div className="w-8 h-8 flex items-center justify-center">
+                            <item.icon className="h-4 w-4" />
+                          </div>
+                        ) : (
+                          <>
+                            <item.icon className="h-4 w-4" />
+                            <span className="ml-2">{item.title}</span>
+                          </>
+                        )}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
