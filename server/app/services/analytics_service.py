@@ -669,6 +669,7 @@ class AnalyticsService:
                 - completed_count: Number of calls in Completed status
                 - avg_nps: Average NPS score for completed calls
                 - detractors_count: Number of completed calls with NPS <= 5
+                - historical_data: Historical data for the last 30 days in 5-day intervals
         """
         # Query for all calls for this organization, excluding demo calls
         # Join with ServiceRecord to filter out demo calls
@@ -696,9 +697,100 @@ class AnalyticsService:
         detractors = [score for score in nps_scores if score <= 5]
         detractors_count = len(detractors)
         
+        # Get historical data for the last 30 days
+        historical_data = await AnalyticsService._get_dashboard_historical_data(
+            db=db,
+            organization_id=organization_id
+        )
+        
         return {
             "total_count": total_count,
             "completed_count": completed_count,
             "avg_nps": avg_nps,
-            "detractors_count": detractors_count
+            "detractors_count": detractors_count,
+            "historical_data": historical_data
+        }
+
+    @staticmethod
+    async def _get_dashboard_historical_data(
+        db: AsyncSession,
+        organization_id: UUID,
+        days_back: int = 30,
+        interval_days: int = 5
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Get historical dashboard data for the last N days with specified intervals.
+        
+        Args:
+            db: Database session
+            organization_id: Organization ID
+            days_back: Number of days to go back (default: 30)
+            interval_days: Number of days per interval (default: 5)
+            
+        Returns:
+            Dict[str, List[Dict[str, Any]]]: Historical data with arrays for each metric
+        """
+        # Calculate date range
+        end_date = date.today()
+        start_date = end_date - timedelta(days=days_back)
+        
+        # Generate 5-day periods
+        periods = []
+        current_date = start_date
+        
+        while current_date <= end_date:
+            period_end = min(current_date + timedelta(days=interval_days - 1), end_date)
+            periods.append({
+                "start": current_date,
+                "end": period_end
+            })
+            current_date += timedelta(days=interval_days)
+        
+        # Get metrics for each period
+        total_calls_data = []
+        completed_calls_data = []
+        nps_data = []
+        detractors_data = []
+        
+        for period in periods:
+            start_datetime = datetime.combine(period["start"], datetime.min.time())
+            end_datetime = datetime.combine(period["end"], datetime.max.time())
+            
+            # Query for calls in this period, excluding demo calls
+            query = select(Call).join(ServiceRecord).where(
+                and_(
+                    Call.organization_id == organization_id,
+                    ServiceRecord.is_demo == False,  # Exclude demo calls
+                    Call.created_at >= start_datetime,
+                    Call.created_at <= end_datetime
+                )
+            )
+            result = await db.execute(query)
+            period_calls = result.scalars().all()
+            
+            # Calculate metrics for this period
+            total_count = len(period_calls)
+            completed_calls = [call for call in period_calls if call.status == "Completed"]
+            completed_count = len(completed_calls)
+            
+            # NPS calculations
+            nps_scores = [call.nps_score for call in completed_calls if call.nps_score is not None]
+            avg_nps = round(sum(nps_scores) / len(nps_scores), 1) if nps_scores else 0
+            detractors = [score for score in nps_scores if score <= 5]
+            detractors_count = len(detractors)
+            
+            # Format the period name (e.g., "Dec 20-24")
+            period_name = f"{period['start'].strftime('%b %d')}-{period['end'].strftime('%d')}"
+            
+            # Append data points
+            total_calls_data.append({"name": period_name, "value": total_count})
+            completed_calls_data.append({"name": period_name, "value": completed_count})
+            nps_data.append({"name": period_name, "value": avg_nps})
+            detractors_data.append({"name": period_name, "value": detractors_count})
+        
+        return {
+            "total_calls": total_calls_data,
+            "completed_calls": completed_calls_data,
+            "nps": nps_data,
+            "detractors": detractors_data
         } 

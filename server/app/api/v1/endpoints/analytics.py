@@ -212,6 +212,11 @@ async def get_calls_summary_metrics(
             - completed_count: Number of calls in Completed status
             - avg_nps: Average NPS score for completed calls
             - detractors_count: Number of completed calls with NPS <= 5
+            - historical_data: Historical data for the last 30 days in 5-day intervals
+                - total_calls: Array of {name, value} for total calls trend
+                - completed_calls: Array of {name, value} for completed calls trend
+                - nps: Array of {name, value} for NPS trend
+                - detractors: Array of {name, value} for detractors trend
     """
     return await AnalyticsService.get_calls_summary_metrics(
         organization_id=organization.id,

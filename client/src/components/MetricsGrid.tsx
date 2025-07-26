@@ -63,44 +63,36 @@ export const MetricsGrid = () => {
   }
 
   // Default values if no data
-  const metrics: CallsSummaryMetrics = summaryData || { total_count: 0, completed_count: 0, avg_nps: 0, detractors_count: 0 };
+  const metrics: CallsSummaryMetrics = summaryData || { 
+    total_count: 0, 
+    completed_count: 0, 
+    avg_nps: 0, 
+    detractors_count: 0,
+    historical_data: {
+      total_calls: [],
+      completed_calls: [],
+      nps: [],
+      detractors: []
+    }
+  };
 
-  // Static chart data (can be enhanced later with real historical data)
-  const totalCallsData = [
-    { name: "Jan", value: 800 },
-    { name: "Feb", value: 950 },
-    { name: "Mar", value: 1100 },
-    { name: "Apr", value: 1200 },
-    { name: "May", value: 1150 },
-    { name: "Jun", value: metrics.total_count || 1247 }
-  ];
-
-  const completedCallsData = [
-    { name: "Jan", value: 720 },
-    { name: "Feb", value: 850 },
-    { name: "Mar", value: 980 },
-    { name: "Apr", value: 1050 },
-    { name: "May", value: 1000 },
-    { name: "Jun", value: metrics.completed_count || 1089 }
-  ];
-
-  const npsData = [
-    { name: "Jan", value: 7.2 },
-    { name: "Feb", value: 7.4 },
-    { name: "Mar", value: 7.6 },
-    { name: "Apr", value: 7.5 },
-    { name: "May", value: 7.7 },
-    { name: "Jun", value: metrics.avg_nps || 7.8 }
-  ];
-
-  const detractorsData = [
-    { name: "Jan", value: 60 },
-    { name: "Feb", value: 55 },
-    { name: "Mar", value: 50 },
-    { name: "Apr", value: 48 },
-    { name: "May", value: 45 },
-    { name: "Jun", value: metrics.detractors_count || 43 }
-  ];
+  // Use real historical data from API (last 30 days with 5-day intervals)
+  // Add fallback data points if no historical data is available
+  const totalCallsData = metrics.historical_data.total_calls.length > 0 
+    ? metrics.historical_data.total_calls 
+    : [{ name: "No Data", value: 0 }];
+    
+  const completedCallsData = metrics.historical_data.completed_calls.length > 0 
+    ? metrics.historical_data.completed_calls 
+    : [{ name: "No Data", value: 0 }];
+    
+  const npsData = metrics.historical_data.nps.length > 0 
+    ? metrics.historical_data.nps 
+    : [{ name: "No Data", value: 0 }];
+    
+  const detractorsData = metrics.historical_data.detractors.length > 0 
+    ? metrics.historical_data.detractors 
+    : [{ name: "No Data", value: 0 }];
 
   const metricsConfig: MetricData[] = [{
     title: "Total Calls",
