@@ -701,4 +701,287 @@ class AnalyticsService:
             "completed_count": completed_count,
             "avg_nps": avg_nps,
             "detractors_count": detractors_count
+        }
+
+    @staticmethod
+    async def get_calls_summary_metrics_with_trends(
+        db: AsyncSession,
+        organization_id: UUID
+    ) -> Dict[str, Any]:
+        """
+        Get summary metrics for calls dashboard with 5-day interval trends for current month.
+        
+        Args:
+            db: Database session
+            organization_id: Organization ID
+            
+        Returns:
+            Dict[str, Any]: Call summary metrics with trend data including:
+                - total_count: Total number of calls (excluding demo calls)
+                - completed_count: Number of calls in Completed status
+                - avg_nps: Average NPS score for completed calls
+                - detractors_count: Number of completed calls with NPS <= 5
+                - trends: 5-day interval data for current month
+                - month_over_month: Percentage changes compared to previous month
+        """
+        # Get current month start and end dates
+        today = datetime.now().date()
+        current_month_start = date(today.year, today.month, 1)
+        
+        # Calculate end of current month
+        if today.month == 12:
+            next_month = date(today.year + 1, 1, 1)
+        else:
+            next_month = date(today.year, today.month + 1, 1)
+        current_month_end = next_month - timedelta(days=1)
+        
+        # Calculate previous month start and end dates
+        if today.month == 1:
+            prev_month_start = date(today.year - 1, 12, 1)
+            prev_month_end = date(today.year - 1, 12, 31)
+        else:
+            prev_month_start = date(today.year, today.month - 1, 1)
+            prev_month_end = date(today.year, today.month, 1) - timedelta(days=1)
+        
+        # Get current month metrics
+        current_metrics = await AnalyticsService._get_monthly_metrics(
+            db=db,
+            organization_id=organization_id,
+            start_date=current_month_start,
+            end_date=current_month_end
+        )
+        
+        # Get previous month metrics
+        prev_metrics = await AnalyticsService._get_monthly_metrics(
+            db=db,
+            organization_id=organization_id,
+            start_date=prev_month_start,
+            end_date=prev_month_end
+        )
+        
+        # Calculate month-over-month changes
+        month_over_month = AnalyticsService._calculate_month_over_month_changes(
+            current_metrics, prev_metrics
+        )
+        
+        # Generate 5-day intervals for current month
+        trends = await AnalyticsService._get_five_day_trends(
+            db=db,
+            organization_id=organization_id,
+            start_date=current_month_start,
+            end_date=current_month_end
+        )
+        
+        return {
+            "total_count": current_metrics["total_count"],
+            "completed_count": current_metrics["completed_count"],
+            "avg_nps": current_metrics["avg_nps"],
+            "detractors_count": current_metrics["detractors_count"],
+            "trends": trends,
+            "month_over_month": month_over_month
+        }
+
+    @staticmethod
+    async def _get_monthly_metrics(
+        db: AsyncSession,
+        organization_id: UUID,
+        start_date: date,
+        end_date: date
+    ) -> Dict[str, Any]:
+        """
+        Get monthly metrics for a specific date range.
+        
+        Args:
+            db: Database session
+            organization_id: Organization ID
+            start_date: Start date
+            end_date: End date
+            
+        Returns:
+            Dict[str, Any]: Monthly metrics
+        """
+        start_datetime = datetime.combine(start_date, datetime.min.time())
+        end_datetime = datetime.combine(end_date, datetime.max.time())
+        
+        # Query for all calls in the date range, excluding demo calls
+        query = select(Call).join(ServiceRecord).where(
+            and_(
+                Call.organization_id == organization_id,
+                ServiceRecord.is_demo == False,
+                Call.created_at >= start_datetime,
+                Call.created_at <= end_datetime
+            )
+        )
+        result = await db.execute(query)
+        calls = result.scalars().all()
+        
+        # Filter calls by status
+        completed_calls = [call for call in calls if call.status == "Completed"]
+        
+        # Count metrics
+        total_count = len(calls)
+        completed_count = len(completed_calls)
+        
+        # NPS metrics for completed calls only
+        nps_scores = [call.nps_score for call in completed_calls if call.nps_score is not None]
+        avg_nps = round(sum(nps_scores) / len(nps_scores), 1) if nps_scores else 0
+        
+        # Detractors (NPS <= 5) - only from completed calls
+        detractors = [score for score in nps_scores if score <= 5]
+        detractors_count = len(detractors)
+        
+        return {
+            "total_count": total_count,
+            "completed_count": completed_count,
+            "avg_nps": avg_nps,
+            "detractors_count": detractors_count
+        }
+
+    @staticmethod
+    def _calculate_month_over_month_changes(
+        current_metrics: Dict[str, Any],
+        prev_metrics: Dict[str, Any]
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Calculate month-over-month percentage changes.
+        
+        Args:
+            current_metrics: Current month metrics
+            prev_metrics: Previous month metrics
+            
+        Returns:
+            Dict[str, Dict[str, Any]]: Month-over-month changes
+        """
+        def calculate_change(current: float, previous: float) -> Dict[str, Any]:
+            if previous == 0:
+                if current == 0:
+                    return {"change": "0%", "changeType": "neutral", "hasData": False}
+                else:
+                    return {"change": "+∞%", "changeType": "positive", "hasData": True}
+            
+            change_percent = ((current - previous) / previous) * 100
+            change_type = "positive" if change_percent >= 0 else "negative"
+            
+            # Format the change string
+            if abs(change_percent) < 0.1:
+                change_str = "0%"
+            else:
+                change_str = f"{'+' if change_percent >= 0 else ''}{change_percent:.1f}%"
+            
+            return {
+                "change": change_str,
+                "changeType": change_type,
+                "hasData": True
+            }
+        
+        return {
+            "total_calls": calculate_change(
+                current_metrics["total_count"], 
+                prev_metrics["total_count"]
+            ),
+            "completed_calls": calculate_change(
+                current_metrics["completed_count"], 
+                prev_metrics["completed_count"]
+            ),
+            "nps": calculate_change(
+                current_metrics["avg_nps"], 
+                prev_metrics["avg_nps"]
+            ),
+            "detractors": calculate_change(
+                current_metrics["detractors_count"], 
+                prev_metrics["detractors_count"]
+            )
+        }
+
+    @staticmethod
+    async def _get_five_day_trends(
+        db: AsyncSession,
+        organization_id: UUID,
+        start_date: date,
+        end_date: date
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Get 5-day interval trends for the current month.
+        
+        Args:
+            db: Database session
+            organization_id: Organization ID
+            start_date: Start date of current month
+            end_date: End date of current month
+            
+        Returns:
+            Dict[str, List[Dict[str, Any]]]: Trend data for each metric
+        """
+        # Generate 5-day intervals
+        intervals = []
+        current_date = start_date
+        
+        while current_date <= end_date:
+            interval_end = min(current_date + timedelta(days=4), end_date)
+            intervals.append({
+                "start": current_date,
+                "end": interval_end,
+                "label": f"{current_date.strftime('%b %d')} - {interval_end.strftime('%b %d')}"
+            })
+            current_date += timedelta(days=5)
+        
+        # Get data for each interval
+        total_calls_trend = []
+        completed_calls_trend = []
+        nps_trend = []
+        detractors_trend = []
+        
+        for interval in intervals:
+            start_datetime = datetime.combine(interval["start"], datetime.min.time())
+            end_datetime = datetime.combine(interval["end"], datetime.max.time())
+            
+            # Query calls for this interval
+            query = select(Call).join(ServiceRecord).where(
+                and_(
+                    Call.organization_id == organization_id,
+                    ServiceRecord.is_demo == False,
+                    Call.created_at >= start_datetime,
+                    Call.created_at <= end_datetime
+                )
+            )
+            result = await db.execute(query)
+            interval_calls = result.scalars().all()
+            
+            # Calculate metrics for this interval
+            interval_total = len(interval_calls)
+            interval_completed = len([call for call in interval_calls if call.status == "Completed"])
+            
+            # NPS for completed calls in this interval
+            interval_nps_scores = [call.nps_score for call in interval_calls if call.status == "Completed" and call.nps_score is not None]
+            interval_avg_nps = round(sum(interval_nps_scores) / len(interval_nps_scores), 1) if interval_nps_scores else 0
+            
+            # Detractors for this interval
+            interval_detractors = len([score for score in interval_nps_scores if score <= 5])
+            
+            # Add to trends
+            total_calls_trend.append({
+                "name": interval["label"],
+                "value": interval_total
+            })
+            
+            completed_calls_trend.append({
+                "name": interval["label"],
+                "value": interval_completed
+            })
+            
+            nps_trend.append({
+                "name": interval["label"],
+                "value": interval_avg_nps
+            })
+            
+            detractors_trend.append({
+                "name": interval["label"],
+                "value": interval_detractors
+            })
+        
+        return {
+            "total_calls": total_calls_trend,
+            "completed_calls": completed_calls_trend,
+            "nps": nps_trend,
+            "detractors": detractors_trend
         } 

@@ -7,19 +7,21 @@ import {
   AlertTriangle,
   RefreshCw,
   BarChart3,
-  TrendingDown
+  TrendingDown,
+  Minus
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useCallsSummaryMetrics } from '@/api/queries/calls';
-import { CallsSummaryMetrics } from '@/types/analytics';
+import { useCallsSummaryMetricsWithTrends } from '@/api/queries/calls';
+import { CallsSummaryMetricsWithTrends } from '@/types/analytics';
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 
 interface MetricData {
   title: string;
   value: string;
   change: string;
-  changeType: "positive" | "negative";
+  changeType: "positive" | "negative" | "neutral";
+  hasData: boolean;
   icon: React.ComponentType<any>;
   description: string;
   data: Array<{ name: string; value: number }>;
@@ -27,7 +29,7 @@ interface MetricData {
 }
 
 export const MetricsGrid = () => {
-  const { data: summaryData, isLoading, error, refetch } = useCallsSummaryMetrics();
+  const { data: summaryData, isLoading, error, refetch } = useCallsSummaryMetricsWithTrends();
 
   // Handle loading state
   if (isLoading) {
@@ -63,80 +65,64 @@ export const MetricsGrid = () => {
   }
 
   // Default values if no data
-  const metrics: CallsSummaryMetrics = summaryData || { total_count: 0, completed_count: 0, avg_nps: 0, detractors_count: 0 };
-
-  // Static chart data (can be enhanced later with real historical data)
-  const totalCallsData = [
-    { name: "Jan", value: 800 },
-    { name: "Feb", value: 950 },
-    { name: "Mar", value: 1100 },
-    { name: "Apr", value: 1200 },
-    { name: "May", value: 1150 },
-    { name: "Jun", value: metrics.total_count || 1247 }
-  ];
-
-  const completedCallsData = [
-    { name: "Jan", value: 720 },
-    { name: "Feb", value: 850 },
-    { name: "Mar", value: 980 },
-    { name: "Apr", value: 1050 },
-    { name: "May", value: 1000 },
-    { name: "Jun", value: metrics.completed_count || 1089 }
-  ];
-
-  const npsData = [
-    { name: "Jan", value: 7.2 },
-    { name: "Feb", value: 7.4 },
-    { name: "Mar", value: 7.6 },
-    { name: "Apr", value: 7.5 },
-    { name: "May", value: 7.7 },
-    { name: "Jun", value: metrics.avg_nps || 7.8 }
-  ];
-
-  const detractorsData = [
-    { name: "Jan", value: 60 },
-    { name: "Feb", value: 55 },
-    { name: "Mar", value: 50 },
-    { name: "Apr", value: 48 },
-    { name: "May", value: 45 },
-    { name: "Jun", value: metrics.detractors_count || 43 }
-  ];
+  const metrics: CallsSummaryMetricsWithTrends = summaryData || { 
+    total_count: 0, 
+    completed_count: 0, 
+    avg_nps: 0, 
+    detractors_count: 0,
+    trends: {
+      total_calls: [],
+      completed_calls: [],
+      nps: [],
+      detractors: []
+    },
+    month_over_month: {
+      total_calls: { change: "0%", changeType: "neutral", hasData: false },
+      completed_calls: { change: "0%", changeType: "neutral", hasData: false },
+      nps: { change: "0%", changeType: "neutral", hasData: false },
+      detractors: { change: "0%", changeType: "neutral", hasData: false }
+    }
+  };
 
   const metricsConfig: MetricData[] = [{
     title: "Total Calls",
     value: metrics.total_count.toLocaleString(),
-    change: "+12%",
-    changeType: "positive" as const,
+    change: metrics.month_over_month.total_calls.change,
+    changeType: metrics.month_over_month.total_calls.changeType,
+    hasData: metrics.month_over_month.total_calls.hasData,
     icon: Phone,
-    description: "Compared to previous month",
-    data: totalCallsData,
+    description: "vs last month",
+    data: metrics.trends.total_calls,
     color: "#10b981"
   }, {
     title: "Completed Calls",
     value: metrics.completed_count.toLocaleString(),
-    change: "+8%",
-    changeType: "positive" as const,
+    change: metrics.month_over_month.completed_calls.change,
+    changeType: metrics.month_over_month.completed_calls.changeType,
+    hasData: metrics.month_over_month.completed_calls.hasData,
     icon: CheckCircle,
-    description: "Compared to previous month",
-    data: completedCallsData,
+    description: "vs last month",
+    data: metrics.trends.completed_calls,
     color: "#3b82f6"
   }, {
     title: "Average NPS",
     value: metrics.avg_nps.toString(),
-    change: "+0.3",
-    changeType: "positive" as const,
+    change: metrics.month_over_month.nps.change,
+    changeType: metrics.month_over_month.nps.changeType,
+    hasData: metrics.month_over_month.nps.hasData,
     icon: TrendingUp,
-    description: "Compared to previous month",
-    data: npsData,
+    description: "vs last month",
+    data: metrics.trends.nps,
     color: "#8b5cf6"
   }, {
     title: "Detractors",
     value: metrics.detractors_count.toString(),
-    change: "-5",
-    changeType: "negative" as const,
+    change: metrics.month_over_month.detractors.change,
+    changeType: metrics.month_over_month.detractors.changeType,
+    hasData: metrics.month_over_month.detractors.hasData,
     icon: AlertTriangle,
-    description: "Compared to previous month",
-    data: detractorsData,
+    description: "vs last month",
+    data: metrics.trends.detractors,
     color: "#ef4444"
   }];
 
@@ -160,10 +146,33 @@ export const MetricsGrid = () => {
     return null;
   };
 
+  const getChangeIcon = (changeType: string) => {
+    switch (changeType) {
+      case "positive":
+        return TrendingUp;
+      case "negative":
+        return TrendingDown;
+      default:
+        return Minus;
+    }
+  };
+
+  const getChangeColor = (changeType: string) => {
+    switch (changeType) {
+      case "positive":
+        return "text-green-600";
+      case "negative":
+        return "text-red-600";
+      default:
+        return "text-gray-500";
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       {metricsConfig.map((metric, index) => {
         const Icon = metric.icon;
+        const ChangeIcon = getChangeIcon(metric.changeType);
         return (
           <Card key={index} className="border-0 shadow-md hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -178,9 +187,21 @@ export const MetricsGrid = () => {
                   <Icon className="h-3 w-3 text-muted-foreground" />
                 </div>
                 <div className="flex items-center space-x-1">
-                  <span className={`text-xs font-medium ${metric.changeType === 'positive' ? 'text-green-600' : 'text-red-600'}`}>
-                    {metric.change}
-                  </span>
+                  {metric.hasData ? (
+                    <>
+                      <ChangeIcon className={`h-3 w-3 ${getChangeColor(metric.changeType)}`} />
+                      <span className={`text-xs font-medium ${getChangeColor(metric.changeType)}`}>
+                        {metric.change}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-xs text-gray-500">
+                      No previous data
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-foreground-secondary">
+                  {metric.description}
                 </div>
               </div>
             </CardHeader>

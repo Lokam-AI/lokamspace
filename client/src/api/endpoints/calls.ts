@@ -1,6 +1,6 @@
 // API functions for calls
 import { API_BASE_URL, getHeaders, handleApiError } from "../config";
-import { CallsSummaryMetrics } from "../../types/analytics";
+import { CallsSummaryMetrics, CallsSummaryMetricsWithTrends } from "../../types/analytics";
 
 /**
  * Get call statistics by status (ready, missed, completed)
@@ -319,6 +319,27 @@ export const getCallsSummaryMetrics = async (): Promise<CallsSummaryMetrics> => 
     return await response.json();
   } catch (error) {
     console.error("Error fetching calls summary metrics:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get calls summary metrics with trends for dashboard
+ */
+export const getCallsSummaryMetricsWithTrends = async (): Promise<CallsSummaryMetricsWithTrends> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/analytics/calls/summary-with-trends`,
+      {
+        method: "GET",
+        headers: getHeaders(),
+      }
+    );
+
+    await handleApiError(response);
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching calls summary metrics with trends:", error);
     throw error;
   }
 };
