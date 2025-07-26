@@ -561,7 +561,7 @@ async def list_recent_calls(
                 and_(
                     Call.organization_id == organization.id,
                     ServiceRecord.is_demo == False,
-                    Call.status != "Ready"  # Exclude calls with Ready status
+                    Call.status.in_(["Completed", "Missed", "Failed"])
                 )
             )
             .order_by(Call.created_at.desc())

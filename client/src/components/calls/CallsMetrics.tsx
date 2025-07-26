@@ -11,7 +11,7 @@ import { useCallStats } from "@/api/queries/calls";
 import { Button } from "@/components/ui/button";
 
 interface CallsMetricsProps {
-  filters: CallFilters;
+  filters: Record<string, any>;
   activeTab: string;
 }
 
