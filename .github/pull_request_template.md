@@ -38,5 +38,3 @@ _It is encouraged to keep the code coverage percentage at 70% and above._
 
 - [ ] Yes  
 - [ ] No, and this is why: _Add reason if tests were not included_
-
-## Checklist for co

@@ -147,6 +147,7 @@ export const RecentFeedbackCalls = ({ onViewDetails }: RecentFeedbackCallsProps)
                         size="sm"
                         onClick={() => onViewDetails(call)}
                         className="flex items-center space-x-1"
+                        disabled={call.status.toLowerCase() !== 'completed'}
                       >
                         <Eye className="h-4 w-4" />
                         <span>Details</span>

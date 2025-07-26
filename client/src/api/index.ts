@@ -14,3 +14,6 @@ export * from "./endpoints/configuration";
 
 // Users endpoints
 export * from "./endpoints/users";
+
+// Analytics endpoints
+export * from "./endpoints/analytics";
