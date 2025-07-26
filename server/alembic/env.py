@@ -35,7 +35,7 @@ if config.config_file_name is not None:
 
 # Build database URL from environment variables
 host = os.getenv('DB_HOST', 'localhost')
-port = os.getenv('DB_PORT', '5433')
+port = os.getenv('DB_PORT', '5432')
 user = os.getenv('DB_USER', 'autopulse')
 password = os.getenv('DB_PASSWORD', 'autopulse')
 database = os.getenv('DB_NAME', 'autopulse')

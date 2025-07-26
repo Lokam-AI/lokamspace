@@ -20,7 +20,7 @@ import { getDemoCalls } from "@/api/endpoints/calls";
 
 interface DemoCallTabProps {
   campaigns: Campaign[];
-  onViewDetails: (call: Call) => void;
+  onViewDetails: (call: Call, isDemo?: boolean) => void;
 }
 
 export const DemoCallTab = ({ campaigns, onViewDetails }: DemoCallTabProps) => {
@@ -289,7 +289,7 @@ export const DemoCallTab = ({ campaigns, onViewDetails }: DemoCallTabProps) => {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => onViewDetails(call)}
+                      onClick={() => onViewDetails(call, true)}
                       disabled={call.status.toLowerCase() !== "completed"} // Only enable for completed calls
                     >
                       <Eye className="h-4 w-4 mr-2" />

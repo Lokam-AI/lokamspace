@@ -23,7 +23,7 @@ interface CallStats {
 }
 
 export const CallsMetrics = ({ filters, activeTab }: CallsMetricsProps) => {
-  const { data: stats, isLoading: loading, error, refetch } = useCallStats();
+  const { data: stats, isLoading: loading, error, refetch } = useCallStats(filters);
 
   const metrics = stats || {
     ready: 0,

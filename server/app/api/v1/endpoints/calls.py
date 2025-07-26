@@ -6,13 +6,13 @@ from typing import Any, List, Optional, Dict
 from uuid import UUID
 import logging
 from datetime import date
+from sqlalchemy import select, and_
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_current_organization, get_current_user, get_tenant_db
-from app.models import Organization, User, ServiceRecord
+from app.models import Organization, User, ServiceRecord, Call
 from app.schemas import CallCreate, CallResponse, CallUpdate, CSVTemplateResponse, BulkCallUpload
 from app.schemas.demo_call import DemoCallCreate, DemoCallResponse
 from app.schemas.call import CallDetailResponse
@@ -323,23 +323,24 @@ async def list_completed_calls(
 
 @router.get("/stats", response_model=Dict[str, int])
 async def get_call_stats(
+    search: Optional[str] = Query(None),
+    service_advisor_name: Optional[str] = Query(None),
+    campaign_id: Optional[int] = Query(None),
+    appointment_date: Optional[str] = Query(None),
     organization: Organization = Depends(get_current_organization),
     db: AsyncSession = Depends(get_tenant_db),
 ) -> Any:
     """
-    Get call statistics by status (ready, missed, completed).
-    
-    Args:
-        organization: Current organization
-        db: Database session
-        
-    Returns:
-        Dict[str, int]: Call statistics by status
+    Get call statistics by status (ready, missed, completed), with optional filters.
     """
     try:
         stats = await CallService.get_call_stats_by_status(
             organization_id=organization.id,
-            db=db
+            db=db,
+            search=search,
+            service_advisor_name=service_advisor_name,
+            campaign_id=campaign_id,
+            appointment_date=appointment_date
         )
         return stats
     except Exception as e:
@@ -463,6 +464,41 @@ async def create_demo_call(
         )
 
 
+@router.post("/{call_id}/initiate", response_model=CallResponse)
+async def initiate_call(
+    call_id: int = Path(..., ge=1),
+    organization: Organization = Depends(get_current_organization),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_tenant_db),
+) -> Any:
+    """
+    Initiate a call with VAPI.
+    
+    Args:
+        call_id: Call ID
+        organization: Current organization
+        current_user: Current authenticated user
+        db: Database session
+        
+    Returns:
+        CallResponse: Updated call with VAPI response
+    """
+    try:
+        # Initiate the call
+        call_result = await CallService.initiate_call(
+            call_id=call_id,
+            organization_id=organization.id,
+            db=db
+        )
+        
+        # Return the call response
+        return call_result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to initiate call: {str(e)}"
+        )
+
 @router.post("/demo/{call_id}/initiate", response_model=DemoCallResponse)
 async def initiate_demo_call(
     call_id: int = Path(..., ge=1),
@@ -504,6 +540,64 @@ async def initiate_demo_call(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to initiate demo call: {str(e)}"
+        )
+
+
+@router.get("/recent", response_model=List[CallResponse])
+async def list_recent_calls(
+    limit: int = Query(6, ge=1, le=10),  # Default to 6 calls, max 10
+    organization: Organization = Depends(get_current_organization),
+    db: AsyncSession = Depends(get_tenant_db),
+) -> Any:
+    """
+    Get the most recent calls across all statuses (excluding "Ready" status and demo calls).
+    """
+    try:
+        # Create a query that joins Call with ServiceRecord and filters out demo calls and Ready status
+        query = (
+            select(Call)
+            .join(ServiceRecord)
+            .where(
+                and_(
+                    Call.organization_id == organization.id,
+                    ServiceRecord.is_demo == False,
+                    Call.status != "Ready"  # Exclude calls with Ready status
+                )
+            )
+            .order_by(Call.created_at.desc())
+            .limit(limit)
+        )
+        
+        result = await db.execute(query)
+        calls = list(result.scalars().all())
+        
+        # Enhance calls with additional info
+        result = []
+        for call in calls:
+            try:
+                call_with_info = await CallService.get_call_with_related_info(
+                    call_id=call.id,
+                    organization_id=organization.id,
+                    db=db
+                )
+                # Ensure required fields for CallResponse schema
+                if "phone_number" not in call_with_info:
+                    call_with_info["phone_number"] = call_with_info.get("customer_number", "")
+                if "call_type" not in call_with_info:
+                    call_with_info["call_type"] = call_with_info.get("direction", "outbound").capitalize()
+                
+                result.append(call_with_info)
+            except Exception as call_error:
+                print(f"Error processing call {call.id}: {str(call_error)}")
+                # Continue with other calls rather than failing entirely
+                continue
+        
+        return result
+    except Exception as e:
+        print(f"Error retrieving recent calls: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve recent calls: {str(e)}"
         )
 
 

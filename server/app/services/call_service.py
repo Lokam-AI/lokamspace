@@ -380,49 +380,59 @@ class CallService:
     async def get_call_stats_by_status(
         db: AsyncSession,
         organization_id: UUID,
+        search: Optional[str] = None,
+        service_advisor_name: Optional[str] = None,
+        campaign_id: Optional[int] = None,
+        appointment_date: Optional[str] = None,
     ) -> Dict:
         """
-        Get call statistics grouped by status (ready, missed, completed).
-        
-        Args:
-            db: Database session
-            organization_id: Organization ID
-            
-        Returns:
-            Dict: Call statistics by status
+        Get call statistics grouped by status (ready, missed, completed), with optional filters.
         """
-        # Query counts for each status
-        ready_query = select(func.count()).where(
-            and_(
-                Call.organization_id == organization_id,
-                Call.status == "Ready"
-            )
-        )
+        from app.models.service_record import ServiceRecord
+        from sqlalchemy import cast, Date
+        from datetime import datetime
+        filters = [Call.organization_id == organization_id]
+        join_service_record = False
+        service_record_filters = []
+
+        if service_advisor_name:
+            join_service_record = True
+            service_record_filters.append(ServiceRecord.service_advisor_name == service_advisor_name)
+        if appointment_date:
+            join_service_record = True
+            # Parse the string to a date object
+            try:
+                parsed_date = datetime.strptime(appointment_date, "%Y-%m-%d").date()
+                service_record_filters.append(cast(ServiceRecord.appointment_date, Date) == parsed_date)
+            except Exception as e:
+                raise ValueError(f"Invalid appointment_date format: {appointment_date}. Expected YYYY-MM-DD.")
+        if search:
+            join_service_record = True
+            service_record_filters.append(ServiceRecord.customer_name.ilike(f"%{search}%"))
+        if campaign_id:
+            filters.append(Call.campaign_id == campaign_id)
+
+        def build_query(status_filter):
+            query = select(func.count())
+            if join_service_record:
+                query = query.select_from(Call).join(ServiceRecord, Call.service_record_id == ServiceRecord.id)
+                query = query.where(and_(*filters, *service_record_filters, status_filter))
+            else:
+                query = query.where(and_(*filters, status_filter))
+            return query
+
+        ready_query = build_query(Call.status == "Ready")
         ready_result = await db.execute(ready_query)
         ready_count = ready_result.scalar_one_or_none() or 0
-        
-        missed_query = select(func.count()).where(
-            and_(
-                Call.organization_id == organization_id,
-                or_(
-                    Call.status == "Missed",
-                    Call.status == "Failed"
-                )
-            )
-        )
 
+        missed_query = build_query(or_(Call.status == "Missed", Call.status == "Failed"))
         missed_result = await db.execute(missed_query)
         missed_count = missed_result.scalar_one_or_none() or 0
-        
-        completed_query = select(func.count()).where(
-            and_(
-                Call.organization_id == organization_id,
-                Call.status == "Completed"
-            )
-        )
+
+        completed_query = build_query(Call.status == "Completed")
         completed_result = await db.execute(completed_query)
         completed_count = completed_result.scalar_one_or_none() or 0
-        
+
         return {
             "ready": ready_count,
             "missed": missed_count,
@@ -505,6 +515,96 @@ class CallService:
         await db.refresh(call)
         
         return call
+
+    @staticmethod
+    async def initiate_call(
+        call_id: int,
+        organization_id: UUID,
+        db: AsyncSession = None
+    ) -> Dict:
+        """
+        Initiate a regular call using VAPI service.
+        
+        Args:
+            call_id: Call ID
+            organization_id: Organization ID
+            db: Database session
+            
+        Returns:
+            Dict: Dictionary with call details and VAPI response
+        """
+        from app.services.vapi_service import VAPIService
+        from app.models import Organization
+
+        # Get the call and associated data
+        query = select(Call).where(
+            and_(
+                Call.id == call_id,
+                Call.organization_id == organization_id
+            )
+        )
+        result = await db.execute(query)
+        call = result.scalar_one_or_none()
+        
+        if not call:
+            raise ValueError(f"Call with ID {call_id} not found")
+            
+        # Get service record
+        service_query = select(ServiceRecord).where(ServiceRecord.id == call.service_record_id)
+        service_result = await db.execute(service_query)
+        service_record = service_result.scalar_one_or_none()
+        
+        if not service_record:
+            raise ValueError(f"Service record for call ID {call_id} not found")
+            
+        # Get organization
+        org_query = select(Organization).where(Organization.id == call.organization_id)
+        org_result = await db.execute(org_query)
+        organization = org_result.scalar_one_or_none()
+        
+        if not organization:
+            raise ValueError(f"Organization for call ID {call_id} not found")
+        
+        # Initialize VAPI service
+        vapi_service = VAPIService()
+        
+        try:
+            # Make the call to VAPI
+            vapi_response = await vapi_service.create_call(
+                phone=service_record.customer_phone,
+                customer_name=service_record.customer_name,
+                service_advisor_name=service_record.service_advisor_name or "Service Advisor",
+                service_type=service_record.service_type or "Service Call",
+                organization_name=organization.name,
+                location=organization.location or "Main Location",
+                call_id=call.id
+            )
+            
+            # Update call status
+            call.status = "In Progress"
+            call.start_time = datetime.utcnow()
+            await db.commit()
+            await db.refresh(call)
+            
+            # Update service record status too
+            service_record.status = "In Progress"
+            await db.commit()
+            
+            # Return response with call details in CallResponse format
+            response = await CallService.get_call_with_related_info(
+                call_id=call.id,
+                organization_id=organization_id,
+                db=db
+            )
+            
+            # Add the VAPI response to the result
+            response["vapi_response"] = vapi_response
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error initiating call {call_id}: {str(e)}")
+            raise
 
     @staticmethod
     async def initiate_demo_call(
@@ -623,7 +723,7 @@ class CallService:
             query = select(Call).join(ServiceRecord).where(
                 and_(
                     Call.organization_id == organization_id,
-                    Call.status.in_(["Ready", "Scheduled"]),
+                    Call.status.in_(["Ready", "Scheduled", "In Progress", "Ringing"]),
                     ServiceRecord.is_demo == False
                 )
             ).options(*options)

@@ -60,10 +60,10 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    /* Brand Colors - Tech Blue Primary */
-    --primary: 213 94% 40%;
+    /* Brand Colors - Black Primary */
+    --primary: 0 0% 0%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 213 94% 35%;
+    --primary-hover: 0 0% 20%;
 
     /* Semantic Colors */
     --success: 142 76% 36%;
@@ -120,9 +120,9 @@
     --popover-foreground: 210 40% 98%;
 
     /* Brand Colors - Adjusted for Dark */
-    --primary: 213 100% 75%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --primary-hover: 213 100% 70%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+    --primary-hover: 0 0% 80%;
 
     /* Semantic Colors - Dark Adjusted */
     --success: 142 76% 50%;
