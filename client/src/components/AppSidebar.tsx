@@ -75,7 +75,7 @@ export function AppSidebar() {
   }, [user]);
 
   return (
-    <Sidebar collapsible="icon" className="w-64 group-data-[collapsible=icon]:w-16 border-r border-border">
+    <Sidebar collapsible="icon" className="w-56 group-data-[collapsible=icon]:w-16 border-r border-border">
       {/* Section 1: Brand & Controls */}
       <SidebarHeader className="border-b border-border">
         <div className={`flex flex-col space-y-3 ${collapsed ? 'p-2' : 'p-4'}`}>
