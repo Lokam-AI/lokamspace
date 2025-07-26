@@ -148,10 +148,11 @@ class CallAnalysisService:
         if positive_mentions:
             # Create individual feedback records for each positive mention
             for mention in positive_mentions:
+                clean_mention = mention[1:-1].strip() if mention.startswith('"') and mention.endswith('"') else mention.strip()
                 positive_feedback = CallFeedback(
                     call_id=call.id,
                     type="positives",
-                    kpis=mention  # Store as a single string, not an array
+                    kpis=clean_mention  # Store as a single string, not an array
                 )
                 db.add(positive_feedback)
         
@@ -160,10 +161,11 @@ class CallAnalysisService:
         if detractors:
             # Create individual feedback records for each detractor
             for detractor in detractors:
+                clean_detractor = detractor[1:-1].strip() if detractor.startswith('"') and detractor.endswith('"') else detractor.strip()
                 negative_feedback = CallFeedback(
                     call_id=call.id,
                     type="detractors",
-                    kpis=detractor  # Store as a single string, not an array
+                    kpis=clean_detractor  # Store as a single string, not an array
                 )
                 db.add(negative_feedback)
         

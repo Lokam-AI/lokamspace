@@ -244,3 +244,29 @@ async def get_calls_summary_metrics_with_trends(
         organization_id=organization.id,
         db=db
     ) 
+  
+  
+@router.get("/feedback-insights", response_model=Dict[str, Any])
+async def get_feedback_insights(
+    organization: Organization = Depends(get_current_organization),
+    db: AsyncSession = Depends(get_tenant_db),
+) -> Any:
+    """
+    Get feedback insights for dashboard.
+    
+    Fetches positive mentions and areas to improve from completed calls,
+    aggregates by frequency, and supplements with organization tags when needed.
+    
+    Args:
+        organization: Current organization
+        db: Database session
+        
+    Returns:
+        Dict[str, Any]: Feedback insights containing:
+            - positive_mentions: Top 5 positive feedback items with topic, count, and percentage
+            - areas_to_improve: Top 5 improvement areas with topic, count, and percentage
+    """
+    return await AnalyticsService.get_feedback_insights(
+        db=db,
+        organization_id=organization.id
+    ) 
