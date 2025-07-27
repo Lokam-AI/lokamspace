@@ -208,14 +208,65 @@ async def get_calls_summary_metrics(
         
     Returns:
         Dict[str, Any]: Call summary metrics including:
-            - ready_count: Number of calls in Ready/Scheduled status
-            - missed_count: Number of calls in Failed/Missed status
+            - total_count: Total number of calls (excluding demo calls)
             - completed_count: Number of calls in Completed status
             - avg_nps: Average NPS score for completed calls
-            - promoters_count: Number of completed calls with NPS >= 7
             - detractors_count: Number of completed calls with NPS <= 5
     """
     return await AnalyticsService.get_calls_summary_metrics(
         organization_id=organization.id,
         db=db
+    )
+
+
+@router.get("/calls/summary-with-trends", response_model=Dict[str, Any])
+async def get_calls_summary_metrics_with_trends(
+    organization: Organization = Depends(get_current_organization),
+    db: AsyncSession = Depends(get_tenant_db),
+) -> Any:
+    """
+    Get summary metrics for calls dashboard with 5-day interval trends for current month.
+    
+    Args:
+        organization: Current organization
+        db: Database session
+        
+    Returns:
+        Dict[str, Any]: Call summary metrics with trend data including:
+            - total_count: Total number of calls (excluding demo calls)
+            - completed_count: Number of calls in Completed status
+            - avg_nps: Average NPS score for completed calls
+            - detractors_count: Number of completed calls with NPS <= 5
+            - trends: 5-day interval data for current month
+            - month_over_month: Percentage changes compared to previous month
+    """
+    return await AnalyticsService.get_calls_summary_metrics_with_trends(
+        organization_id=organization.id,
+        db=db
+    ) 
+  
+  
+@router.get("/feedback-insights", response_model=Dict[str, Any])
+async def get_feedback_insights(
+    organization: Organization = Depends(get_current_organization),
+    db: AsyncSession = Depends(get_tenant_db),
+) -> Any:
+    """
+    Get feedback insights for dashboard.
+    
+    Fetches positive mentions and areas to improve from completed calls,
+    aggregates by frequency, and supplements with organization tags when needed.
+    
+    Args:
+        organization: Current organization
+        db: Database session
+        
+    Returns:
+        Dict[str, Any]: Feedback insights containing:
+            - positive_mentions: Top 5 positive feedback items with topic, count, and percentage
+            - areas_to_improve: Top 5 improvement areas with topic, count, and percentage
+    """
+    return await AnalyticsService.get_feedback_insights(
+        db=db,
+        organization_id=organization.id
     ) 

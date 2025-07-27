@@ -1,20 +1,27 @@
 
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Download } from "lucide-react";
+import { Calendar, Download, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 interface DateFilterDropdownProps {
   onFilterChange: (filter: string) => void;
-  onExport: () => void;
+  onExport: () => Promise<void>;
+  isExporting?: boolean;
 }
 
-export const DateFilterDropdown = ({ onFilterChange, onExport }: DateFilterDropdownProps) => {
+export const DateFilterDropdown = ({ onFilterChange, onExport, isExporting = false }: DateFilterDropdownProps) => {
   const [selectedFilter, setSelectedFilter] = useState("This Month");
 
   const handleFilterChange = (value: string) => {
     setSelectedFilter(value);
     onFilterChange(value);
+  };
+
+  const handleExport = async () => {
+    if (!isExporting) {
+      await onExport();
+    }
   };
 
   return (
@@ -31,9 +38,18 @@ export const DateFilterDropdown = ({ onFilterChange, onExport }: DateFilterDropd
           <SelectItem value="This Year">This Year</SelectItem>
         </SelectContent>
       </Select>
-      <Button variant="outline" size="sm" onClick={onExport}>
-        <Download className="h-4 w-4 mr-2" />
-        Export PDF
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={handleExport}
+        disabled={isExporting}
+      >
+        {isExporting ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : (
+          <Download className="h-4 w-4 mr-2" />
+        )}
+        {isExporting ? "Generating..." : "Export PDF"}
       </Button>
     </div>
   );
