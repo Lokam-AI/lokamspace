@@ -97,11 +97,14 @@ export function AppSidebar() {
               </div>
               
               {/* Organization Name */}
-              <div className="text-sm text-foreground-secondary truncate">
+              <div className="text-sm bg-sidebar-accent text-sidebar-accent-foreground font-medium rounded-md px-2 py-1 truncate transition-all duration-200">
                 {loadingOrg ? (
                   <span className="animate-pulse">Loading...</span>
                 ) : (
-                  organization?.name || "Organization"
+                  <>
+                    <span className="font-normal">Org: </span>
+                    {organization?.name || "Organization"}
+                  </>
                 )}
               </div>
             </>
