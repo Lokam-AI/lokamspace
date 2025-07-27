@@ -80,31 +80,39 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-border">
         <div className={`flex flex-col space-y-3 ${collapsed ? 'p-2' : 'p-4'}`}>
           {/* Logo and Brand */}
-          <div className={`flex ${collapsed ? 'justify-center' : 'justify-start'} items-center w-full`}>
-            {collapsed ? (
+          {collapsed ? (
+            // Collapsed state - keep exactly the same as before
+            <div className="flex justify-center items-center w-full">
               <div className="w-8 h-8 flex items-center justify-center">
                 <img src={SecondaryLogo} alt="Lokam Logo" className="h-8 w-8" />
               </div>
-            ) : (
-              <img src={FullLogo} alt="Lokam Logo" className="h-7 max-w-full" style={{ objectFit: 'contain', objectPosition: 'left' }} />
-            )}
-          </div>
-          
-          {/* Organization Name */}
-          {!collapsed && (
-            <div className="text-sm text-foreground-secondary truncate">
-              {loadingOrg ? (
-                <span className="animate-pulse">Loading...</span>
-              ) : (
-                organization?.name || "Organization"
-              )}
             </div>
+          ) : (
+            // Expanded state - new layout with logo and button on same row
+            <>
+              {/* Logo and Collapse Button Row */}
+              <div className="flex justify-between items-center w-full">
+                <img src={FullLogo} alt="Lokam Logo" className="h-7 max-w-full" style={{ objectFit: 'contain', objectPosition: 'left' }} />
+                <SidebarTrigger className="h-7 w-7 flex-shrink-0" />
+              </div>
+              
+              {/* Organization Name */}
+              <div className="text-sm text-foreground-secondary truncate">
+                {loadingOrg ? (
+                  <span className="animate-pulse">Loading...</span>
+                ) : (
+                  organization?.name || "Organization"
+                )}
+              </div>
+            </>
           )}
           
-          {/* Trigger Button */}
-          <div className={`flex ${collapsed ? 'justify-center' : 'justify-start'}`}>
-            <SidebarTrigger className="h-7 w-7 flex-shrink-0" />
-          </div>
+          {/* Trigger Button - only show in collapsed state */}
+          {collapsed && (
+            <div className="flex justify-center">
+              <SidebarTrigger className="h-7 w-7 flex-shrink-0" />
+            </div>
+          )}
         </div>
       </SidebarHeader>
 
