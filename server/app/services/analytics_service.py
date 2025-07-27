@@ -10,7 +10,7 @@ from sqlalchemy import func, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import BadRequestException
-from app.models import Call, Campaign, ServiceRecord, Transcript
+from app.models import Call, Campaign, ServiceRecord, Transcript, CallFeedback, Tag
 
 
 class AnalyticsService:
@@ -984,4 +984,252 @@ class AnalyticsService:
             "completed_calls": completed_calls_trend,
             "nps": nps_trend,
             "detractors": detractors_trend
-        } 
+        }
+
+    @staticmethod
+    async def get_feedback_insights(
+        db: AsyncSession,
+        organization_id: UUID
+    ) -> Dict[str, Any]:
+        """
+        Get feedback insights for dashboard.
+        
+        Fetches positive mentions and areas to improve from completed calls,
+        aggregates by frequency, and supplements with organization tags when needed.
+        
+        Args:
+            db: Database session
+            organization_id: Organization ID
+            
+        Returns:
+            Dict[str, Any]: Feedback insights containing:
+                - positive_mentions: Top 5 positive feedback items
+                - areas_to_improve: Top 5 improvement areas
+        """
+        # Query completed calls with their feedback
+        completed_calls_query = select(Call).where(
+            Call.organization_id == organization_id,
+            Call.status == "Completed"
+        )
+        calls_result = await db.execute(completed_calls_query)
+        completed_calls = calls_result.scalars().all()
+        
+        if not completed_calls:
+            # No completed calls, use organization tags as fallback
+            return await AnalyticsService._get_fallback_insights(db, organization_id)
+        
+        # Get call IDs for feedback query
+        call_ids = [call.id for call in completed_calls]
+        
+        # Query feedback for completed calls
+        feedback_query = select(CallFeedback).where(
+            CallFeedback.call_id.in_(call_ids)
+        )
+        feedback_result = await db.execute(feedback_query)
+        all_feedback = feedback_result.scalars().all()
+        
+        if not all_feedback:
+            # No feedback data, use organization tags as fallback
+            return await AnalyticsService._get_fallback_insights(db, organization_id)
+        
+        # Separate positive and negative feedback
+        positive_feedback = [f for f in all_feedback if f.type == "positives"]
+        negative_feedback = [f for f in all_feedback if f.type == "detractors"]
+        
+        # Aggregate and process feedback
+        positive_insights = await AnalyticsService._process_feedback_data(
+            positive_feedback, "positive"
+        )
+        negative_insights = await AnalyticsService._process_feedback_data(
+            negative_feedback, "negative"
+        )
+        
+        # Fill remaining slots with organization tags if needed
+        if len(positive_insights) < 5:
+            positive_insights = await AnalyticsService._fill_with_tags(
+                db, organization_id, positive_insights, "areas_to_focus", 5
+            )
+        
+        if len(negative_insights) < 5:
+            negative_insights = await AnalyticsService._fill_with_tags(
+                db, organization_id, negative_insights, "areas_to_focus", 5
+            )
+        
+        return {
+            "positive_mentions": positive_insights[:5],
+            "areas_to_improve": negative_insights[:5]
+        }
+    
+    @staticmethod
+    async def _process_feedback_data(
+        feedback_items: List[CallFeedback],
+        feedback_type: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Process feedback data and aggregate by content.
+        
+        Args:
+            feedback_items: List of CallFeedback objects
+            feedback_type: Type of feedback for logging
+            
+        Returns:
+            List[Dict[str, Any]]: Processed feedback data
+        """
+        if not feedback_items:
+            return []
+        
+        # Count occurrences of each feedback item
+        feedback_counts = {}
+        total_feedback = 0
+        
+        for feedback in feedback_items:
+            if feedback.kpis:
+                # Handle both string and JSON formats
+                if isinstance(feedback.kpis, str):
+                    content = feedback.kpis.strip().strip('"')
+                else:
+                    # If it's already parsed JSON, convert to string
+                    content = str(feedback.kpis).strip().strip('"')
+                
+                if content and len(content) > 2:  # Avoid empty or very short strings
+                    feedback_counts[content] = feedback_counts.get(content, 0) + 1
+                    total_feedback += 1
+        
+        if total_feedback == 0:
+            return []
+        
+        # Sort by count and create result
+        sorted_feedback = sorted(
+            feedback_counts.items(), 
+            key=lambda x: x[1], 
+            reverse=True
+        )
+        
+        result = []
+        for content, count in sorted_feedback[:5]:
+            percentage = round((count / total_feedback) * 100, 0)
+            result.append({
+                "topic": content,
+                "count": count,
+                "percentage": int(percentage)
+            })
+        
+        return result
+    
+    @staticmethod
+    async def _fill_with_tags(
+        db: AsyncSession,
+        organization_id: UUID,
+        existing_insights: List[Dict[str, Any]],
+        tag_type: str,
+        target_count: int
+    ) -> List[Dict[str, Any]]:
+        """
+        Fill remaining insight slots with organization tags.
+        
+        Args:
+            db: Database session
+            organization_id: Organization ID
+            existing_insights: Existing insights to supplement
+            tag_type: Type of tags to fetch
+            target_count: Target number of insights
+            
+        Returns:
+            List[Dict[str, Any]]: Insights supplemented with tags
+        """
+        if len(existing_insights) >= target_count:
+            return existing_insights
+        
+        # Get organization tags
+        tags_query = select(Tag).where(
+            Tag.organization_id == organization_id,
+            Tag.type == tag_type
+        )
+        tags_result = await db.execute(tags_query)
+        tags = tags_result.scalars().all()
+        
+        # Add tags to fill remaining slots
+        result = existing_insights.copy()
+        existing_topics = {insight["topic"].lower() for insight in existing_insights}
+        
+        for tag in tags:
+            if len(result) >= target_count:
+                break
+            
+            # Avoid duplicates
+            if tag.name.lower() not in existing_topics:
+                result.append({
+                    "topic": tag.name,
+                    "count": 0,  # Default count for tag-based items
+                    "percentage": 0  # Default percentage for tag-based items
+                })
+        
+        return result
+    
+    @staticmethod
+    async def _get_fallback_insights(
+        db: AsyncSession,
+        organization_id: UUID
+    ) -> Dict[str, Any]:
+        """
+        Get fallback insights using only organization tags.
+        
+        Args:
+            db: Database session
+            organization_id: Organization ID
+            
+        Returns:
+            Dict[str, Any]: Fallback insights
+        """
+        # Get organization tags for areas to focus
+        tags_query = select(Tag).where(
+            Tag.organization_id == organization_id,
+            Tag.type == "areas_to_focus"
+        )
+        tags_result = await db.execute(tags_query)
+        tags = tags_result.scalars().all()
+        
+        # Convert tags to insight format
+        tag_insights = []
+        for tag in tags[:5]:
+            tag_insights.append({
+                "topic": tag.name,
+                "count": 0,
+                "percentage": 0
+            })
+        
+        # Fill empty slots if less than 5 tags
+        default_positive = [
+            "Professional Service", "Quick Response", "Knowledgeable Staff", 
+            "Fair Pricing", "Clean Facility"
+        ]
+        default_negative = [
+            "Wait Time", "Communication", "Follow-up", 
+            "Scheduling", "Pricing Clarity"
+        ]
+        
+        positive_insights = []
+        for i, topic in enumerate(default_positive[:5]):
+            positive_insights.append({
+                "topic": topic,
+                "count": 0,
+                "percentage": 0
+            })
+        
+        # Use tags for areas to improve, supplement with defaults if needed
+        areas_to_improve = tag_insights.copy()
+        while len(areas_to_improve) < 5:
+            remaining_index = len(areas_to_improve)
+            if remaining_index < len(default_negative):
+                areas_to_improve.append({
+                    "topic": default_negative[remaining_index],
+                    "count": 0,
+                    "percentage": 0
+                })
+            else:
+                break
+        
+        return {
+            "positive_mentions": positive_insights,
+            "areas_to_improve": areas_to_improve[:5]
+        }

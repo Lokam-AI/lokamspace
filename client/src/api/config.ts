@@ -2,7 +2,7 @@
 
 // Base API URL from environment variable
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8002/api/v1";
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
 export const AUTH_COOKIE_NAME =
   import.meta.env.VITE_AUTH_COOKIE_NAME || "autopulse_auth";
 

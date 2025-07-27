@@ -92,9 +92,11 @@ const Dashboard = () => {
         setInsightsError(errorMessage);
         console.error('Failed to fetch feedback insights:', error);
         
-        // Show error toast
-        toast.error('Failed to load feedback insights', {
-          description: errorMessage
+        // Show error toast - Fix: Use the useToast hook instead of toast.error()
+        toast({
+          title: "Failed to load feedback insights",
+          description: errorMessage,
+          variant: "destructive"
         });
       } finally {
         setIsLoadingInsights(false);
