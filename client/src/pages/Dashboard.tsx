@@ -12,12 +12,20 @@ import { RecentFeedbackCalls } from "@/components/dashboard/RecentFeedbackCalls"
 import { CallDetailPanel } from "@/components/calls/CallDetailPanel";
 import { DateFilterDropdown } from "@/components/dashboard/DateFilterDropdown";
 import { Call } from "@/pages/Calls";
+import { exportDashboardToPDF } from "@/utils/pdfExport";
+import { useToast } from "@/hooks/use-toast";
+import { useCallsSummaryMetricsWithTrends } from "@/api/queries/calls";
 import { getFeedbackInsights, FeedbackInsights } from "@/api/endpoints/analytics";
 import { toast } from "sonner";
 
 const Dashboard = () => {
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
   const [currentFilter, setCurrentFilter] = useState("This Month");
+  const [isExporting, setIsExporting] = useState(false);
+  const { toast } = useToast();
+  
+  // Get the metrics data for PDF export
+  const { data: summaryData } = useCallsSummaryMetricsWithTrends();
   
   // Feedback insights state
   const [feedbackInsights, setFeedbackInsights] = useState<FeedbackInsights | null>(null);
@@ -38,10 +46,36 @@ const Dashboard = () => {
     // In a real app, this would trigger data refetch
   };
 
-  const handleExport = () => {
-    console.log("Exporting dashboard data to PDF for:", currentFilter);
-    // In a real app, this would generate and download a PDF
-    alert(`Exporting dashboard data to PDF for ${currentFilter}`);
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      console.log("Exporting dashboard data to PDF for:", currentFilter);
+      
+      if (!summaryData) {
+        toast({
+          title: "Export Failed",
+          description: "No data available for export. Please wait for data to load.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      await exportDashboardToPDF(currentFilter, summaryData);
+      toast({
+        title: "PDF Generated Successfully",
+        description: `Dashboard report for ${currentFilter} has been downloaded.`,
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Fetch feedback insights
@@ -76,7 +110,7 @@ const Dashboard = () => {
         <AppSidebar />
         <SidebarInset>
           <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
-            <div className="min-h-screen bg-background -m-4 p-4">
+            <div className="min-h-screen bg-background -m-4 p-4" data-dashboard-content>
               {/* Dashboard Section */}
               <div className="space-y-8">
                 <div className="flex items-center justify-between pt-4">
@@ -84,6 +118,7 @@ const Dashboard = () => {
                   <DateFilterDropdown 
                     onFilterChange={handleFilterChange} 
                     onExport={handleExport}
+                    isExporting={isExporting}
                   />
                 </div>
 
@@ -168,7 +203,7 @@ const Dashboard = () => {
               </div>
 
               {/* Recent Feedback Calls Table - Inbound Calls section removed */}
-              <div className="mt-8">
+              <div className="mt-8" data-no-pdf>
                 <RecentFeedbackCalls onViewDetails={handleViewDetails} />
               </div>
             </div>

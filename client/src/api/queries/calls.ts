@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import api from "../axios";
-import { getRecentCalls } from "../endpoints/calls";
+import { getRecentCalls, getCallsSummaryMetrics, getCallsSummaryMetricsWithTrends } from "../endpoints/calls";
+import { CallsSummaryMetrics, CallsSummaryMetricsWithTrends } from "../../types/analytics";
 
 export const useCallStats = (filters: Record<string, any> = {}) =>
   useQuery({
@@ -10,7 +11,26 @@ export const useCallStats = (filters: Record<string, any> = {}) =>
       const { data } = await api.get(`/calls/stats${queryParams ? `?${queryParams}` : ""}`);
       return data;
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
+    retry: 2,
+    staleTime: 30000, // 30 seconds
+  });
+
+export const useCallsSummaryMetrics = () =>
+  useQuery<CallsSummaryMetrics>({
+    queryKey: ["calls-summary-metrics"],
+    queryFn: getCallsSummaryMetrics,
+    retry: 2,
+    staleTime: 30000, // 30 seconds
+    refetchInterval: 60000, // Refetch every minute
+  });
+
+export const useCallsSummaryMetricsWithTrends = () =>
+  useQuery<CallsSummaryMetricsWithTrends>({
+    queryKey: ["calls-summary-metrics-with-trends"],
+    queryFn: getCallsSummaryMetricsWithTrends,
+    retry: 2,
+    staleTime: 30000, // 30 seconds
+    refetchInterval: 60000, // Refetch every minute
   });
 
 export const useCallsByStatus = (status: string, filters: any = {}) =>
