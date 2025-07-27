@@ -114,7 +114,7 @@ const Dashboard = () => {
               {/* Dashboard Section */}
               <div className="space-y-8">
                 <div className="flex items-center justify-between pt-4">
-                  <h1 className="text-2xl font-bold text-foreground">Dashboard Overview</h1>
+                  <h1 className="text-2xl font-bold text-foreground">Overview</h1>
                   <DateFilterDropdown 
                     onFilterChange={handleFilterChange} 
                     onExport={handleExport}
