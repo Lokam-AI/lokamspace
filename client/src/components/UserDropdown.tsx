@@ -71,10 +71,21 @@ const UserDropdown = () => {
     },
   ];
 
-  // Get user email from auth context or use a default
-  const userEmail = user?.email || "user@example.com";
-  // Get first letter of email for avatar
-  const avatarLetter = userEmail.charAt(0).toUpperCase();
+  // Utility function to extract first name from full name
+  const getFirstName = (fullName: string): string => {
+    if (!fullName || typeof fullName !== 'string') {
+      return 'User';
+    }
+    
+    // Split by space and take the first part
+    const nameParts = fullName.trim().split(' ');
+    return nameParts[0] || 'User';
+  };
+
+  // Get user display name (first name) and fallback to email if no full name
+  const userDisplayName = user?.full_name ? getFirstName(user.full_name) : (user?.email || "User");
+  // Get first letter for avatar (use first letter of display name)
+  const avatarLetter = userDisplayName.charAt(0).toUpperCase();
   // Get organization name from API or use default
   const orgName = organization?.name || "Organization";
 
@@ -95,7 +106,7 @@ const UserDropdown = () => {
       {!collapsed && (
         <div className="flex flex-col items-start min-w-0 ml-2">
           <span className="text-sm font-medium text-foreground truncate">
-            {userEmail}
+            {userDisplayName}
           </span>
         </div>
       )}
@@ -126,7 +137,7 @@ const UserDropdown = () => {
                     </div>
                     <div className="min-w-0">
                       <div className="font-medium text-foreground text-sm truncate">
-                        {userEmail}
+                        {userDisplayName}
                       </div>
                       <div className="text-xs text-foreground-secondary truncate">
                         {orgName}
@@ -181,7 +192,7 @@ const UserDropdown = () => {
             </DropdownMenu>
           </TooltipTrigger>
           <TooltipContent side="right">
-            <p>{userEmail}</p>
+            <p>{userDisplayName}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -208,7 +219,7 @@ const UserDropdown = () => {
             </div>
             <div className="min-w-0">
               <div className="font-medium text-foreground text-sm truncate">
-                {userEmail}
+                {userDisplayName}
               </div>
               <div className="text-xs text-foreground-secondary truncate">
                 {orgName}

@@ -91,7 +91,16 @@ export const getCurrentUser = async () => {
   });
 
   const processedResponse = await handleApiError(response);
-  return processedResponse.json();
+  const userData = await processedResponse.json();
+  
+  // Normalize the response to match our expected format
+  return {
+    id: userData.id,
+    email: userData.email,
+    full_name: userData.name, // Map 'name' to 'full_name'
+    role: userData.role,
+    organization_id: userData.organization_id,
+  };
 };
 
 // Request password reset
