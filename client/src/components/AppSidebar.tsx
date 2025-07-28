@@ -21,16 +21,17 @@ const primaryNavItems = [
     url: "/calls",
     icon: Phone
   },
-  {
-    title: "Bookings",
-    url: "/bookings",
-    icon: Calendar
-  },
-  {
-    title: "Inquiries",
-    url: "/inquiries",
-    icon: MessageSquare
-  }
+  // Temporarily hide Bookings and Inquiries
+  // {
+  //   title: "Bookings",
+  //   url: "/bookings",
+  //   icon: Calendar
+  // },
+  // {
+  //   title: "Inquiries",
+  //   url: "/inquiries",
+  //   icon: MessageSquare
+  // }
 ];
 
 const secondaryNavItems = [
