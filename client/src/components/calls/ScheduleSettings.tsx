@@ -283,8 +283,39 @@ export const ScheduleSettings = () => {
         </div>
       </CardHeader>
 
+      {/* Auto Call Switch - Always visible */}
+      <CardContent className="pb-3">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
+            <span className="text-sm">Loading configuration...</span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label className="text-base font-medium">
+                Automatic Calling
+              </Label>
+              <p className="text-sm text-gray-600">
+                Enable automatic calling for "Ready for Call" status during
+                scheduled hours
+              </p>
+            </div>
+            <Switch
+              checked={scheduleConfig.auto_call_enabled}
+              onCheckedChange={(checked) =>
+                setScheduleConfig((prev) => ({
+                  ...prev,
+                  auto_call_enabled: checked,
+                }))
+              }
+            />
+          </div>
+        )}
+      </CardContent>
+
       {!isMinimized && (
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 pt-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
@@ -292,28 +323,6 @@ export const ScheduleSettings = () => {
             </div>
           ) : (
             <>
-              {/* Auto Call Switch */}
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base font-medium">
-                    Automatic Calling
-                  </Label>
-                  <p className="text-sm text-gray-600">
-                    Enable automatic calling for "Ready for Call" status during
-                    scheduled hours
-                  </p>
-                </div>
-                <Switch
-                  checked={scheduleConfig.auto_call_enabled}
-                  onCheckedChange={(checked) =>
-                    setScheduleConfig((prev) => ({
-                      ...prev,
-                      auto_call_enabled: checked,
-                    }))
-                  }
-                />
-              </div>
-
               {/* Timezone Selection */}
               <div>
                 <Label htmlFor="timezone">Timezone</Label>
