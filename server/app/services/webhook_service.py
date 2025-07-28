@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Call, ServiceRecord, Transcript
 from app.core.config import settings
 from app.services.call_analysis_service import CallAnalysisService
+from app.services.voicemail_detection_service import VoicemailDetectionService
 
 logger = logging.getLogger(__name__)
 
@@ -192,13 +193,33 @@ class WebhookService:
             call.duration_ms = data.get("durationMs")
             call.duration_sec = data.get("durationSeconds") or (int((call.end_time - call.start_time).total_seconds()) if call.start_time and call.end_time else None)
             
-            # Update status to completed
-            call.status = "Completed"
-            
             # Extract and save transcript messages from message -> artifact -> messages
             messages = []
             if "artifact" in data and isinstance(data["artifact"], dict):
                 messages = data["artifact"].get("messages", [])
+            
+            # Check if we have meaningful transcript data
+            has_meaningful_transcript = len(messages) > 0 and any(
+                msg.get("role") == "user" and msg.get("message", "").strip() 
+                for msg in messages
+            )
+            
+            # Determine the appropriate call status using voicemail detection
+            call_status = VoicemailDetectionService.determine_call_status(
+                ended_reason=call.ended_reason,
+                vapi_status=data.get("status"),
+                has_transcript=has_meaningful_transcript,
+                call_duration_seconds=call.duration_sec
+            )
+            
+            # Update call status based on intelligent detection
+            call.status = call_status
+            
+            # Log the status determination for debugging
+            status_explanation = VoicemailDetectionService.get_status_explanation(
+                call_status, call.ended_reason
+            )
+            logger.info(f"Call {call_id} status determined as '{call_status}': {status_explanation}")
             
             if messages:
                 await self.save_transcripts(call_id, messages, db)
