@@ -117,15 +117,106 @@ class ActivityService:
         missed_calls_count = missed_calls_result.scalar_one_or_none() or 0
         
         missed_calls_activity = {
-            "type": "missed_calls", 
+            "type": "missed_calls",
             "title": "Missed or Failed Calls",
             "description": f"{missed_calls_count} calls were missed or failed",
             "count": missed_calls_count,
             "timestamp": end_datetime.isoformat(),
-            "priority": 2  # Always show second
+            "priority": 2  # Always show
         }
         activities.append(missed_calls_activity)
-
+        
+        # 3. Check for new promoters (NPS >= 9)
+        promoters_query = select(func.count(Call.id)).where(
+            and_(
+                Call.organization_id == organization_id,
+                Call.nps_score >= 9,
+                Call.created_at >= start_datetime,
+                Call.created_at <= end_datetime
+            )
+        )
+        promoters_result = await db.execute(promoters_query)
+        promoters_count = promoters_result.scalar_one_or_none() or 0
+        
+        if promoters_count > 0:
+            promoters_activity = {
+                "type": "promoters",
+                "title": "New Promoters",
+                "description": f"{promoters_count} new promoters identified",
+                "count": promoters_count,
+                "timestamp": end_datetime.isoformat(),
+                "priority": 3
+            }
+            activities.append(promoters_activity)
+        
+        # 4. Check for new detractors (NPS <= 5)
+        detractors_query = select(func.count(Call.id)).where(
+            and_(
+                Call.organization_id == organization_id,
+                Call.nps_score <= 5,
+                Call.created_at >= start_datetime,
+                Call.created_at <= end_datetime
+            )
+        )
+        detractors_result = await db.execute(detractors_query)
+        detractors_count = detractors_result.scalar_one_or_none() or 0
+        
+        if detractors_count > 0:
+            detractors_activity = {
+                "type": "detractors",
+                "title": "New Detractors",
+                "description": f"{detractors_count} new detractors identified",
+                "count": detractors_count,
+                "timestamp": end_datetime.isoformat(),
+                "priority": 4
+            }
+            activities.append(detractors_activity)
+        
+        # 5. Check for completed calls with feedback
+        feedback_query = select(func.count(CallFeedback.id)).join(Call).where(
+            and_(
+                Call.organization_id == organization_id,
+                Call.status == "Completed",
+                Call.created_at >= start_datetime,
+                Call.created_at <= end_datetime
+            )
+        )
+        feedback_result = await db.execute(feedback_query)
+        feedback_count = feedback_result.scalar_one_or_none() or 0
+        
+        if feedback_count > 0:
+            feedback_activity = {
+                "type": "feedback",
+                "title": "Call Feedback",
+                "description": f"{feedback_count} calls completed with feedback",
+                "count": feedback_count,
+                "timestamp": end_datetime.isoformat(),
+                "priority": 5
+            }
+            activities.append(feedback_activity)
+        
+        # 6. Check for new service records
+        service_records_query = select(func.count(ServiceRecord.id)).where(
+            and_(
+                ServiceRecord.organization_id == organization_id,
+                ServiceRecord.created_at >= start_datetime,
+                ServiceRecord.created_at <= end_datetime
+            )
+        )
+        service_records_result = await db.execute(service_records_query)
+        service_records_count = service_records_result.scalar_one_or_none() or 0
+        
+        if service_records_count > 0:
+            service_records_activity = {
+                "type": "service_records",
+                "title": "Service Records",
+                "description": f"{service_records_count} new service records added",
+                "count": service_records_count,
+                "timestamp": end_datetime.isoformat(),
+                "priority": 6
+            }
+            activities.append(service_records_activity)
+        
         # Sort by priority and limit to requested number
         sorted_activities = sorted(activities, key=lambda x: x["priority"])
         
