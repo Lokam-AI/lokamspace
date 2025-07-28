@@ -3,6 +3,7 @@ Schema package.
 Import all schemas here for convenient imports.
 """
 
+from app.schemas.activity import Activity, RecentActivitiesResponse
 from app.schemas.auth import Token, TokenPayload, UserLogin, PasswordReset, PasswordChange, UserRegistration, UserInfo
 from app.schemas.call import (
     CallBase,
@@ -166,6 +167,10 @@ __all__ = [
     "DMSIntegrationCreate",
     "DMSIntegrationUpdate",
     "DMSIntegrationResponse",
+    
+    # Activity schemas
+    "Activity",
+    "RecentActivitiesResponse",
     
     # Knowledge file schemas
     "KnowledgeFileBase",

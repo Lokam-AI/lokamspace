@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_current_organization, get_tenant_db
 from app.models import Organization
 from app.services.analytics_service import AnalyticsService
+from app.services.activity_service import ActivityService
+from app.schemas import RecentActivitiesResponse
 
 router = APIRouter()
 
@@ -270,3 +272,45 @@ async def get_feedback_insights(
         db=db,
         organization_id=organization.id
     ) 
+
+
+@router.get("/recent-activities", response_model=RecentActivitiesResponse)
+async def get_recent_activities(
+    date_str: Optional[str] = Query(None, description="Date in YYYY-MM-DD format. Defaults to yesterday"),
+    organization: Organization = Depends(get_current_organization),
+    db: AsyncSession = Depends(get_tenant_db),
+) -> Any:
+    """
+    Get recent activities for dashboard.
+    
+    Fetches the 5 most relevant activities for the organization from the previous day by default,
+    or from the specified date.
+    
+    Args:
+        date_str: Date in YYYY-MM-DD format (defaults to yesterday)
+        organization: Current organization
+        db: Database session
+        
+    Returns:
+        RecentActivitiesResponse: Contains list of activities and date
+    """
+    target_date = None
+    if date_str:
+        try:
+            target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            # Default to yesterday if invalid format
+            target_date = datetime.now().date() - timedelta(days=1)
+    else:
+        target_date = datetime.now().date() - timedelta(days=1)
+    
+    activities = await ActivityService.get_recent_activities(
+        db=db,
+        organization_id=organization.id,
+        date_for=target_date
+    )
+    
+    return {
+        "activities": activities,
+        "date": target_date.isoformat()
+    }
