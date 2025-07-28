@@ -97,6 +97,10 @@ export default function Login() {
             Sign up
           </a>
         </div>
+
+        <div className="text-center text-xs mt-4 text-gray-500">
+          <span>Terms of Use</span> | <span>Privacy Policy</span>
+        </div>
       </Card>
     </div>
   );

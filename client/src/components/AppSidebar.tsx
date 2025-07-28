@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { LayoutDashboard, Phone, Calendar, MessageSquare, Settings, User, LogOut, HelpCircle, Palette, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Phone, Calendar, MessageSquare, Settings, User, LogOut, HelpCircle, Palette, BarChart3, Building } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator, SidebarFooter, SidebarHeader, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -97,14 +97,14 @@ export function AppSidebar() {
               </div>
               
               {/* Organization Name */}
-              <div className="text-sm bg-sidebar-accent text-sidebar-accent-foreground font-medium rounded-md px-2 py-1 truncate transition-all duration-200">
+              <div className="flex items-center justify-center text-sm bg-sidebar-accent text-sidebar-accent-foreground font-medium rounded-md px-2 py-1 truncate transition-all duration-200 border border-gray-300">
                 {loadingOrg ? (
                   <span className="animate-pulse">Loading...</span>
                 ) : (
-                  <>
-                    <span className="font-normal">Org: </span>
-                    {organization?.name || "Organization"}
-                  </>
+                  <div className="flex items-center">
+                    <Building className="h-4 w-4 mr-2" />
+                    <span className="font-semibold">{organization?.name || "Organization"}</span>
+                  </div>
                 )}
               </div>
             </>

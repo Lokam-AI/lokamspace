@@ -22,7 +22,6 @@ export const CallsFilters = ({ filters, onFiltersChange, campaigns }: CallsFilte
     onFiltersChange({
       dateRange: { start: "", end: "" },
       status: "all",
-      advisor: "all",
       searchTerm: "",
       campaignId: "all",
       scheduledTimeRange: { start: "", end: "" },
@@ -30,8 +29,7 @@ export const CallsFilters = ({ filters, onFiltersChange, campaigns }: CallsFilte
     });
   };
 
-  const hasActiveFilters = (filters.advisor && filters.advisor !== "all") || 
-                          filters.searchTerm || 
+  const hasActiveFilters = filters.searchTerm || 
                           filters.dateRange.start || 
                           filters.dateRange.end ||
                           (filters.campaignId && filters.campaignId !== "all") ||
@@ -46,12 +44,12 @@ export const CallsFilters = ({ filters, onFiltersChange, campaigns }: CallsFilte
   return (
     <Card className="shadow-sm">
       <CardContent className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
           {/* Enhanced Search - Supports customer name, meeting ID, contact number */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by customer, meeting ID, or phone..."
+              placeholder="Search by customer"
               value={filters.searchTerm}
               onChange={(e) => updateFilter('searchTerm', e.target.value)}
               className="pl-10 transition-all duration-150 focus:ring-2 focus:ring-primary"
@@ -67,7 +65,7 @@ export const CallsFilters = ({ filters, onFiltersChange, campaigns }: CallsFilte
               <SelectItem value="all">All Campaigns</SelectItem>
               {latestCampaigns.map((campaign) => (
                 <SelectItem key={campaign.id} value={campaign.id}>
-                  {campaign.name} ({campaign.callCount || 0})
+                  {campaign.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -83,20 +81,6 @@ export const CallsFilters = ({ filters, onFiltersChange, campaigns }: CallsFilte
               className="w-full text-sm transition-all duration-150 focus:ring-2 focus:ring-primary"
             />
           </div>
-
-          {/* Advisor Filter */}
-          <Select value={filters.advisor || "all"} onValueChange={(value) => updateFilter('advisor', value)}>
-            <SelectTrigger className="transition-all duration-150 focus:ring-2 focus:ring-primary">
-              <SelectValue placeholder="All Advisors" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Advisors</SelectItem>
-              <SelectItem value="John Smith">John Smith</SelectItem>
-              <SelectItem value="Sarah Johnson">Sarah Johnson</SelectItem>
-              <SelectItem value="Mike Chen">Mike Chen</SelectItem>
-              <SelectItem value="Lisa Rodriguez">Lisa Rodriguez</SelectItem>
-            </SelectContent>
-          </Select>
 
           {/* Clear Filters - Positioned at the end */}
           {hasActiveFilters && (
