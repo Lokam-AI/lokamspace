@@ -63,6 +63,7 @@ export const ScheduleSettings = () => {
   ];
 
   const timezones = [
+    // US Timezones
     { value: "America/New_York", label: "Eastern Time (EST/EDT)" },
     { value: "America/Chicago", label: "Central Time (CST/CDT)" },
     { value: "America/Denver", label: "Mountain Time (MST/MDT)" },
@@ -70,6 +71,12 @@ export const ScheduleSettings = () => {
     { value: "America/Phoenix", label: "Arizona Time (MST)" },
     { value: "America/Anchorage", label: "Alaska Time (AKST/AKDT)" },
     { value: "Pacific/Honolulu", label: "Hawaii Time (HST)" },
+    
+    // UK Timezones
+    { value: "Europe/London", label: "Greenwich Mean Time (GMT/BST)" },
+    
+    // Indian Timezones
+    { value: "Asia/Kolkata", label: "India Standard Time (IST)" },
   ];
 
   // Fetch schedule config from API

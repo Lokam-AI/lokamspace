@@ -33,7 +33,6 @@ import { initiateCall, initiateDemoCall } from "@/api/endpoints/calls";
 export interface CallFilters {
   dateRange: { start: string; end: string };
   status: string;
-  advisor: string;
   searchTerm: string;
   campaignId: string;
   scheduledTimeRange: { start: string; end: string };
@@ -134,7 +133,6 @@ const Calls = () => {
   const [filters, setFilters] = useState<CallFilters>({
     dateRange: { start: "", end: "" },
     status: "all",
-    advisor: "all",
     searchTerm: "",
     campaignId: "all",
     scheduledTimeRange: { start: "", end: "" },

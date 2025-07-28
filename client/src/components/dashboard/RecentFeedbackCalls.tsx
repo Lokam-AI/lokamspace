@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye, Star } from "lucide-react";
+import { Eye } from "lucide-react";
 import { Call } from "@/pages/Calls";
 import { useRecentCalls } from "@/api/queries/calls";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,16 +19,6 @@ export const RecentFeedbackCalls = ({ onViewDetails }: RecentFeedbackCallsProps)
     if (score >= 9) return 'default';
     if (score >= 7) return 'secondary';
     return 'destructive';
-  };
-
-  const renderStars = (score: number | undefined) => {
-    const starCount = score ? Math.floor(score / 2) : 0;
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`h-3 w-3 ${i < starCount ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`}
-      />
-    ));
   };
 
   const getStatusBadgeVariant = (status: string) => {
@@ -132,14 +122,9 @@ export const RecentFeedbackCalls = ({ onViewDetails }: RecentFeedbackCallsProps)
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <div className="flex space-x-1">
-                          {renderStars(call.nps_score)}
-                        </div>
-                        <Badge variant={getNPSBadgeVariant(call.nps_score)}>
-                          {call.nps_score ? `${call.nps_score}/10` : 'N/A'}
-                        </Badge>
-                      </div>
+                      <Badge variant={getNPSBadgeVariant(call.nps_score)}>
+                        {call.nps_score ? `${call.nps_score}/10` : 'N/A'}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Button
