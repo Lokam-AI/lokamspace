@@ -181,6 +181,208 @@ You are an expert assistant. Analyze the following call transcript and output **
 Respond with valid JSON exactly matching the schema.
 """
 
+    async def summarize_daily_activities(
+        self,
+        organization_data: Dict[str, Any],
+        activity_data: Dict[str, Any],
+        date_str: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate AI-powered summaries for daily activities based on organization data.
+        
+        Args:
+            organization_data: Organization information and context
+            activity_data: Raw activity data including calls, feedback, service records
+            date_str: Date for which activities are being generated
+            
+        Returns:
+            List[Dict[str, Any]]: List of summarized activities with AI-generated descriptions
+        """
+        prompt = self._build_activity_summary_prompt(organization_data, activity_data, date_str)
+        
+        # Save prompt for debugging (optional)
+        try:
+            with open("activity_summary_prompt.md", "w") as f:
+                f.write(prompt)
+        except Exception:
+            pass  # Don't fail if we can't write debug file
+
+        payload = {
+            "model": settings.OPENAI_MODEL,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are an expert business analyst specializing in automotive service center operations. Generate concise, actionable activity summaries that provide meaningful insights for service center managers."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "activity_summaries",
+                    "strict": True,
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "activities": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "type": {"type": "string"},
+                                        "title": {"type": "string"},
+                                        "description": {"type": "string"},
+                                        "priority": {"type": "integer"}
+                                    },
+                                    "required": ["type", "title", "description", "priority"],
+                                    "additionalProperties": False
+                                }
+                            }
+                        },
+                        "required": ["activities"],
+                        "additionalProperties": False
+                    }
+                }
+            }
+        }
+
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    f"{self.base_url}/chat/completions",
+                    json=payload,
+                    headers=self.headers
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                content = data["choices"][0]["message"]["content"]
+                result = self._parse_activity_summary_result(content)
+                return result.get("activities", [])
+
+        except httpx.HTTPError as exc:
+            logger.error(f"OpenAI API error in activity summarization: {exc}")
+            if exc.response is not None:
+                logger.error(exc.response.text)
+            # Return fallback activities on error
+            return self._get_fallback_ai_activities()
+        except Exception as exc:
+            logger.error(f"Unexpected error in activity summarization: {exc}")
+            return self._get_fallback_ai_activities()
+
+    def _build_activity_summary_prompt(
+        self,
+        organization_data: Dict[str, Any],
+        activity_data: Dict[str, Any],
+        date_str: str
+    ) -> str:
+        """Build the prompt for AI activity summarization."""
+        
+        organization_json = json.dumps({
+            "name": organization_data.get('name', 'Service Center'),
+            "description": organization_data.get('description', 'Automotive service center'),  
+            "service_center_description": organization_data.get('service_center_description', ''),
+            "location": organization_data.get('location', 'N/A'),
+            "focus_areas": organization_data.get('focus_areas', [])
+        }, indent=2)
+        
+        activity_json = json.dumps(activity_data, indent=2)
+        
+        output_schema = '''
+```json
+{
+  "activities": [
+    {
+      "type": "promoters|detractors|feedback|service_records|other",
+      "title": "Brief activity title (max 4 words)",
+      "description": "Detailed insight with specific numbers and context (max 80 chars)",
+      "priority": 3
+    }
+  ]
+}
+```'''
+
+        return f"""
+## 📊 Daily Activity Summarization Task
+
+Generate exactly 3 intelligent activity summaries for a service center based on the data below. Focus on actionable insights that help managers understand what happened and what actions might be needed.
+
+### 📌 Input Data
+
+**Date:** {date_str}
+
+**Organization Info:**
+```json
+{organization_json}
+```
+
+**Activity Data:**
+```json
+{activity_json}
+```
+
+### 🎯 Task Instructions
+
+Create exactly 3 activities that provide the most valuable insights from the data:
+
+1. **Prioritize impact**: Focus on activities that have business implications
+2. **Be specific**: Include actual numbers and context in descriptions  
+3. **Actionable insights**: Descriptions should hint at what actions might be needed
+4. **Varied types**: Try to cover different aspects (customer satisfaction, operational efficiency, service quality)
+
+**Priority Guidelines:**
+- Priority 3: High-impact customer satisfaction insights (promoters/detractors)
+- Priority 4-6: Operational insights (service records, feedback patterns)
+
+**Description Guidelines:**
+- Start with the insight, then provide context
+- Include specific numbers when available
+- Keep under 80 characters
+- Examples:
+  - "Customer satisfaction up with 5 promoters praising quick service"
+  - "3 detractors cited long wait times, action needed on scheduling"
+  - "Service completion rate improved: 12 records completed efficiently"
+
+### 📋 Output Schema
+{output_schema}
+
+Generate exactly 3 activities. Focus on the most impactful insights from the available data.
+"""
+
+    def _parse_activity_summary_result(self, content: str) -> Dict[str, Any]:
+        """Parse the AI response for activity summaries."""
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError as e:
+            logger.error("JSON parse error from OpenAI activity summary response", exc_info=True)
+            logger.error(f"Response content: {content}")
+            return {"activities": self._get_fallback_ai_activities()}
+
+    def _get_fallback_ai_activities(self) -> List[Dict[str, Any]]:
+        """Get fallback activities when AI summarization fails."""
+        return [
+            {
+                "type": "system_analysis",
+                "title": "Data Analysis",
+                "description": "System analyzed daily metrics and trends for insights",
+                "priority": 5
+            },
+            {
+                "type": "service_summary", 
+                "title": "Service Overview",
+                "description": "Daily service operations completed successfully",
+                "priority": 6
+            },
+            {
+                "type": "feedback_review",
+                "title": "Feedback Review", 
+                "description": "Customer feedback patterns reviewed for improvements",
+                "priority": 7
+            }
+        ]
+
     def _parse_analysis_result(self, content: str) -> Dict[str, Any]:
         try:
             return json.loads(content)
