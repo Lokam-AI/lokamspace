@@ -1,4 +1,5 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,9 +7,34 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { getOrganizationSettings } from "@/api/endpoints/organizations";
+import { Loader2 } from "lucide-react";
 
 export function BillingSettings() {
   const { toast } = useToast();
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchOrganizationData = async () => {
+      try {
+        setIsLoading(true);
+        const orgData = await getOrganizationSettings();
+        setCreditBalance(orgData.credit_balance);
+      } catch (error) {
+        console.error("Failed to fetch organization data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load credit balance. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchOrganizationData();
+  }, [toast]);
 
   const handleSaveConfiguration = () => {
     toast({
@@ -34,15 +60,18 @@ export function BillingSettings() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between text-foreground">
             Credit Balance:
-            <span className="text-2xl font-bold text-primary">5.71</span>
+            {isLoading ? (
+              <div className="flex items-center">
+                <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
+                <span className="text-muted-foreground">Loading...</span>
+              </div>
+            ) : (
+              <span className="text-2xl font-bold text-primary">
+                ${creditBalance !== null ? creditBalance.toFixed(2) : '0.00'}
+              </span>
+            )}
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex space-x-3">
-            <Button className="bg-primary hover:bg-primary/90">Buy More Credits</Button>
-            <Button variant="outline">Apply Coupon</Button>
-          </div>
-        </CardContent>
       </Card>
 
       <Card className="bg-card border-border">
