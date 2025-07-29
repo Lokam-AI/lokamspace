@@ -40,9 +40,6 @@ export const CompletedCallsTab = ({
         if (filters.searchTerm) {
           apiFilters.search = filters.searchTerm;
         }
-        if (filters.advisor && filters.advisor !== "all") {
-          apiFilters.service_advisor_name = filters.advisor;
-        }
         if (filters.campaignId && filters.campaignId !== "all") {
           apiFilters.campaign_id = filters.campaignId;
         }
@@ -71,9 +68,6 @@ export const CompletedCallsTab = ({
       const apiFilters: Record<string, string> = {};
       if (filters.searchTerm) {
         apiFilters.search = filters.searchTerm;
-      }
-      if (filters.advisor && filters.advisor !== "all") {
-        apiFilters.service_advisor_name = filters.advisor;
       }
       if (filters.campaignId && filters.campaignId !== "all") {
         apiFilters.campaign_id = filters.campaignId;
