@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Phone, Users, TrendingUp, AlertTriangle, BarChart3 } from "lucide-react";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -139,12 +138,12 @@ const Dashboard = () => {
                   </div>
                   <div className="h-full">
                     {/* Quick Stats */}
-                    <Card className="h-full">
+                    <Card className="h-full shadow-lg transform transition-transform hover:scale-105">
                       <CardHeader>
                         <CardTitle className="text-lg">Recent Activity</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-destructive/10 rounded-lg border border-destructive/20 h-16">
+                        <div className="flex items-center justify-between p-3 bg-destructive/10 rounded-lg border border-destructive/20 h-16 shadow-md transform transition-transform hover:scale-105">
                           <div className="flex items-center space-x-3">
                             <AlertTriangle className="h-5 w-5 text-destructive" />
                             <div>
@@ -155,7 +154,7 @@ const Dashboard = () => {
                           <Badge variant="destructive">New</Badge>
                         </div>
                         
-                        <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg border border-success/20 h-16">
+                        <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg border border-success/20 h-16 shadow-md transform transition-transform hover:scale-105">
                           <div className="flex items-center space-x-3">
                             <Phone className="h-5 w-5 text-success" />
                             <div>
@@ -166,7 +165,7 @@ const Dashboard = () => {
                           <Badge variant="secondary">5 min ago</Badge>
                         </div>
 
-                        <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20 h-16">
+                        <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20 h-16 shadow-md transform transition-transform hover:scale-105">
                           <div className="flex items-center space-x-3">
                             <BarChart3 className="h-5 w-5 text-primary" />
                             <div>
@@ -177,7 +176,7 @@ const Dashboard = () => {
                           <Badge>Ready</Badge>
                         </div>
 
-                        <div className="flex items-center justify-between p-3 bg-warning/10 rounded-lg border border-warning/20 h-16">
+                        <div className="flex items-center justify-between p-3 bg-warning/10 rounded-lg border border-warning/20 h-16 shadow-md transform transition-transform hover:scale-105">
                           <div className="flex items-center space-x-3">
                             <Users className="h-5 w-5 text-warning" />
                             <div>
@@ -188,7 +187,7 @@ const Dashboard = () => {
                           <Badge variant="secondary">15 min ago</Badge>
                         </div>
 
-                        <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg border border-success/20 h-16">
+                        <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg border border-success/20 h-16 shadow-md transform transition-transform hover:scale-105">
                           <div className="flex items-center space-x-3">
                             <TrendingUp className="h-5 w-5 text-success" />
                             <div>

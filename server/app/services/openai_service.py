@@ -113,17 +113,14 @@ class OpenAIService:
             f"{m['role']}: {m['message']}" for m in transcript_messages
         )
         formatted_tags = ", ".join(tags)
-        org_focus = ", ".join(organization_data.get("focus_areas", []) or [])
-        org_improve = ", ".join(organization_data.get("areas_to_improve", []) or [])
-        
-        # Create JSON strings directly using json.dumps to avoid string formatting issues
+
         service_record_json = json.dumps({
             "customer_name": service_record_data.get('customer_name', 'N/A'),
             "service_type": service_record_data.get('service_type', 'N/A'),
             "vehicle_info": service_record_data.get('vehicle_info', 'N/A'),
             "service_advisor_name": service_record_data.get('service_advisor_name', 'N/A')
         }, indent=2)
-        
+
         organization_json = json.dumps({
             "company": organization_data.get('name', 'N/A'),
             "description": organization_data.get('description', 'N/A'),
@@ -131,55 +128,90 @@ class OpenAIService:
             "focus_tags": formatted_tags,
             "location": organization_data.get('location', 'N/A')
         }, indent=2)
-        
-        # Define output schema as a separate string to avoid f-string issues
-        output_schema = '''
-```json
-{
-  "call_summary": "<string>",
-  "nps_score": <integer|null>,
-  "overall_feedback": "<string>",
-  "positive_mentions": ["<tag1>", "..."],
-  "detractors": ["<tag2>", "..."]
-}
-```'''
+
+        output_schema = """
+    \"\"\"json
+    {
+    "call_summary": "<string>",
+    "nps_score": <integer|null>,
+    "overall_feedback": "<string>",
+    "positive_mentions": ["<tag1>", "..."],
+    "detractors": ["<tag2>", "..."]
+    }
+    \"\"\""""
 
         return f"""
-## 🎧 After‑Call Analysis Task
+    ## --- ROLE ---
+    You are an expert conversation analyzer. Always respond with valid JSON matching exactly the schema given—no extra text or metadata.
 
-You are an expert assistant. Analyze the following call transcript and output **exactly** the JSON described—no extra text, comments, or formatting. Be concise, factual, and adhere strictly to the schema.
+    ## --- INPUT — TRANSCRIPT & CONTEXT —
+    Call Transcript:
+    {formatted_transcript}
 
-### 📌 Input
+    Service Record Info:
+    ```json
+    {service_record_json}
+    ```
 
-**Call Transcript:**  
-{formatted_transcript}
+    Organization Info:
+    ```json
+    {organization_json}
+    ```
 
-**Service Record Info:**  
-```json
-{service_record_json}
-```
+    Focus Tags: {formatted_tags}
 
-## Organization Info:
-```json
-{organization_json}
-```
+    ## --- TASK INSTRUCTIONS — STEP-BY-STEP —
+    Follow this reasoning internally and make your final JSON concise and strict:
 
+    **Step 1 - Summarize call outcome in one sentence.**
 
-## Task Instructions:
-1. Summarize the call: write a single-sentence summary capturing key outcome.
-2. Extract NPS score: integer 0-10 if spoken in transcript, otherwise null.
-3. Overall feedback: provide a 1-2 sentence narrative reflecting sentiment.
-4. Positive mentions: list each focus tag mentioned positively.
-5. Detractors: list each focus tag mentioned negatively or as an issue.
-    - Only tags present in focus_tags.
-    - Exclude neutral or unmentioned tags.
+    **Step 2 - Locate an NPS score (0-10):**
+    - If a number in that range is uttered explicitly (“NPS: 8”, “I'd give you a 9”), record that.
+    - If phrased indirectly (“That's top-tier service”) interpret to the most appropriate numeric equivalent (e.g. 9-10), but only if clearly implied.
+    - If unclear or not stated, set to `null`.
 
+    **Step 3 - Overall feedback:** Write 1-2 sentences reflecting customer sentiment.
 
-## Output Schema:
-{output_schema}
+    **Step 4 - For each focus tag:**
+    - If mentioned positively (praise, enjoyment, satisfaction), include in `positive_mentions`.
+    - If mentioned negatively (issue, complaint, dissatisfaction), include in `detractors`.
+    - If not clearly mentioned, exclude.
 
-Respond with valid JSON exactly matching the schema.
-"""
+    ### Few-Shot Examples:
+
+    --Example A--
+    Transcript:
+    Customer: “I'd say my experience was a 9 — amazing service.”
+    Tags: “timeliness, cleanliness, communication”
+
+    Output:
+    {{
+    "call_summary": "Customer gave exceptionally positive feedback.",
+    "nps_score": 9,
+    "overall_feedback": "Customer rated the experience very highly and expressed satisfaction across all areas.",
+    "positive_mentions": ["timeliness","communication"],
+    "detractors": []
+    }}
+
+    --Example B--
+    Transcript:
+    Customer: “Honestly it was okay, nothing stood out, but the pickup was late.”
+    Tags: “timeliness, professionalism, value”
+
+    Output:
+    {{
+    "call_summary": "Customer had mixed feelings, noting a delay in pickup.",
+    "nps_score": null,
+    "overall_feedback": "Customer felt neutral overall but was disappointed by the pickup delay.",
+    "positive_mentions": [],
+    "detractors": ["timeliness"]
+    }}
+
+    ## --- OUTPUT SCHEMA ---
+    {output_schema}
+
+    Respond with only the valid JSON object.
+    """
 
     def _parse_analysis_result(self, content: str) -> Dict[str, Any]:
         try:
