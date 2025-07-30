@@ -1,86 +1,81 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useMetricsKPIs, useCallTrends, formatCurrency, formatNumber, calculateAverageCostPerCall } from "@/hooks/useMetrics";
 
-export const MetricsKPICards = () => {
-  // Sample data for the charts
-  const totalMinutesData = [
-    { date: "May 28", value: 128.5 },
-    { date: "May 30", value: 132.8 },
-    { date: "Jun 1", value: 125.2 },
-    { date: "Jun 3", value: 145.1 },
-    { date: "Jun 5", value: 138.9 },
-    { date: "Jun 7", value: 152.3 },
-    { date: "Jun 9", value: 147.8 },
-    { date: "Jun 11", value: 134.2 },
-    { date: "Jun 13", value: 162.7 },
-    { date: "Jun 15", value: 149.5 },
-    { date: "Jun 17", value: 171.2 },
-    { date: "Jun 19", value: 156.8 },
-    { date: "Jun 21", value: 168.4 },
-    { date: "Jun 23", value: 145.9 },
-    { date: "Jun 25", value: 154.7 },
-    { date: "Jun 27", value: 137.21 }
-  ];
+interface MetricsKPICardsProps {
+  dateRange?: string;
+  startDate?: string;
+  endDate?: string;
+}
 
-  const numberOfCallsData = [
-    { date: "May 28", value: 142 },
-    { date: "May 30", value: 148 },
-    { date: "Jun 1", value: 135 },
-    { date: "Jun 3", value: 162 },
-    { date: "Jun 5", value: 158 },
-    { date: "Jun 7", value: 175 },
-    { date: "Jun 9", value: 169 },
-    { date: "Jun 11", value: 144 },
-    { date: "Jun 13", value: 182 },
-    { date: "Jun 15", value: 165 },
-    { date: "Jun 17", value: 189 },
-    { date: "Jun 19", value: 172 },
-    { date: "Jun 21", value: 178 },
-    { date: "Jun 23", value: 156 },
-    { date: "Jun 25", value: 164 },
-    { date: "Jun 27", value: 152 }
-  ];
+export const MetricsKPICards = ({ 
+  dateRange = "7d", 
+  startDate, 
+  endDate 
+}: MetricsKPICardsProps) => {
+  // Fetch KPI data
+  const { 
+    data: kpiData, 
+    isLoading: kpiLoading, 
+    error: kpiError 
+  } = useMetricsKPIs({
+    date_range: dateRange,
+    start_date: startDate,
+    end_date: endDate,
+  });
 
-  const totalSpentData = [
-    { date: "May 28", value: 12.85 },
-    { date: "May 30", value: 13.42 },
-    { date: "Jun 1", value: 11.98 },
-    { date: "Jun 3", value: 15.67 },
-    { date: "Jun 5", value: 14.23 },
-    { date: "Jun 7", value: 16.89 },
-    { date: "Jun 9", value: 15.45 },
-    { date: "Jun 11", value: 13.12 },
-    { date: "Jun 13", value: 17.34 },
-    { date: "Jun 15", value: 15.78 },
-    { date: "Jun 17", value: 18.92 },
-    { date: "Jun 19", value: 16.55 },
-    { date: "Jun 21", value: 17.83 },
-    { date: "Jun 23", value: 14.67 },
-    { date: "Jun 25", value: 15.89 },
-    { date: "Jun 27", value: 14.29 }
-  ];
+  // Fetch trends data for charts
+  const { 
+    data: trendsData, 
+    isLoading: trendsLoading, 
+    error: trendsError 
+  } = useCallTrends({ date_range: dateRange });
 
-  const avgCostData = [
-    { date: "May 28", value: 0.091 },
-    { date: "May 30", value: 0.088 },
-    { date: "Jun 1", value: 0.095 },
-    { date: "Jun 3", value: 0.087 },
-    { date: "Jun 5", value: 0.092 },
-    { date: "Jun 7", value: 0.085 },
-    { date: "Jun 9", value: 0.089 },
-    { date: "Jun 11", value: 0.093 },
-    { date: "Jun 13", value: 0.082 },
-    { date: "Jun 15", value: 0.088 },
-    { date: "Jun 17", value: 0.081 },
-    { date: "Jun 19", value: 0.086 },
-    { date: "Jun 21", value: 0.084 },
-    { date: "Jun 23", value: 0.091 },
-    { date: "Jun 25", value: 0.087 },
-    { date: "Jun 27", value: 0.090 }
-  ];
+  const isLoading = kpiLoading || trendsLoading;
+  const hasError = kpiError || trendsError;
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  // Show loading state
+  if (isLoading) {
+    return <MetricsKPICardsSkeleton />;
+  }
+
+  // Show error state
+  if (hasError) {
+    return (
+      <Alert variant="destructive" className="mb-6">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Failed to load metrics data. Please try again later.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Return early if no data
+  if (!kpiData || !trendsData) {
+    return null;
+  }
+
+  // Transform trends data for charts
+  const transformTrendsForChart = (key: 'calls' | 'minutes' | 'cost') => {
+    return trendsData.trends.map(trend => ({
+      date: new Date(trend.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      value: trend[key]
+    }));
+  };
+
+  // Calculate average cost per call
+  const avgCostPerCall = calculateAverageCostPerCall(kpiData.total_spend, kpiData.total_calls);
+
+  const CustomTooltip = ({ active, payload, label }: {
+    active?: boolean;
+    payload?: Array<{ value: number }>;
+    label?: string;
+  }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-card p-3 border border-border rounded-lg shadow-lg">
@@ -97,29 +92,29 @@ export const MetricsKPICards = () => {
   const metrics = [
     {
       title: "Total Call Minutes",
-      value: "137.21",
-      data: totalMinutesData,
+      value: formatNumber(kpiData.total_minutes),
+      data: transformTrendsForChart('minutes'),
       color: "hsl(var(--primary))",
       bgColor: "bg-primary/5 border-primary/20"
     },
     {
       title: "Number of Calls",
-      value: "152",
-      data: numberOfCallsData,
+      value: formatNumber(kpiData.total_calls),
+      data: transformTrendsForChart('calls'),
       color: "hsl(var(--warning))",
       bgColor: "bg-warning/5 border-warning/20"
     },
     {
       title: "Total Spent",
-      value: "$14.29",
-      data: totalSpentData,
+      value: formatCurrency(kpiData.total_spend),
+      data: transformTrendsForChart('cost'),
       color: "hsl(var(--secondary))",
       bgColor: "bg-secondary/5 border-secondary/20"
     },
     {
       title: "Average Cost per Call",
-      value: "$0.09",
-      data: avgCostData,
+      value: formatCurrency(avgCostPerCall),
+      data: transformTrendsForChart('cost'), // Use cost trends for avg cost visualization
       color: "hsl(var(--accent))",
       bgColor: "bg-accent/5 border-accent/20"
     }
@@ -155,6 +150,25 @@ export const MetricsKPICards = () => {
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+};
+
+// Loading skeleton component
+const MetricsKPICardsSkeleton = () => {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {[...Array(4)].map((_, index) => (
+        <Card key={index} className="border-2">
+          <CardHeader className="pb-2">
+            <Skeleton className="h-4 w-32" />
+          </CardHeader>
+          <CardContent className="pt-0">
+            <Skeleton className="h-8 w-24 mb-4" />
+            <Skeleton className="h-20 w-full" />
           </CardContent>
         </Card>
       ))}

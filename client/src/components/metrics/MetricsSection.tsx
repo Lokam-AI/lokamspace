@@ -28,7 +28,10 @@ export const MetricsSection = () => {
       </div>
 
       {/* KPI Cards */}
-      <MetricsKPICards />
+      <MetricsKPICards 
+        startDate={startDate?.toISOString().split('T')[0]}
+        endDate={endDate?.toISOString().split('T')[0]}
+      />
 
       {/* Call Analysis */}
       <div className="space-y-6">
