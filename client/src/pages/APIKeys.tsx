@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Key, Plus, Trash2, Copy, FileText, Settings, Code2, Eye, EyeOff, Upload, FileText as FileTextIcon, MapPin, Building, User, Phone, Car, MessageSquare, Save } from "lucide-react";
+import { Key, Plus, Trash2, Copy, FileText, Settings, Code2, Eye, EyeOff, Upload, FileText as FileTextIcon, MapPin, Building, User, Phone, Car, MessageSquare, Save, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 // Static data for demonstration
 const STATIC_API_KEYS = [
@@ -224,6 +225,13 @@ export default function APIKeys() {
   
   const [knowledgeFiles, setKnowledgeFiles] = useState<Array<{name: string, size: string, type: string}>>([]);
 
+  // Section collapse state
+  const [expandedSections, setExpandedSections] = useState({
+    clientDetails: false,
+    organizationDetails: false,
+    knowledgeFiles: false
+  });
+
   const handleCreateKey = () => {
     // Generate a random key (in a real app this would come from the backend)
     const randomKey = `sk-${Math.random().toString(36).substring(2, 6)}${Math.random().toString(36).substring(2, 6)}`;
@@ -340,6 +348,13 @@ export default function APIKeys() {
       title: "Configuration saved",
       description: "All settings have been saved successfully."
     });
+  };
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
   };
 
   const generateConfigurationJSON = (): string => {
@@ -689,213 +704,250 @@ export default function APIKeys() {
             {/* Left Side - Configuration Form */}
             <div className="space-y-6">
               {/* Section 1: Client & Service Details */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <User className="w-5 h-5 text-primary" />
-                  <h3 className="text-lg font-semibold">Client & Service Details</h3>
-                </div>
-                
+              <Collapsible open={expandedSections.clientDetails} onOpenChange={() => toggleSection('clientDetails')}>
                 <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="customer-name">Customer Name</Label>
-                    <Input
-                      id="customer-name"
-                      value={clientDetails.customerName}
-                      onChange={(e) => setClientDetails({...clientDetails, customerName: e.target.value})}
-                      placeholder="Enter customer name"
-                      className="mt-1"
-                    />
-                  </div>
+                  <CollapsibleTrigger asChild>
+                    <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors">
+                      <div className="flex items-center gap-2">
+                        <User className="w-5 h-5 text-primary" />
+                        <h3 className="text-lg font-semibold">Client & Service Details</h3>
+                      </div>
+                      {expandedSections.clientDetails ? (
+                        <ChevronDown className="w-5 h-5 text-gray-500" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-gray-500" />
+                      )}
+                    </div>
+                  </CollapsibleTrigger>
                   
-                  <div>
-                    <Label htmlFor="customer-phone">Customer Phone Number</Label>
-                    <Input
-                      id="customer-phone"
-                      value={clientDetails.customerPhone}
-                      onChange={(e) => setClientDetails({...clientDetails, customerPhone: e.target.value})}
-                      placeholder="+1 (555) 123-4567"
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="service-advisor">Service Advisor Name</Label>
-                    <Input
-                      id="service-advisor"
-                      value={clientDetails.serviceAdvisorName}
-                      onChange={(e) => setClientDetails({...clientDetails, serviceAdvisorName: e.target.value})}
-                      placeholder="Enter service advisor name"
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="service-type">Service Type</Label>
-                    <Select value={clientDetails.serviceType} onValueChange={(value) => setClientDetails({...clientDetails, serviceType: value})}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select service type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="oil-change">Oil Change</SelectItem>
-                        <SelectItem value="brake-service">Brake Service</SelectItem>
-                        <SelectItem value="tire-rotation">Tire Rotation</SelectItem>
-                        <SelectItem value="engine-repair">Engine Repair</SelectItem>
-                        <SelectItem value="transmission">Transmission Service</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="last-service-comment">Last Service Comment</Label>
-                    <Textarea
-                      id="last-service-comment"
-                      value={clientDetails.lastServiceComment}
-                      onChange={(e) => setClientDetails({...clientDetails, lastServiceComment: e.target.value})}
-                      placeholder="Enter details about the last service performed"
-                      className="mt-1"
-                      rows={3}
-                    />
-                  </div>
+                  <CollapsibleContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="customer-name">Customer Name</Label>
+                      <Input
+                        id="customer-name"
+                        value={clientDetails.customerName}
+                        onChange={(e) => setClientDetails({...clientDetails, customerName: e.target.value})}
+                        placeholder="Enter customer name"
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="customer-phone">Customer Phone Number</Label>
+                      <Input
+                        id="customer-phone"
+                        value={clientDetails.customerPhone}
+                        onChange={(e) => setClientDetails({...clientDetails, customerPhone: e.target.value})}
+                        placeholder="+1 (555) 123-4567"
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="service-advisor">Service Advisor Name</Label>
+                      <Input
+                        id="service-advisor"
+                        value={clientDetails.serviceAdvisorName}
+                        onChange={(e) => setClientDetails({...clientDetails, serviceAdvisorName: e.target.value})}
+                        placeholder="Enter service advisor name"
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="service-type">Service Type</Label>
+                      <Select value={clientDetails.serviceType} onValueChange={(value) => setClientDetails({...clientDetails, serviceType: value})}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select service type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="oil-change">Oil Change</SelectItem>
+                          <SelectItem value="brake-service">Brake Service</SelectItem>
+                          <SelectItem value="tire-rotation">Tire Rotation</SelectItem>
+                          <SelectItem value="engine-repair">Engine Repair</SelectItem>
+                          <SelectItem value="transmission">Transmission Service</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="last-service-comment">Last Service Comment</Label>
+                      <Textarea
+                        id="last-service-comment"
+                        value={clientDetails.lastServiceComment}
+                        onChange={(e) => setClientDetails({...clientDetails, lastServiceComment: e.target.value})}
+                        placeholder="Enter details about the last service performed"
+                        className="mt-1"
+                        rows={3}
+                      />
+                    </div>
+                  </CollapsibleContent>
                 </div>
-              </div>
+              </Collapsible>
 
               <Separator />
 
               {/* Section 2: Organization Details */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Building className="w-5 h-5 text-primary" />
-                  <h3 className="text-lg font-semibold">Organization Details</h3>
-                </div>
-                
+              <Collapsible open={expandedSections.organizationDetails} onOpenChange={() => toggleSection('organizationDetails')}>
                 <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="org-name">Organization Name</Label>
-                    <Input
-                      id="org-name"
-                      value={organizationDetails.organizationName}
-                      onChange={(e) => setOrganizationDetails({...organizationDetails, organizationName: e.target.value})}
-                      placeholder="Enter organization name"
-                      className="mt-1"
-                    />
-                  </div>
+                  <CollapsibleTrigger asChild>
+                    <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors">
+                      <div className="flex items-center gap-2">
+                        <Building className="w-5 h-5 text-primary" />
+                        <h3 className="text-lg font-semibold">Organization Details</h3>
+                      </div>
+                      {expandedSections.organizationDetails ? (
+                        <ChevronDown className="w-5 h-5 text-gray-500" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-gray-500" />
+                      )}
+                    </div>
+                  </CollapsibleTrigger>
                   
-                  <div>
-                    <Label htmlFor="location">Location</Label>
-                    <Input
-                      id="location"
-                      value={organizationDetails.location}
-                      onChange={(e) => setOrganizationDetails({...organizationDetails, location: e.target.value})}
-                      placeholder="Enter location"
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="org-description">Organization Description</Label>
-                    <Textarea
-                      id="org-description"
-                      value={organizationDetails.organizationDescription}
-                      onChange={(e) => setOrganizationDetails({...organizationDetails, organizationDescription: e.target.value})}
-                      placeholder="Enter organization description"
-                      className="mt-1"
-                      rows={2}
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="service-centre-description">Service Centre Description</Label>
-                    <Textarea
-                      id="service-centre-description"
-                      value={organizationDetails.serviceCentreDescription}
-                      onChange={(e) => setOrganizationDetails({...organizationDetails, serviceCentreDescription: e.target.value})}
-                      placeholder="Enter service centre description"
-                      className="mt-1"
-                      rows={2}
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="google-review-link">Google Review Link</Label>
-                    <Input
-                      id="google-review-link"
-                      value={organizationDetails.googleReviewLink}
-                      onChange={(e) => setOrganizationDetails({...organizationDetails, googleReviewLink: e.target.value})}
-                      placeholder="https://g.page/your-business/review"
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="areas-to-focus">Areas to Focus</Label>
-                    <Input
-                      id="areas-to-focus"
-                      value={organizationDetails.areasToFocus}
-                      onChange={(e) => setOrganizationDetails({...organizationDetails, areasToFocus: e.target.value})}
-                      placeholder="e.g., Customer satisfaction, Service quality"
-                      className="mt-1"
-                    />
-                  </div>
+                  <CollapsibleContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="org-name">Organization Name</Label>
+                      <Input
+                        id="org-name"
+                        value={organizationDetails.organizationName}
+                        onChange={(e) => setOrganizationDetails({...organizationDetails, organizationName: e.target.value})}
+                        placeholder="Enter organization name"
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="location">Location</Label>
+                      <Input
+                        id="location"
+                        value={organizationDetails.location}
+                        onChange={(e) => setOrganizationDetails({...organizationDetails, location: e.target.value})}
+                        placeholder="Enter location"
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="org-description">Organization Description</Label>
+                      <Textarea
+                        id="org-description"
+                        value={organizationDetails.organizationDescription}
+                        onChange={(e) => setOrganizationDetails({...organizationDetails, organizationDescription: e.target.value})}
+                        placeholder="Enter organization description"
+                        className="mt-1"
+                        rows={2}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="service-centre-description">Service Centre Description</Label>
+                      <Textarea
+                        id="service-centre-description"
+                        value={organizationDetails.serviceCentreDescription}
+                        onChange={(e) => setOrganizationDetails({...organizationDetails, serviceCentreDescription: e.target.value})}
+                        placeholder="Enter service centre description"
+                        className="mt-1"
+                        rows={2}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="google-review-link">Google Review Link</Label>
+                      <Input
+                        id="google-review-link"
+                        value={organizationDetails.googleReviewLink}
+                        onChange={(e) => setOrganizationDetails({...organizationDetails, googleReviewLink: e.target.value})}
+                        placeholder="https://g.page/your-business/review"
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="areas-to-focus">Areas to Focus</Label>
+                      <Input
+                        id="areas-to-focus"
+                        value={organizationDetails.areasToFocus}
+                        onChange={(e) => setOrganizationDetails({...organizationDetails, areasToFocus: e.target.value})}
+                        placeholder="e.g., Customer satisfaction, Service quality"
+                        className="mt-1"
+                      />
+                    </div>
+                  </CollapsibleContent>
                 </div>
-              </div>
+              </Collapsible>
 
               <Separator />
 
               {/* Section 3: Knowledge Files */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileTextIcon className="w-5 h-5 text-primary" />
-                    <h3 className="text-lg font-semibold">Knowledge Files</h3>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="file"
-                      multiple
-                      accept=".pdf,.doc,.docx,.txt"
-                      onChange={handleFileUpload}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                    <Button variant="outline" size="sm">
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload Files
-                    </Button>
-                  </div>
-                </div>
-                
-                <p className="text-sm text-muted-foreground">
-                  Upload files that will act as knowledge sources for the Feedback Agent
-                </p>
-
-                {knowledgeFiles.length === 0 ? (
-                  <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center bg-gray-50">
-                    <FileTextIcon className="mx-auto h-6 w-6 text-gray-400 mb-2" />
-                    <p className="text-gray-500 text-sm">
-                      No knowledge files uploaded. Click "Upload Files" to add your first file.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {knowledgeFiles.map((file, index) => (
-                      <div key={index} className="flex items-center gap-3 p-2 border rounded-lg bg-gray-50">
-                        <FileTextIcon className="h-4 w-4 text-gray-500" />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{file.name}</p>
-                          <p className="text-xs text-gray-500">{file.size} • {file.type}</p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeKnowledgeFile(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
+              <Collapsible open={expandedSections.knowledgeFiles} onOpenChange={() => toggleSection('knowledgeFiles')}>
+                <div className="space-y-4">
+                  <CollapsibleTrigger asChild>
+                    <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors">
+                      <div className="flex items-center gap-2">
+                        <FileTextIcon className="w-5 h-5 text-primary" />
+                        <h3 className="text-lg font-semibold">Knowledge Files</h3>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {expandedSections.knowledgeFiles ? (
+                          <ChevronDown className="w-5 h-5 text-gray-500" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5 text-gray-500" />
+                        )}
+                      </div>
+                    </div>
+                  </CollapsibleTrigger>
+                  
+                  <CollapsibleContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">
+                        Upload files that will act as knowledge sources for the Feedback Agent
+                      </p>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          multiple
+                          accept=".pdf,.doc,.docx,.txt"
+                          onChange={handleFileUpload}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <Button variant="outline" size="sm">
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Files
                         </Button>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    </div>
+
+                    {knowledgeFiles.length === 0 ? (
+                      <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center bg-gray-50">
+                        <FileTextIcon className="mx-auto h-6 w-6 text-gray-400 mb-2" />
+                        <p className="text-gray-500 text-sm">
+                          No knowledge files uploaded. Click "Upload Files" to add your first file.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {knowledgeFiles.map((file, index) => (
+                          <div key={index} className="flex items-center gap-3 p-2 border rounded-lg bg-gray-50">
+                            <FileTextIcon className="h-4 w-4 text-gray-500" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{file.name}</p>
+                              <p className="text-xs text-gray-500">{file.size} • {file.type}</p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeKnowledgeFile(index)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
             </div>
 
             {/* Right Side - Generated JSON */}
