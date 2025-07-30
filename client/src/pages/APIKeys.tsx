@@ -227,6 +227,8 @@ export default function APIKeys() {
 
   // Section collapse state
   const [expandedSections, setExpandedSections] = useState({
+    apiKeys: false,
+    webhookConfiguration: false,
     clientDetails: false,
     organizationDetails: false,
     knowledgeFiles: false
@@ -479,168 +481,198 @@ export default function APIKeys() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Your API Keys</CardTitle>
-          <CardDescription>
-            API keys provide access to Lokam API. Keep them secure.
-          </CardDescription>
+          <Collapsible open={expandedSections.apiKeys} onOpenChange={() => toggleSection('apiKeys')}>
+            <CollapsibleTrigger asChild>
+              <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors -m-2">
+                <div>
+                  <CardTitle>Your API Keys</CardTitle>
+                  <CardDescription>
+                    API keys provide access to Lokam API. Keep them secure.
+                  </CardDescription>
+                </div>
+                {expandedSections.apiKeys ? (
+                  <ChevronDown className="w-5 h-5 text-gray-500" />
+                ) : (
+                  <ChevronRight className="w-5 h-5 text-gray-500" />
+                )}
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="pt-4">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Secret Key</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Created by</TableHead>
+                      <TableHead className="w-[100px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {apiKeys.map((key) => (
+                      <TableRow key={key.id}>
+                        <TableCell>{key.name}</TableCell>
+                        <TableCell className="font-mono">{maskSecretKey(key.secret_key)}</TableCell>
+                        <TableCell>{key.created}</TableCell>
+                        <TableCell>{key.created_by}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteKey(key.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {apiKeys.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-6">
+                          No API keys found. Create your first key to get started.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Secret Key</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Created by</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {apiKeys.map((key) => (
-                <TableRow key={key.id}>
-                  <TableCell>{key.name}</TableCell>
-                  <TableCell className="font-mono">{maskSecretKey(key.secret_key)}</TableCell>
-                  <TableCell>{key.created}</TableCell>
-                  <TableCell>{key.created_by}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteKey(key.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {apiKeys.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-6">
-                    No API keys found. Create your first key to get started.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
       </Card>
 
       {/* Configuration Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Webhook Configuration</CardTitle>
-          <CardDescription>
-            Configure server settings and HTTP headers for API integration
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Server Settings */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Server Settings</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="server-url">Server URL</Label>
-                <Input
-                  id="server-url"
-                  value={serverUrl}
-                  onChange={(e) => setServerUrl(e.target.value)}
-                  placeholder="https://your-server.com/api/webhook"
-                  className="mt-1"
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
+          <Collapsible open={expandedSections.webhookConfiguration} onOpenChange={() => toggleSection('webhookConfiguration')}>
+            <CollapsibleTrigger asChild>
+              <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors -m-2">
                 <div>
-                  <Label htmlFor="secret-token">Secret Token</Label>
-                  <div className="relative mt-1">
-                    <Input
-                      id="secret-token"
-                      type={showSecretToken ? "text" : "password"}
-                      value={secretToken}
-                      onChange={(e) => setSecretToken(e.target.value)}
-                      placeholder="Enter your secret token"
-                      className="pr-10"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowSecretToken(!showSecretToken)}
-                    >
-                      {showSecretToken ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
+                  <CardTitle>Webhook Configuration</CardTitle>
+                  <CardDescription>
+                    Configure server settings and HTTP headers for API integration
+                  </CardDescription>
+                </div>
+                {expandedSections.webhookConfiguration ? (
+                  <ChevronDown className="w-5 h-5 text-gray-500" />
+                ) : (
+                  <ChevronRight className="w-5 h-5 text-gray-500" />
+                )}
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="pt-4 space-y-6">
+                {/* Server Settings */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Server Settings</h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="server-url">Server URL</Label>
+                      <Input
+                        id="server-url"
+                        value={serverUrl}
+                        onChange={(e) => setServerUrl(e.target.value)}
+                        placeholder="https://your-server.com/api/webhook"
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="secret-token">Secret Token</Label>
+                        <div className="relative mt-1">
+                          <Input
+                            id="secret-token"
+                            type={showSecretToken ? "text" : "password"}
+                            value={secretToken}
+                            onChange={(e) => setSecretToken(e.target.value)}
+                            placeholder="Enter your secret token"
+                            className="pr-10"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                            onClick={() => setShowSecretToken(!showSecretToken)}
+                          >
+                            {showSecretToken ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="timeout">Timeout (seconds)</Label>
+                        <Input
+                          id="timeout"
+                          type="number"
+                          value={timeout}
+                          onChange={(e) => setTimeout(e.target.value)}
+                          placeholder="20"
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-                
-                <div>
-                  <Label htmlFor="timeout">Timeout (seconds)</Label>
-                  <Input
-                    id="timeout"
-                    type="number"
-                    value={timeout}
-                    onChange={(e) => setTimeout(e.target.value)}
-                    placeholder="20"
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <Separator />
+                <Separator />
 
-          {/* HTTP Headers */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">HTTP Headers</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Custom HTTP headers to include in API requests to your server
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAddHeader(true)}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Header
-              </Button>
-            </div>
-
-            {httpHeaders.length === 0 ? (
-              <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center bg-gray-50">
-                <p className="text-gray-500">
-                  No headers configured. Click "Add Header" to add your first header.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {httpHeaders.map((header, index) => (
-                  <div key={index} className="flex items-center gap-2 p-3 border rounded-lg bg-gray-50">
-                    <div className="flex-1">
-                      <span className="font-medium text-sm">{header.key}:</span>
-                      <span className="text-sm text-gray-600 ml-2">{header.value}</span>
+                {/* HTTP Headers */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold">HTTP Headers</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Custom HTTP headers to include in API requests to your server
+                      </p>
                     </div>
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeHttpHeader(index)}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAddHeader(true)}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Header
                     </Button>
                   </div>
-                ))}
+
+                  {httpHeaders.length === 0 ? (
+                    <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center bg-gray-50">
+                      <p className="text-gray-500">
+                        No headers configured. Click "Add Header" to add your first header.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {httpHeaders.map((header, index) => (
+                        <div key={index} className="flex items-center gap-2 p-3 border rounded-lg bg-gray-50">
+                          <div className="flex-1">
+                            <span className="font-medium text-sm">{header.key}:</span>
+                            <span className="text-sm text-gray-600 ml-2">{header.value}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeHttpHeader(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
-        </CardContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </CardHeader>
       </Card>
 
       {/* Add Header Dialog */}
