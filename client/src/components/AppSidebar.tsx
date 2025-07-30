@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { LayoutDashboard, Phone, Calendar, MessageSquare, Settings, User, LogOut, HelpCircle, Palette, BarChart3, Building } from "lucide-react";
+import { LayoutDashboard, Phone, Calendar, MessageSquare, Settings, User, LogOut, HelpCircle, Palette, BarChart3, Building, Key } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator, SidebarFooter, SidebarHeader, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,11 @@ const primaryNavItems = [
 ];
 
 const secondaryNavItems = [
+  {
+    title: "API Platform",
+    url: "/api-keys",
+    icon: Key
+  },
   {
     title: "Metrics",
     url: "/metrics",
