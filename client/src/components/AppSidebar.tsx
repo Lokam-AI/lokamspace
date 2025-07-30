@@ -21,6 +21,11 @@ const primaryNavItems = [
     url: "/calls",
     icon: Phone
   },
+  {
+    title: "API Platform",
+    url: "/api-keys",
+    icon: Key
+  },
   // Temporarily hide Bookings and Inquiries
   // {
   //   title: "Bookings",
@@ -35,11 +40,6 @@ const primaryNavItems = [
 ];
 
 const secondaryNavItems = [
-  {
-    title: "API Platform",
-    url: "/api-keys",
-    icon: Key
-  },
   {
     title: "Metrics",
     url: "/metrics",

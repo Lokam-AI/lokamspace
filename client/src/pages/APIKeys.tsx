@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Key, Plus, Trash2, Copy, FileText, Settings, Code2 } from "lucide-react";
+import { Key, Plus, Trash2, Copy, FileText, Settings, Code2, Eye, EyeOff, Upload, FileText as FileTextIcon, MapPin, Building, User, Phone, Car, MessageSquare, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -12,6 +12,9 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Static data for demonstration
 const STATIC_API_KEYS = [
@@ -44,64 +47,82 @@ const API_ENDPOINTS = [
     category: "Calls",
     endpoints: [
       {
+        method: "POST",
+        path: "/call",
+        name: "Create Call",
+        description: "Create a new call with specified parameters.",
+        parameters: [
+          {
+            name: "phone_number",
+            type: "string",
+            required: true,
+            description: "The phone number to call."
+          },
+          {
+            name: "message",
+            type: "string",
+            required: false,
+            description: "The message to play during the call."
+          },
+          {
+            name: "timeout",
+            type: "integer",
+            required: false,
+            description: "Call timeout in seconds (default: 60)."
+          }
+        ],
+        response: {
+          id: "string",
+          status: "created",
+          phone_number: "string",
+          created_at: "2024-01-01T00:00:00Z"
+        }
+      },
+      {
         method: "GET",
         path: "/call",
         name: "List Calls",
         description: "Retrieve a list of all calls with optional filtering.",
         parameters: [
           {
-            name: "createdAtLe",
+            name: "limit",
+            type: "integer",
+            required: false,
+            description: "Number of calls to return (default: 20, max: 100)."
+          },
+          {
+            name: "offset",
+            type: "integer",
+            required: false,
+            description: "Number of calls to skip for pagination."
+          },
+          {
+            name: "status",
+            type: "string",
+            required: false,
+            description: "Filter calls by status (completed, failed, in-progress)."
+          },
+          {
+            name: "created_at_after",
             type: "string",
             required: false,
             format: "date-time",
-            description: "This will return items where the createdAt is less than or equal to the specified value."
-          },
-          {
-            name: "updatedAtGt",
-            type: "string", 
-            required: false,
-            format: "date-time",
-            description: "This will return items where the updatedAt is greater than the specified value."
-          },
-          {
-            name: "updatedAtLt",
-            type: "string",
-            required: false,
-            format: "date-time", 
-            description: "This will return items where the updatedAt is less than the specified value."
+            description: "Filter calls created after this timestamp."
           }
         ],
         response: {
-          id: "string",
-          transferFrom: "1",
-          model: "blind-transfer",
-          message: "foo",
-          timeout: 60,
-          sipVerb: "refer",
-          holdAudioUrl: "foo",
-          transferCompleteAudioUrl: "foo",
-          twilML: "foo",
-          summaryPlan: {
-            messages: [{}],
-            enabled: true,
-            timeoutSeconds: 42
-          },
-          sipHeadersInReferToEnabled: true,
-          fallbackPlan: {
-            message: "Hi, how can I help you today?",
-            endCallEnable: false
-          }
-        }
-      },
-      {
-        method: "POST", 
-        path: "/call",
-        name: "Create Call",
-        description: "Create a new call with specified parameters.",
-        parameters: [],
-        response: {
-          id: "string",
-          status: "created"
+          calls: [
+            {
+              id: "string",
+              phone_number: "string",
+              status: "completed",
+              duration: 120,
+              created_at: "2024-01-01T00:00:00Z"
+            }
+          ],
+          total: 100,
+          limit: 20,
+          offset: 0
         }
       },
       {
@@ -119,147 +140,46 @@ const API_ENDPOINTS = [
         ],
         response: {
           id: "string",
-          status: "completed"
-        }
-      },
-      {
-        method: "DELETE",
-        path: "/call/{id}",
-        name: "Delete Call Data",
-        description: "Delete call data for a specific call.",
-        parameters: [
-          {
-            name: "id", 
-            type: "string",
-            required: true,
-            description: "The unique identifier for the call."
-          }
-        ],
-        response: {
-          success: true
-        }
-      },
-      {
-        method: "PATCH",
-        path: "/call/{id}",
-        name: "Update Call",
-        description: "Update call information.",
-        parameters: [
-          {
-            name: "id",
-            type: "string", 
-            required: true,
-            description: "The unique identifier for the call."
-          }
-        ],
-        response: {
-          id: "string",
-          status: "updated"
-        }
-      }
-    ]
-  },
-  {
-    category: "Chats",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/chat",
-        name: "List Chats",
-        description: "Retrieve a list of all chats.",
-        parameters: [],
-        response: {
-          chats: []
+          phone_number: "string",
+          status: "completed",
+          duration: 120,
+          message: "string",
+          transcript: "string",
+          created_at: "2024-01-01T00:00:00Z",
+          updated_at: "2024-01-01T00:05:00Z"
         }
       },
       {
         method: "POST",
-        path: "/chat", 
-        name: "Create Chat",
-        description: "Create a new chat session.",
-        parameters: [],
-        response: {
-          id: "string",
-          status: "created"
-        }
-      },
-      {
-        method: "GET",
-        path: "/chat/{id}",
-        name: "Get Chat",
-        description: "Get details of a specific chat.",
+        path: "/call/batch",
+        name: "Create Batch Call",
+        description: "Create multiple calls in a single request.",
         parameters: [
           {
-            name: "id",
+            name: "calls",
+            type: "array",
+            required: true,
+            description: "Array of call objects to create."
+          },
+          {
+            name: "batch_name",
             type: "string",
-            required: true,
-            description: "The unique identifier for the chat."
+            required: false,
+            description: "Optional name for the batch."
           }
         ],
         response: {
-          id: "string",
-          messages: []
-        }
-      },
-      {
-        method: "DELETE",
-        path: "/chat/{id}",
-        name: "Delete Chat",
-        description: "Delete a chat session.",
-        parameters: [
-          {
-            name: "id",
-            type: "string", 
-            required: true,
-            description: "The unique identifier for the chat."
-          }
-        ],
-        response: {
-          success: true
-        }
-      }
-    ]
-  },
-  {
-    category: "Campaigns",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/campaign",
-        name: "List Campaigns", 
-        description: "Retrieve a list of all campaigns.",
-        parameters: [],
-        response: {
-          campaigns: []
-        }
-      },
-      {
-        method: "POST",
-        path: "/campaign",
-        name: "Create Campaign",
-        description: "Create a new campaign.",
-        parameters: [],
-        response: {
-          id: "string",
-          status: "created"
-        }
-      },
-      {
-        method: "GET",
-        path: "/campaign/{id}",
-        name: "Get Campaign",
-        description: "Get details of a specific campaign.",
-        parameters: [
-          {
-            name: "id",
-            type: "string",
-            required: true,
-            description: "The unique identifier for the campaign."
-          }
-        ],
-        response: {
-          id: "string",
-          name: "string"
+          batch_id: "string",
+          status: "processing",
+          total_calls: 10,
+          created_calls: [
+            {
+              id: "string",
+              phone_number: "string",
+              status: "queued"
+            }
+          ],
+          created_at: "2024-01-01T00:00:00Z"
         }
       }
     ]
@@ -273,6 +193,36 @@ export default function APIKeys() {
   const [newKeyValue, setNewKeyValue] = useState("");
   const [showNewKey, setShowNewKey] = useState(false);
   const [selectedEndpoint, setSelectedEndpoint] = useState(API_ENDPOINTS[0].endpoints[0]);
+  
+  // Configuration state
+  const [serverUrl, setServerUrl] = useState("https://dev-api.lokam.ai/api/v1/webhooks/vapi-webhook");
+  const [secretToken, setSecretToken] = useState("sk-8kIA...8kIA");
+  const [showSecretToken, setShowSecretToken] = useState(false);
+  const [timeout, setTimeout] = useState("20");
+  const [httpHeaders, setHttpHeaders] = useState<Array<{key: string, value: string}>>([]);
+  const [newHeaderKey, setNewHeaderKey] = useState("");
+  const [newHeaderValue, setNewHeaderValue] = useState("");
+  const [showAddHeader, setShowAddHeader] = useState(false);
+  
+  // Agent Configuration state
+  const [clientDetails, setClientDetails] = useState({
+    customerName: "",
+    customerPhone: "",
+    serviceAdvisorName: "",
+    serviceType: "",
+    lastServiceComment: ""
+  });
+  
+  const [organizationDetails, setOrganizationDetails] = useState({
+    organizationName: "",
+    organizationDescription: "",
+    serviceCentreDescription: "",
+    location: "",
+    googleReviewLink: "",
+    areasToFocus: ""
+  });
+  
+  const [knowledgeFiles, setKnowledgeFiles] = useState<Array<{name: string, size: string, type: string}>>([]);
 
   const handleCreateKey = () => {
     // Generate a random key (in a real app this would come from the backend)
@@ -294,8 +244,8 @@ export default function APIKeys() {
 
   // Function to mask the secret key for display
   const maskSecretKey = (key: string) => {
-    if (key.length <= 8) return key;
-    return `${key.substring(0, 6)}...${key.substring(key.length - 4)}`;
+    if (key.length <= 6) return key;
+    return `${key.substring(0, 3)}...${key.substring(key.length - 3)}`;
   };
 
   const handleDeleteKey = (id: string) => {
@@ -339,11 +289,64 @@ export default function APIKeys() {
     });
   };
 
+  const addHttpHeader = () => {
+    if (newHeaderKey.trim() && newHeaderValue.trim()) {
+      setHttpHeaders([...httpHeaders, { key: newHeaderKey.trim(), value: newHeaderValue.trim() }]);
+      setNewHeaderKey("");
+      setNewHeaderValue("");
+      setShowAddHeader(false);
+      toast({
+        title: "Header added",
+        description: "HTTP header has been added successfully."
+      });
+    }
+  };
+
+  const removeHttpHeader = (index: number) => {
+    setHttpHeaders(httpHeaders.filter((_, i) => i !== index));
+    toast({
+      title: "Header removed",
+      description: "HTTP header has been removed."
+    });
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      const newFiles = Array.from(files).map(file => ({
+        name: file.name,
+        size: `${(file.size / 1024).toFixed(1)} KB`,
+        type: file.type
+      }));
+      setKnowledgeFiles([...knowledgeFiles, ...newFiles]);
+      toast({
+        title: "Files uploaded",
+        description: `${files.length} file(s) have been uploaded successfully.`
+      });
+    }
+  };
+
+  const removeKnowledgeFile = (index: number) => {
+    setKnowledgeFiles(knowledgeFiles.filter((_, i) => i !== index));
+    toast({
+      title: "File removed",
+      description: "Knowledge file has been removed."
+    });
+  };
+
+  const handleSaveConfiguration = () => {
+    // Save all configuration data
+    toast({
+      title: "Configuration saved",
+      description: "All settings have been saved successfully."
+    });
+  };
+
   const renderAPIKeysTab = () => (
     <div className="flex flex-col gap-8">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">API Keys</h2>
+          <h2 className="text-2xl font-bold tracking-tight">API Configuration</h2>
           <p className="text-muted-foreground mt-2">
             Manage API keys to securely access the Lokam API
           </p>
@@ -467,6 +470,396 @@ export default function APIKeys() {
               )}
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
+
+      {/* Configuration Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Webhook Configuration</CardTitle>
+          <CardDescription>
+            Configure server settings and HTTP headers for API integration
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Server Settings */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Server Settings</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="server-url">Server URL</Label>
+                <Input
+                  id="server-url"
+                  value={serverUrl}
+                  onChange={(e) => setServerUrl(e.target.value)}
+                  placeholder="https://your-server.com/api/webhook"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="secret-token">Secret Token</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      id="secret-token"
+                      type={showSecretToken ? "text" : "password"}
+                      value={secretToken}
+                      onChange={(e) => setSecretToken(e.target.value)}
+                      placeholder="Enter your secret token"
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                      onClick={() => setShowSecretToken(!showSecretToken)}
+                    >
+                      {showSecretToken ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="timeout">Timeout (seconds)</Label>
+                  <Input
+                    id="timeout"
+                    type="number"
+                    value={timeout}
+                    onChange={(e) => setTimeout(e.target.value)}
+                    placeholder="20"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* HTTP Headers */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">HTTP Headers</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Custom HTTP headers to include in API requests to your server
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAddHeader(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Header
+              </Button>
+            </div>
+
+            {httpHeaders.length === 0 ? (
+              <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center bg-gray-50">
+                <p className="text-gray-500">
+                  No headers configured. Click "Add Header" to add your first header.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {httpHeaders.map((header, index) => (
+                  <div key={index} className="flex items-center gap-2 p-3 border rounded-lg bg-gray-50">
+                    <div className="flex-1">
+                      <span className="font-medium text-sm">{header.key}:</span>
+                      <span className="text-sm text-gray-600 ml-2">{header.value}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeHttpHeader(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Add Header Dialog */}
+      <Dialog open={showAddHeader} onOpenChange={setShowAddHeader}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add HTTP Header</DialogTitle>
+            <DialogDescription>
+              Add a custom HTTP header to include in API requests.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="header-key" className="text-right">
+                Key
+              </Label>
+              <Input
+                id="header-key"
+                placeholder="Content-Type"
+                className="col-span-3"
+                value={newHeaderKey}
+                onChange={(e) => setNewHeaderKey(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="header-value" className="text-right">
+                Value
+              </Label>
+              <Input
+                id="header-value"
+                placeholder="application/json"
+                className="col-span-3"
+                value={newHeaderValue}
+                onChange={(e) => setNewHeaderValue(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddHeader(false)}>
+              Cancel
+            </Button>
+            <Button onClick={addHttpHeader} disabled={!newHeaderKey.trim() || !newHeaderValue.trim()}>
+              Add Header
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Agent Configuration Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Agent Configuration</CardTitle>
+          <CardDescription>
+            Configure default values for the Feedback Agent that will be used in API calls
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Section 1: Client & Service Details */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <User className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-semibold">Client & Service Details</h3>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="customer-name">Customer Name</Label>
+                <Input
+                  id="customer-name"
+                  value={clientDetails.customerName}
+                  onChange={(e) => setClientDetails({...clientDetails, customerName: e.target.value})}
+                  placeholder="Enter customer name"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="customer-phone">Customer Phone Number</Label>
+                <Input
+                  id="customer-phone"
+                  value={clientDetails.customerPhone}
+                  onChange={(e) => setClientDetails({...clientDetails, customerPhone: e.target.value})}
+                  placeholder="+1 (555) 123-4567"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="service-advisor">Service Advisor Name</Label>
+                <Input
+                  id="service-advisor"
+                  value={clientDetails.serviceAdvisorName}
+                  onChange={(e) => setClientDetails({...clientDetails, serviceAdvisorName: e.target.value})}
+                  placeholder="Enter service advisor name"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="service-type">Service Type</Label>
+                <Select value={clientDetails.serviceType} onValueChange={(value) => setClientDetails({...clientDetails, serviceType: value})}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select service type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="oil-change">Oil Change</SelectItem>
+                    <SelectItem value="brake-service">Brake Service</SelectItem>
+                    <SelectItem value="tire-rotation">Tire Rotation</SelectItem>
+                    <SelectItem value="engine-repair">Engine Repair</SelectItem>
+                    <SelectItem value="transmission">Transmission Service</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="last-service-comment">Last Service Comment</Label>
+              <Textarea
+                id="last-service-comment"
+                value={clientDetails.lastServiceComment}
+                onChange={(e) => setClientDetails({...clientDetails, lastServiceComment: e.target.value})}
+                placeholder="Enter details about the last service performed"
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Section 2: Organization Details */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Building className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-semibold">Organization Details</h3>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="org-name">Organization Name</Label>
+                <Input
+                  id="org-name"
+                  value={organizationDetails.organizationName}
+                  onChange={(e) => setOrganizationDetails({...organizationDetails, organizationName: e.target.value})}
+                  placeholder="Enter organization name"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  value={organizationDetails.location}
+                  onChange={(e) => setOrganizationDetails({...organizationDetails, location: e.target.value})}
+                  placeholder="Enter location"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="org-description">Organization Description</Label>
+              <Textarea
+                id="org-description"
+                value={organizationDetails.organizationDescription}
+                onChange={(e) => setOrganizationDetails({...organizationDetails, organizationDescription: e.target.value})}
+                placeholder="Enter organization description"
+                className="mt-1"
+                rows={2}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="service-centre-description">Service Centre Description</Label>
+              <Textarea
+                id="service-centre-description"
+                value={organizationDetails.serviceCentreDescription}
+                onChange={(e) => setOrganizationDetails({...organizationDetails, serviceCentreDescription: e.target.value})}
+                placeholder="Enter service centre description"
+                className="mt-1"
+                rows={2}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="google-review-link">Google Review Link</Label>
+                <Input
+                  id="google-review-link"
+                  value={organizationDetails.googleReviewLink}
+                  onChange={(e) => setOrganizationDetails({...organizationDetails, googleReviewLink: e.target.value})}
+                  placeholder="https://g.page/your-business/review"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="areas-to-focus">Areas to Focus</Label>
+                <Input
+                  id="areas-to-focus"
+                  value={organizationDetails.areasToFocus}
+                  onChange={(e) => setOrganizationDetails({...organizationDetails, areasToFocus: e.target.value})}
+                  placeholder="e.g., Customer satisfaction, Service quality"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Section 3: Knowledge Files */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileTextIcon className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-semibold">Knowledge Files</h3>
+              </div>
+              <div className="relative">
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.txt"
+                  onChange={handleFileUpload}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <Button variant="outline" size="sm">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Files
+                </Button>
+              </div>
+            </div>
+            
+            <p className="text-sm text-muted-foreground">
+              Upload files that will act as knowledge sources for the Feedback Agent
+            </p>
+
+            {knowledgeFiles.length === 0 ? (
+              <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center bg-gray-50">
+                <FileTextIcon className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                <p className="text-gray-500">
+                  No knowledge files uploaded. Click "Upload Files" to add your first file.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {knowledgeFiles.map((file, index) => (
+                  <div key={index} className="flex items-center gap-3 p-3 border rounded-lg bg-gray-50">
+                    <FileTextIcon className="h-5 w-5 text-gray-500" />
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{file.name}</p>
+                      <p className="text-xs text-gray-500">{file.size} • {file.type}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeKnowledgeFile(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -608,27 +1001,7 @@ export default function APIKeys() {
     </div>
   );
 
-  const renderConfigurationTab = () => (
-    <div className="flex flex-col gap-8">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Configuration</h2>
-        <p className="text-muted-foreground mt-2">
-          Configure your API settings and preferences
-        </p>
-      </div>
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center py-12">
-            <Settings className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">Configuration Coming Soon</h3>
-            <p className="text-muted-foreground">
-              This section will contain API configuration options.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+
 
   return (
     <SidebarProvider>
@@ -638,26 +1011,28 @@ export default function APIKeys() {
           <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
             <div className="min-h-screen bg-background -m-4 p-4">
               <div className="flex flex-col gap-8 p-8">
-                <div>
-                  <h1 className="text-3xl font-bold tracking-tight">API Platform</h1>
-                  <p className="text-muted-foreground mt-2">
-                    Manage your API integration and access
-                  </p>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h1 className="text-3xl font-bold tracking-tight">API Platform</h1>
+                    <p className="text-muted-foreground mt-2">
+                      Manage your API integration and access
+                    </p>
+                  </div>
+                  <Button onClick={handleSaveConfiguration} className="flex items-center gap-2">
+                    <Save className="w-4 h-4" />
+                    Save Configuration
+                  </Button>
                 </div>
 
                 <Tabs defaultValue="api-keys" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="api-keys" className="flex items-center gap-2">
+                  <TabsList className="flex w-full bg-transparent p-0 h-auto border-b justify-start">
+                    <TabsTrigger value="api-keys" className="flex items-center gap-2 data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-primary data-[state=active]:bg-transparent rounded-none relative px-4">
                       <Key className="w-4 h-4" />
-                      API Keys
+                      API Configuration
                     </TabsTrigger>
-                    <TabsTrigger value="api-reference" className="flex items-center gap-2">
+                    <TabsTrigger value="api-reference" className="flex items-center gap-2 data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-primary data-[state=active]:bg-transparent rounded-none relative px-4">
                       <FileText className="w-4 h-4" />
                       API Reference
-                    </TabsTrigger>
-                    <TabsTrigger value="configuration" className="flex items-center gap-2">
-                      <Settings className="w-4 h-4" />
-                      Configuration
                     </TabsTrigger>
                   </TabsList>
                   
@@ -667,10 +1042,6 @@ export default function APIKeys() {
                   
                   <TabsContent value="api-reference" className="mt-6">
                     {renderAPIReferenceTab()}
-                  </TabsContent>
-                  
-                  <TabsContent value="configuration" className="mt-6">
-                    {renderConfigurationTab()}
                   </TabsContent>
                 </Tabs>
               </div>
