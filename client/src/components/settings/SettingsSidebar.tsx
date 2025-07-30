@@ -16,7 +16,6 @@ const orgSettingsItems = [
     id: "billing",
     title: "Billing & Add-Ons",
     icon: CreditCard,
-    disabled: true,
   },
   { id: "members", title: "Members", icon: Users },
   { id: "integrations", title: "Integrations", icon: Plug, disabled: true },

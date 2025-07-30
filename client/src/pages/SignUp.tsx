@@ -76,7 +76,7 @@ export default function SignUp() {
         <div className="text-center">
           <h1 className="text-2xl font-bold">Create your account</h1>
           <p className="text-sm text-gray-500 mt-2">
-            Join Lokam to manage your feedback calls and campaigns
+            Join LokamSpace to manage your feedback calls and campaigns
           </p>
         </div>
 
@@ -169,6 +169,10 @@ export default function SignUp() {
           <a href="/login" className="text-blue-600 hover:underline">
             Sign in
           </a>
+        </div>
+
+        <div className="text-center text-xs mt-4 text-gray-500">
+          <span>Terms of Use</span> | <span>Privacy Policy</span>
         </div>
       </Card>
     </div>
