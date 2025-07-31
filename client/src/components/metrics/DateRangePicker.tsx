@@ -30,15 +30,15 @@ export const DateRangePicker = ({
   onFilterTypeChange,
 }: DateRangePickerProps) => {
   return (
-    <div className="flex items-center space-x-4 flex-wrap gap-2">
+    <div className="flex items-center space-x-4 flex-wrap gap-3">
       <div className="flex items-center space-x-2">
-        <label className="text-sm font-medium text-gray-700">From:</label>
+        <label className="text-sm font-medium text-foreground">From:</label>
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               className={cn(
-                "w-36 justify-start text-left font-normal",
+                "w-40 justify-start text-left font-normal h-9",
                 !startDate && "text-muted-foreground"
               )}
             >
@@ -59,13 +59,13 @@ export const DateRangePicker = ({
       </div>
 
       <div className="flex items-center space-x-2">
-        <label className="text-sm font-medium text-gray-700">To:</label>
+        <label className="text-sm font-medium text-foreground">To:</label>
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               className={cn(
-                "w-36 justify-start text-left font-normal",
+                "w-40 justify-start text-left font-normal h-9",
                 !endDate && "text-muted-foreground"
               )}
             >
@@ -87,9 +87,9 @@ export const DateRangePicker = ({
       </div>
 
       <div className="flex items-center space-x-2">
-        <span className="text-sm text-gray-600">grouped by</span>
+        <span className="text-sm text-foreground">grouped by</span>
         <Select value={groupBy} onValueChange={onGroupByChange}>
-          <SelectTrigger className="w-28">
+          <SelectTrigger className="w-28 h-9">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -102,7 +102,7 @@ export const DateRangePicker = ({
       </div>
 
       <Select value={filterType} onValueChange={onFilterTypeChange}>
-        <SelectTrigger className="w-40">
+        <SelectTrigger className="w-44 h-9">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

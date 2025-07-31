@@ -122,9 +122,9 @@ export const MetricsKPICards = ({
       bgColor: "bg-green-50 border-green-200"
     },
     {
-      title: "Average Cost per Call",
-      value: formatCurrency(avgCostPerCall),
-      data: transformTrendsForChart('cost'), // Use cost trends for avg cost visualization
+      title: "Average NPS",
+      value: kpiData.average_nps !== null ? kpiData.average_nps.toFixed(1) : "N/A",
+      data: transformTrendsForChart('calls'), // Use calls trends for NPS visualization
       color: "#8b5cf6",
       bgColor: "bg-purple-50 border-purple-200"
     }
