@@ -22,11 +22,11 @@ const primaryNavItems = [
     icon: Phone
   },
   // Temporarily hide Bookings and Inquiries
-  {
-    title: "Bookings",
-    url: "/bookings",
-    icon: Calendar
-  },
+  // {
+  //   title: "Bookings",
+  //   url: "/bookings",
+  //   icon: Calendar
+  // },
   // {
   //   title: "Inquiries",
   //   url: "/inquiries",
