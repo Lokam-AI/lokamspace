@@ -1,30 +1,35 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useCallAnalysisCharts } from "@/hooks/useMetrics";
 
-export const CallAnalysisCharts = () => {
-  // Updated data with only 3 call types: Feedback Calls, Bookings, Inquiries
-  const reasonCallEndedData = [
-    { reason: "Customer Ended", count: 45, color: "#3b82f6" },
-    { reason: "Assistant Ended", count: 32, color: "#10b981" },
-    { reason: "Transfer Failed", count: 18, color: "#f59e0b" },
-    { reason: "Error", count: 12, color: "#ef4444" },
-    { reason: "Timeout", count: 8, color: "#8b5cf6" },
-    { reason: "Other", count: 5, color: "#6b7280" }
-  ];
+interface CallAnalysisChartsProps {
+  startDate?: string;
+  endDate?: string;
+  groupBy?: string;
+  filterType?: string;
+}
 
-  // Updated data with only the 3 call types
-  const avgDurationByTypeData = [
-    { type: "Feedback Calls", duration: 4.2, color: "#3b82f6" },
-    { type: "Bookings", duration: 3.8, color: "#10b981" },
-    { type: "Inquiries", duration: 2.9, color: "#f59e0b" }
-  ];
+export const CallAnalysisCharts = ({ 
+  startDate, 
+  endDate, 
+  groupBy, 
+  filterType 
+}: CallAnalysisChartsProps) => {
+  // Build API parameters based on props
+  const apiParams = {
+    ...(startDate && endDate ? { start_date: startDate, end_date: endDate } : { date_range: '30d' }),
+    ...(groupBy && { group_by: groupBy }),
+    ...(filterType && filterType !== 'All Types' && { filter_type: filterType })
+  };
 
-  // Updated cost breakdown with only the 3 call types
-  const costBreakdownData = [
-    { type: "Feedback Calls", cost: 52.3, percentage: 45 },
-    { type: "Bookings", cost: 38.7, percentage: 33 },
-    { type: "Inquiries", cost: 25.8, percentage: 22 }
-  ];
+  // Fetch call analysis charts data from API
+  const { data: chartsData, isLoading, error } = useCallAnalysisCharts(apiParams);
+
+  // Use API data or fallback to empty arrays
+  const reasonCallEndedData = chartsData?.reason_call_ended || [];
+  const avgDurationByTypeData = chartsData?.avg_duration_by_type || [];
+  const costBreakdownData = chartsData?.cost_breakdown || [];
 
   const COLORS = ['#3b82f6', '#f97316', '#10b981'];
 
@@ -61,6 +66,47 @@ export const CallAnalysisCharts = () => {
     }
     return null;
   };
+
+  // Loading skeleton
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="shadow-lg border-border bg-card rounded-xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b border-border">
+              <Skeleton className="h-6 w-48" />
+            </CardHeader>
+            <CardContent className="p-6">
+              <Skeleton className="h-80 w-full" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    console.error('Call analysis charts error:', error);
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <Card className="lg:col-span-2 shadow-lg border-border bg-card rounded-xl overflow-hidden">
+          <CardContent className="p-6">
+            <div className="text-center py-8">
+              <p className="text-foreground-secondary mb-2">Failed to load call analysis data</p>
+              <p className="text-sm text-foreground-secondary">Please try again later</p>
+              <details className="mt-4 text-left">
+                <summary className="text-sm cursor-pointer">Error details (click to expand)</summary>
+                <pre className="text-xs mt-2 p-2 bg-muted rounded text-red-600 overflow-auto">
+                  {error instanceof Error ? error.message : String(error)}
+                </pre>
+              </details>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

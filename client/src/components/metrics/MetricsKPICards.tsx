@@ -10,30 +10,40 @@ interface MetricsKPICardsProps {
   dateRange?: string;
   startDate?: string;
   endDate?: string;
+  groupBy?: string;
+  filterType?: string;
 }
 
 export const MetricsKPICards = ({ 
   dateRange = "7d", 
   startDate, 
-  endDate 
+  endDate,
+  groupBy,
+  filterType
 }: MetricsKPICardsProps) => {
+  // Build API parameters
+  const apiParams = {
+    ...(startDate && endDate ? { start_date: startDate, end_date: endDate } : { date_range: dateRange }),
+    ...(groupBy && { group_by: groupBy }),
+    ...(filterType && filterType !== 'All Types' && { filter_type: filterType })
+  };
+
   // Fetch KPI data
   const { 
     data: kpiData, 
     isLoading: kpiLoading, 
     error: kpiError 
-  } = useMetricsKPIs({
-    date_range: dateRange,
-    start_date: startDate,
-    end_date: endDate,
-  });
+  } = useMetricsKPIs(apiParams);
 
   // Fetch trends data for charts
   const { 
     data: trendsData, 
     isLoading: trendsLoading, 
     error: trendsError 
-  } = useCallTrends({ date_range: dateRange });
+  } = useCallTrends({ 
+    date_range: dateRange,
+    ...(groupBy && { group_by: groupBy })
+  });
 
   const isLoading = kpiLoading || trendsLoading;
   const hasError = kpiError || trendsError;

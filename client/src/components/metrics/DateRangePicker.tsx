@@ -107,9 +107,9 @@ export const DateRangePicker = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="All Types">All Types</SelectItem>
-          <SelectItem value="Feedback Calls">Feedback Calls</SelectItem>
-          <SelectItem value="Bookings">Bookings</SelectItem>
-          <SelectItem value="Inquiries">Inquiries</SelectItem>
+          <SelectItem value="Service Feedback">Service Feedback</SelectItem>
+          <SelectItem value="Service follow-up">Service follow-up</SelectItem>
+          <SelectItem value="Demo Call">Demo Call</SelectItem>
         </SelectContent>
       </Select>
     </div>

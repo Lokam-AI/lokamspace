@@ -47,6 +47,24 @@ export interface PerformanceSummaryResponse {
   };
 }
 
+export interface CallAnalysisChartsResponse {
+  reason_call_ended: Array<{
+    reason: string;
+    count: number;
+    color: string;
+  }>;
+  avg_duration_by_type: Array<{
+    type: string;
+    duration: number;
+    color: string;
+  }>;
+  cost_breakdown: Array<{
+    type: string;
+    cost: number;
+    percentage: number;
+  }>;
+}
+
 // API functions
 export const metricsApi = {
   /**
@@ -56,6 +74,8 @@ export const metricsApi = {
     date_range?: string;
     start_date?: string;
     end_date?: string;
+    group_by?: string;
+    filter_type?: string;
   }): Promise<MetricsKPIResponse> => {
     const response = await api.get("/metrics/dashboard-kpis", {
       params,
@@ -80,6 +100,22 @@ export const metricsApi = {
    */
   getPerformanceSummary: async (): Promise<PerformanceSummaryResponse> => {
     const response = await api.get("/metrics/performance-summary");
+    return response.data;
+  },
+
+  /**
+   * Get call analysis charts data
+   */
+  getCallAnalysisCharts: async (params?: {
+    date_range?: string;
+    start_date?: string;
+    end_date?: string;
+    group_by?: string;
+    filter_type?: string;
+  }): Promise<CallAnalysisChartsResponse> => {
+    const response = await api.get("/metrics/call-analysis-charts", {
+      params,
+    });
     return response.data;
   },
 };

@@ -31,12 +31,19 @@ export const MetricsSection = () => {
       <MetricsKPICards 
         startDate={startDate?.toISOString().split('T')[0]}
         endDate={endDate?.toISOString().split('T')[0]}
+        groupBy={groupBy}
+        filterType={filterType}
       />
 
       {/* Call Analysis */}
       <div className="space-y-6">
         <h3 className="text-2xl font-semibold text-foreground">Call Analysis</h3>
-        <CallAnalysisCharts />
+        <CallAnalysisCharts 
+          startDate={startDate?.toISOString().split('T')[0]}
+          endDate={endDate?.toISOString().split('T')[0]}
+          groupBy={groupBy}
+          filterType={filterType}
+        />
       </div>
     </div>
   );
