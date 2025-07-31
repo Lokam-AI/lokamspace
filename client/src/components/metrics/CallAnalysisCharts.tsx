@@ -26,7 +26,7 @@ export const CallAnalysisCharts = () => {
     { type: "Inquiries", cost: 25.8, percentage: 22 }
   ];
 
-  const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))'];
+  const COLORS = ['#3b82f6', '#f97316', '#10b981'];
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -91,7 +91,11 @@ export const CallAnalysisCharts = () => {
                   stroke="hsl(var(--border))"
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))" />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                  {reasonCallEndedData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -126,7 +130,11 @@ export const CallAnalysisCharts = () => {
                   stroke="hsl(var(--border))"
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="duration" radius={[4, 4, 0, 0]} fill="hsl(var(--secondary))" />
+                <Bar dataKey="duration" radius={[4, 4, 0, 0]}>
+                  {avgDurationByTypeData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>

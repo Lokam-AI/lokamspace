@@ -94,29 +94,29 @@ export const MetricsKPICards = ({
       title: "Total Call Minutes",
       value: formatNumber(kpiData.total_minutes),
       data: transformTrendsForChart('minutes'),
-      color: "hsl(var(--primary))",
-      bgColor: "bg-primary/5 border-primary/20"
+      color: "#3b82f6",
+      bgColor: "bg-blue-50 border-blue-200"
     },
     {
       title: "Number of Calls",
       value: formatNumber(kpiData.total_calls),
       data: transformTrendsForChart('calls'),
-      color: "hsl(var(--warning))",
-      bgColor: "bg-warning/5 border-warning/20"
+      color: "#f97316",
+      bgColor: "bg-orange-50 border-orange-200"
     },
     {
       title: "Total Spent",
       value: formatCurrency(kpiData.total_spend),
       data: transformTrendsForChart('cost'),
-      color: "hsl(var(--secondary))",
-      bgColor: "bg-secondary/5 border-secondary/20"
+      color: "#10b981",
+      bgColor: "bg-green-50 border-green-200"
     },
     {
       title: "Average Cost per Call",
       value: formatCurrency(avgCostPerCall),
       data: transformTrendsForChart('cost'), // Use cost trends for avg cost visualization
-      color: "hsl(var(--accent))",
-      bgColor: "bg-accent/5 border-accent/20"
+      color: "#8b5cf6",
+      bgColor: "bg-purple-50 border-purple-200"
     }
   ];
 
