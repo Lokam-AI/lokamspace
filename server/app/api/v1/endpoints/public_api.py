@@ -27,7 +27,7 @@ async def create_feedback_call_api(
     _: None = Depends(rate_limit_dependency),
 ) -> Any:
     """
-    Create a new feedback call via API key authentication.
+    Create a new feedback call via API key authentication and initiate it with VAPI.
     
     Args:
         feedback_request: Feedback call data in structured format
@@ -37,7 +37,7 @@ async def create_feedback_call_api(
         db: Database session
         
     Returns:
-        FeedbackCallResponse: Created feedback call response
+        FeedbackCallResponse: Created feedback call response with initiation status
     """
     try:
         feedback_call = feedback_request.feedback_call
@@ -50,7 +50,6 @@ async def create_feedback_call_api(
             service_advisor_name=feedback_call.client_details.service_advisor_name,
             service_type=feedback_call.client_details.service_type or "Feedback Call",
             status="Ready",
-            last_service_comment=feedback_call.client_details.last_service_comment,
         )
         
         db.add(service_record)
@@ -70,11 +69,32 @@ async def create_feedback_call_api(
         await db.commit()
         await db.refresh(call)
         
+        # Initialize variables for initiation status
+        initiation_status = "failed"
+        initiation_message = "Call created but failed to initiate"
+        vapi_response = None
+        
+        # Try to initiate the call with VAPI
+        try:
+            call_result = await CallService.initiate_call(
+                call_id=call.id,
+                organization_id=organization.id,
+                db=db
+            )
+            initiation_status = "success"
+            initiation_message = "Call created and initiated successfully"
+            vapi_response = call_result.get("vapi_response") if isinstance(call_result, dict) else None
+            
+        except Exception as initiation_error:
+            # Log the initiation error but don't fail the entire request
+            print(f"Failed to initiate call {call.id}: {str(initiation_error)}")
+            initiation_message = f"Call created but initiation failed: {str(initiation_error)}"
+        
         return FeedbackCallResponse(
             id=str(call.id),
-            status="created",
+            status=initiation_status,
             created_at=datetime.utcnow().isoformat(),
-            message="Feedback call created successfully",
+            message=initiation_message,
             call_details={
                 "call_id": call.id,
                 "service_record_id": service_record.id,
@@ -83,10 +103,13 @@ async def create_feedback_call_api(
                 "customer_name": service_record.customer_name,
                 "customer_phone": service_record.customer_phone,
                 "service_type": service_record.service_type,
+                "initiation_status": initiation_status,
+                "vapi_response": vapi_response,
             }
         )
         
     except Exception as e:
+        await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create feedback call: {str(e)}"

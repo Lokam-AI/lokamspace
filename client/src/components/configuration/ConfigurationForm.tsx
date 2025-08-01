@@ -131,41 +131,17 @@ export const ConfigurationForm = () => {
 
           {/* Right Side - Generated JSON and cURL Command */}
           <div className="space-y-4">
-            <Tabs defaultValue="json" className="w-full">
+            <Tabs defaultValue="curl" className="w-full">
               <TabsList className="grid grid-cols-2 mb-4">
-                <TabsTrigger value="json" className="flex items-center gap-2">
-                  <Code2 className="w-4 h-4" />
-                  JSON
-                </TabsTrigger>
                 <TabsTrigger value="curl" className="flex items-center gap-2">
                   <Terminal className="w-4 h-4" />
                   cURL
                 </TabsTrigger>
+                <TabsTrigger value="json" className="flex items-center gap-2">
+                  <Code2 className="w-4 h-4" />
+                  JSON
+                </TabsTrigger>
               </TabsList>
-              
-              <TabsContent value="json" className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Generated Configuration</h3>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleCopyConfiguration}
-                  >
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copy JSON
-                  </Button>
-                </div>
-                
-                <div className="border rounded-lg bg-gray-900 text-gray-100 p-4 h-[500px] overflow-y-auto">
-                  <pre className="text-sm font-mono">
-                    <code>{getConfigurationJSON()}</code>
-                  </pre>
-                </div>
-                
-                <div className="text-sm text-muted-foreground">
-                  <p>This JSON configuration can be used directly in your API calls to configure the Feedback Agent.</p>
-                </div>
-              </TabsContent>
               
               <TabsContent value="curl" className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -188,6 +164,30 @@ export const ConfigurationForm = () => {
                 
                 <div className="text-sm text-muted-foreground">
                   <p>Replace YOUR_API_KEY with your actual API key and run this command to test your configuration.</p>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="json" className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Generated Configuration</h3>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleCopyConfiguration}
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy JSON
+                  </Button>
+                </div>
+                
+                <div className="border rounded-lg bg-gray-900 text-gray-100 p-4 h-[500px] overflow-y-auto">
+                  <pre className="text-sm font-mono">
+                    <code>{getConfigurationJSON()}</code>
+                  </pre>
+                </div>
+                
+                <div className="text-sm text-muted-foreground">
+                  <p>This JSON configuration can be used directly in your API calls to configure the Feedback Agent.</p>
                 </div>
               </TabsContent>
             </Tabs>
