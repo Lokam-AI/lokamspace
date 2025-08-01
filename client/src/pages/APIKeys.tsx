@@ -51,136 +51,174 @@ const API_ENDPOINTS = [
         method: "POST",
         path: "/call",
         name: "Create Call",
-        description: "Create a new call with specified parameters.",
+        description: "Create a new feedback call with the specified configuration parameters.",
         parameters: [
           {
-            name: "phone_number",
+            name: "customer_name",
+            type: "string",
+            required: true,
+            description: "The name of the customer to call."
+          },
+          {
+            name: "customer_phone",
             type: "string",
             required: true,
             description: "The phone number to call."
           },
           {
-            name: "message",
+            name: "service_advisor_name",
             type: "string",
             required: false,
-            description: "The message to play during the call."
+            description: "The name of the service advisor."
+          },
+          {
+            name: "service_type",
+            type: "string",
+            required: true,
+            description: "The type of service performed (e.g., oil-change, brake-service)."
+          },
+          {
+            name: "last_service_comment",
+            type: "string",
+            required: false,
+            description: "Details about the last service performed."
+          },
+          {
+            name: "organization_name",
+            type: "string",
+            required: true,
+            description: "The name of the organization."
+          },
+          {
+            name: "organization_description",
+            type: "string",
+            required: false,
+            description: "Description of the organization."
+          },
+          {
+            name: "service_centre_description",
+            type: "string",
+            required: false,
+            description: "Description of the service centre."
+          },
+          {
+            name: "location",
+            type: "string",
+            required: true,
+            description: "The location of the service centre."
+          },
+          {
+            name: "google_review_link",
+            type: "string",
+            required: false,
+            description: "Link to Google review page."
+          },
+          {
+            name: "areas_to_focus",
+            type: "string",
+            required: false,
+            description: "Areas to focus on during the feedback call."
+          },
+          {
+            name: "knowledge_files",
+            type: "array",
+            required: false,
+            description: "Array of knowledge file objects with name, size, and type."
+          },
+          {
+            name: "server_url",
+            type: "string",
+            required: false,
+            description: "Webhook server URL for call events."
+          },
+          {
+            name: "secret_token",
+            type: "string",
+            required: false,
+            description: "Secret token for webhook authentication."
           },
           {
             name: "timeout",
             type: "integer",
             required: false,
-            description: "Call timeout in seconds (default: 60)."
+            description: "Call timeout in seconds (default: 20)."
+          },
+          {
+            name: "http_headers",
+            type: "object",
+            required: false,
+            description: "Custom HTTP headers for webhook requests."
           }
         ],
         response: {
           id: "string",
-          status: "created",
-          phone_number: "string",
-          created_at: "2024-01-01T00:00:00Z"
-        }
-      },
-      {
-        method: "GET",
-        path: "/call",
-        name: "List Calls",
-        description: "Retrieve a list of all calls with optional filtering.",
-        parameters: [
-          {
-            name: "limit",
-            type: "integer",
-            required: false,
-            description: "Number of calls to return (default: 20, max: 100)."
-          },
-          {
-            name: "offset",
-            type: "integer",
-            required: false,
-            description: "Number of calls to skip for pagination."
-          },
-          {
-            name: "status",
-            type: "string",
-            required: false,
-            description: "Filter calls by status (completed, failed, in-progress)."
-          },
-          {
-            name: "created_at_after",
-            type: "string",
-            required: false,
-            format: "date-time",
-            description: "Filter calls created after this timestamp."
-          }
-        ],
-        response: {
-          calls: [
+          createdAt: "2024-01-01T00:00:00Z",
+          updatedAt: "2024-01-01T00:05:00Z",
+          cost: 0.15,
+          transcript: [
             {
-              id: "string",
-              phone_number: "string",
-              status: "completed",
-              duration: 120,
-              created_at: "2024-01-01T00:00:00Z"
+              role: "agent",
+              message: "Hello, this is your service advisor calling about your recent visit.",
+              time: 0,
+              endTime: 3,
+              secondsFromStart: 0,
+              duration: 3
+            },
+            {
+              role: "customer",
+              message: "Hi, yes I remember the visit.",
+              time: 3,
+              endTime: 6,
+              secondsFromStart: 3,
+              duration: 3
             }
           ],
-          total: 100,
-          limit: 20,
-          offset: 0
-        }
-      },
-      {
-        method: "GET",
-        path: "/call/{id}",
-        name: "Get Call", 
-        description: "Retrieve details of a specific call by ID.",
-        parameters: [
-          {
-            name: "id",
-            type: "string",
-            required: true,
-            description: "The unique identifier for the call."
-          }
-        ],
-        response: {
-          id: "string",
-          phone_number: "string",
           status: "completed",
-          duration: 120,
-          message: "string",
-          transcript: "string",
-          created_at: "2024-01-01T00:00:00Z",
-          updated_at: "2024-01-01T00:05:00Z"
-        }
-      },
-      {
-        method: "POST",
-        path: "/call/batch",
-        name: "Create Batch Call",
-        description: "Create multiple calls in a single request.",
-        parameters: [
-          {
-            name: "calls",
-            type: "array",
-            required: true,
-            description: "Array of call objects to create."
+          endedReason: "call_ended",
+          startedAt: "2024-01-01T00:00:00Z",
+          endedAt: "2024-01-01T00:05:00Z",
+          analysis: {
+            summary: "Customer was satisfied with the service and would recommend to others.",
+            structuredData: {
+              satisfaction_level: "high",
+              recommendation_likelihood: "very_likely"
+            },
+            structuredDataMulti: [
+              {
+                category: "service_quality",
+                rating: 5,
+                feedback: "Excellent service"
+              }
+            ],
+            successEvaluation: "successful"
           },
-          {
-            name: "batch_name",
-            type: "string",
-            required: false,
-            description: "Optional name for the batch."
-          }
-        ],
-        response: {
-          batch_id: "string",
-          status: "processing",
-          total_calls: 10,
-          created_calls: [
-            {
-              id: "string",
-              phone_number: "string",
-              status: "queued"
+          recording_url: "https://api.lokam.ai/recordings/call_123.mp3",
+          variable_values: {
+            customer_name: "John Doe",
+            customer_phone: "+1234567890",
+            service_advisor_name: "Mike Smith",
+            service_type: "oil-change",
+            last_service_comment: "Oil change and filter replacement completed",
+            organization_name: "ABC Auto Service",
+            organization_description: "Professional auto service center",
+            service_centre_description: "Full-service automotive repair and maintenance",
+            location: "123 Main St, City, State",
+            google_review_link: "https://g.page/abc-auto-service/review",
+            areas_to_focus: "Customer satisfaction, Service quality",
+            knowledge_files: [
+              {
+                name: "service_manual.pdf",
+                size: "2.5 MB",
+                type: "application/pdf"
+              }
+            ],
+            server_url: "https://your-server.com/api/webhook",
+            secret_token: "sk-8kIA...8kIA",
+            timeout: 20,
+            http_headers: {
+              "Content-Type": "application/json"
             }
-          ],
-          created_at: "2024-01-01T00:00:00Z"
+          }
         }
       }
     ]
@@ -1018,12 +1056,12 @@ export default function APIKeys() {
   const renderAPIReferenceTab = () => (
     <div className="flex h-[calc(100vh-12rem)] gap-4">
       {/* Left Sidebar - Endpoints */}
-      <div className="w-80 border-r bg-muted/30 overflow-y-auto">
-        <div className="p-4">
-          <h3 className="font-semibold mb-4">Endpoints</h3>
+      <div className="w-48 border-r bg-muted/30 overflow-y-auto">
+        <div className="p-3">
+          <h3 className="font-semibold mb-3 text-sm">Endpoints</h3>
           {API_ENDPOINTS.map((category) => (
-            <div key={category.category} className="mb-6">
-              <h4 className="text-sm font-medium text-muted-foreground mb-2 uppercase tracking-wide">
+            <div key={category.category} className="mb-4">
+              <h4 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
                 {category.category}
               </h4>
               <div className="space-y-1">
@@ -1031,7 +1069,7 @@ export default function APIKeys() {
                   <button
                     key={`${endpoint.method}-${endpoint.path}`}
                     onClick={() => setSelectedEndpoint(endpoint)}
-                    className={`w-full text-left p-2 rounded-md text-sm transition-colors ${
+                    className={`w-full text-left p-2 rounded-md text-xs transition-colors ${
                       selectedEndpoint === endpoint
                         ? "bg-primary text-primary-foreground"
                         : "hover:bg-muted"
@@ -1053,9 +1091,9 @@ export default function APIKeys() {
 
       {/* Middle Section - Documentation */}
       <div className="flex-1 overflow-y-auto">
-        <div className="p-6">
+        <div className="p-4">
           <div className="mb-6">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-3">
               <Badge variant="outline" className={`${getMethodColor(selectedEndpoint.method)}`}>
                 {selectedEndpoint.method}
               </Badge>
@@ -1063,77 +1101,71 @@ export default function APIKeys() {
                 {selectedEndpoint.path}
               </code>
             </div>
-            <h2 className="text-2xl font-bold">{selectedEndpoint.name}</h2>
-            <p className="text-muted-foreground mt-2">{selectedEndpoint.description}</p>
+            <h2 className="text-xl font-bold">{selectedEndpoint.name}</h2>
+            <p className="text-sm text-muted-foreground mt-2">{selectedEndpoint.description}</p>
           </div>
 
           {selectedEndpoint.parameters.length > 0 && (
-            <div className="mb-8">
+            <div className="mb-6">
               <h3 className="text-lg font-semibold mb-4">Query Parameters</h3>
               <div className="space-y-4">
                 {selectedEndpoint.parameters.map((param) => (
-                  <div key={param.name} className="border rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
-                        {param.name}
-                      </code>
-                      <Badge variant={param.required ? "default" : "secondary"}>
-                        {param.required ? "Required" : "Optional"}
-                      </Badge>
-                      <span className="text-sm text-muted-foreground">{param.type}</span>
-                      {param.format && (
-                        <span className="text-xs text-muted-foreground">
-                          format: {param.format}
-                        </span>
-                      )}
+                  <div key={param.name} className="border rounded-lg p-4 bg-card">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
+                          {param.name}
+                        </code>
+                        <Badge variant={param.required ? "default" : "secondary"}>
+                          {param.required ? "Required" : "Optional"}
+                        </Badge>
+                      </div>
+                      <span className="text-sm text-muted-foreground font-medium">{param.type}</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">{param.description}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{param.description}</p>
+                    {(param as any).format && (
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        <span className="font-medium">Format:</span> {(param as any).format}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
           )}
-
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Response</h3>
-            <div className="border rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">200 Retrieved</span>
-              </div>
-              <pre className="text-sm bg-muted p-4 rounded overflow-x-auto">
-                <code>{JSON.stringify(selectedEndpoint.response, null, 2)}</code>
-              </pre>
-            </div>
-          </div>
         </div>
       </div>
 
       {/* Right Section - Request/Response Samples */}
-      <div className="w-96 border-l bg-muted/30 overflow-y-auto">
+      <div className="flex-1 border-l bg-muted/30 overflow-y-auto">
         <div className="p-4">
-          <h3 className="font-semibold mb-4">Try It</h3>
+          <h3 className="font-semibold mb-4 text-sm">Try It</h3>
           
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">{selectedEndpoint.method}</span>
+              <span className="text-sm font-medium">Request</span>
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => copyCodeToClipboard(`curl https://api.vapi.ai${selectedEndpoint.path} \\
-  -H "Authorization: Bearer <token>"`)}
+                onClick={() => copyCodeToClipboard(`curl https://api.lokam.ai${selectedEndpoint.path} \\
+  -H "Authorization: Bearer <token>" \\
+  -H "Content-Type: application/json" \\
+  -d '${JSON.stringify(selectedEndpoint.parameters.reduce((acc, param) => { acc[param.name] = param.required ? `${param.name}_value` : null; return acc; }, {} as Record<string, any>), null, 2)}'`)}
               >
                 <Copy className="w-4 h-4" />
               </Button>
             </div>
-            <div className="bg-black text-green-400 p-4 rounded-md text-sm font-mono">
-              <div>$ curl https://api.vapi.ai{selectedEndpoint.path} \</div>
-              <div>&gt;    -H "Authorization: Bearer &lt;token&gt;"</div>
+            <div className="bg-black text-green-400 p-3 rounded-md text-xs font-mono">
+              <div>$ curl https://api.lokam.ai{selectedEndpoint.path} \</div>
+              <div>&gt;    -H "Authorization: Bearer &lt;token&gt;" \</div>
+              <div>&gt;    -H "Content-Type: application/json" \</div>
+              <div>&gt;    -d '{JSON.stringify(selectedEndpoint.parameters.reduce((acc, param) => { acc[param.name] = param.required ? `"${param.name}_value"` : "null"; return acc; }, {} as Record<string, string>), null, 2)}'</div>
             </div>
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-green-600">200 Retrieved</span>
+              <span className="text-sm font-medium text-green-600">Response</span>
               <Button 
                 variant="outline" 
                 size="sm"
@@ -1142,7 +1174,7 @@ export default function APIKeys() {
                 <Copy className="w-4 h-4" />
               </Button>
             </div>
-            <div className="bg-black text-gray-300 p-4 rounded-md text-sm font-mono max-h-96 overflow-y-auto">
+            <div className="bg-black text-gray-300 p-3 rounded-md text-xs font-mono h-[calc(100vh-20rem)] overflow-y-auto">
               <pre>{JSON.stringify(selectedEndpoint.response, null, 2)}</pre>
             </div>
           </div>
