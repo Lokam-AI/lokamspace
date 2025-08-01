@@ -193,10 +193,10 @@ class ActivityService:
         calls_result = await db.execute(calls_query)
         calls = list(calls_result.scalars().all())
         
-        # Get call feedback data
-        feedback_query = select(CallFeedback).where(
+        # Get call feedback data (join with Call to get organization_id)
+        feedback_query = select(CallFeedback).join(Call).where(
             and_(
-                CallFeedback.organization_id == organization_id,
+                Call.organization_id == organization_id,
                 CallFeedback.created_at >= start_datetime,
                 CallFeedback.created_at <= end_datetime
             )
