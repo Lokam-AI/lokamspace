@@ -1,483 +1,73 @@
-import { useState, useEffect } from "react";
-import { Key, Plus, Trash2, Copy, FileText, Settings, Code2, Eye, EyeOff, Upload, FileText as FileTextIcon, MapPin, Building, User, Phone, Car, MessageSquare, Save, ChevronDown, ChevronRight } from "lucide-react";
-import { listApiKeys, createApiKey, deleteApiKey, ApiKey, ApiKeyCreate, ApiKeySecret } from "@/api";
+import { useState } from "react";
+import { Key, Plus, FileText } from "lucide-react";
+import { ApiKey } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { toast } from "@/components/ui/use-toast";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, ChevronRight } from "lucide-react";
+
+// Hooks
+import { useAPIKeys } from "@/hooks/useAPIKeys";
+
+// Components
+import { APIKeysTable } from "@/components/api-keys/APIKeysTable";
+import { APIKeyDetailsModal } from "@/components/api-keys/APIKeyDetailsModal";
+import { CreateAPIKeyDialog } from "@/components/api-keys/CreateAPIKeyDialog";
+import { ConfigurationForm } from "@/components/configuration/ConfigurationForm";
+import { APIReferenceViewer } from "@/components/api-reference/APIReferenceViewer";
 
 // API Keys will be loaded from the backend
 
-// API Reference data
-const API_ENDPOINTS = [
-  {
-    category: "Calls",
-    endpoints: [
-      {
-        method: "POST",
-        path: "/call",
-        name: "Create Call",
-        description: "Create a new feedback call with the specified configuration parameters.",
-        parameters: [
-          {
-            name: "customer_name",
-            type: "string",
-            required: true,
-            description: "The name of the customer to call."
-          },
-          {
-            name: "customer_phone",
-            type: "string",
-            required: true,
-            description: "The phone number to call."
-          },
-          {
-            name: "service_advisor_name",
-            type: "string",
-            required: false,
-            description: "The name of the service advisor."
-          },
-          {
-            name: "service_type",
-            type: "string",
-            required: true,
-            description: "The type of service performed (e.g., oil-change, brake-service)."
-          },
-          {
-            name: "last_service_comment",
-            type: "string",
-            required: false,
-            description: "Details about the last service performed."
-          },
-          {
-            name: "organization_name",
-            type: "string",
-            required: true,
-            description: "The name of the organization."
-          },
-          {
-            name: "organization_description",
-            type: "string",
-            required: false,
-            description: "Description of the organization."
-          },
-          {
-            name: "service_centre_description",
-            type: "string",
-            required: false,
-            description: "Description of the service centre."
-          },
-          {
-            name: "location",
-            type: "string",
-            required: true,
-            description: "The location of the service centre."
-          },
-          {
-            name: "google_review_link",
-            type: "string",
-            required: false,
-            description: "Link to Google review page."
-          },
-          {
-            name: "areas_to_focus",
-            type: "string",
-            required: false,
-            description: "Areas to focus on during the feedback call."
-          },
-          {
-            name: "knowledge_files",
-            type: "array",
-            required: false,
-            description: "Array of knowledge file objects with name, size, and type."
-          },
-          {
-            name: "server_url",
-            type: "string",
-            required: false,
-            description: "Webhook server URL for call events."
-          },
-          {
-            name: "secret_token",
-            type: "string",
-            required: false,
-            description: "Secret token for webhook authentication."
-          },
-          {
-            name: "timeout",
-            type: "integer",
-            required: false,
-            description: "Call timeout in seconds (default: 20)."
-          },
-          {
-            name: "http_headers",
-            type: "object",
-            required: false,
-            description: "Custom HTTP headers for webhook requests."
-          }
-        ],
-        response: {
-          id: "string",
-          createdAt: "2024-01-01T00:00:00Z",
-          updatedAt: "2024-01-01T00:05:00Z",
-          cost: 0.15,
-          transcript: [
-            {
-              role: "agent",
-              message: "Hello, this is your service advisor calling about your recent visit.",
-              time: 0,
-              endTime: 3,
-              secondsFromStart: 0,
-              duration: 3
-            },
-            {
-              role: "customer",
-              message: "Hi, yes I remember the visit.",
-              time: 3,
-              endTime: 6,
-              secondsFromStart: 3,
-              duration: 3
-            }
-          ],
-          status: "completed",
-          endedReason: "call_ended",
-          startedAt: "2024-01-01T00:00:00Z",
-          endedAt: "2024-01-01T00:05:00Z",
-          analysis: {
-            summary: "Customer was satisfied with the service and would recommend to others.",
-            structuredData: {
-              satisfaction_level: "high",
-              recommendation_likelihood: "very_likely"
-            },
-            structuredDataMulti: [
-              {
-                category: "service_quality",
-                rating: 5,
-                feedback: "Excellent service"
-              }
-            ],
-            successEvaluation: "successful"
-          },
-          recording_url: "https://api.lokam.ai/recordings/call_123.mp3",
-          variable_values: {
-            customer_name: "John Doe",
-            customer_phone: "+1234567890",
-            service_advisor_name: "Mike Smith",
-            service_type: "oil-change",
-            last_service_comment: "Oil change and filter replacement completed",
-            organization_name: "ABC Auto Service",
-            organization_description: "Professional auto service center",
-            service_centre_description: "Full-service automotive repair and maintenance",
-            location: "123 Main St, City, State",
-            google_review_link: "https://g.page/abc-auto-service/review",
-            areas_to_focus: "Customer satisfaction, Service quality",
-            knowledge_files: [
-              {
-                name: "service_manual.pdf",
-                size: "2.5 MB",
-                type: "application/pdf"
-              }
-            ],
-            server_url: "https://your-server.com/api/webhook",
-            secret_token: "sk-8kIA...8kIA",
-            timeout: 20,
-            http_headers: {
-              "Content-Type": "application/json"
-            }
-          }
-        }
-      }
-    ]
-  }
-];
-
 export default function APIKeys() {
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
-  const [loading, setLoading] = useState(true);
+  // State for modals and dialogs
   const [newKeyOpen, setNewKeyOpen] = useState(false);
-  const [newKeyName, setNewKeyName] = useState("");
-  const [newKeyValue, setNewKeyValue] = useState("");
-  const [showNewKey, setShowNewKey] = useState(false);
-  const [selectedEndpoint, setSelectedEndpoint] = useState(API_ENDPOINTS[0].endpoints[0]);
-  const [creating, setCreating] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [selectedApiKey, setSelectedApiKey] = useState<ApiKey | null>(null);
+  const [expandedApiKeys, setExpandedApiKeys] = useState(false);
   
-  // Configuration state
-  const [serverUrl, setServerUrl] = useState("");
-  const [secretToken, setSecretToken] = useState("");
-  const [showSecretToken, setShowSecretToken] = useState(false);
-  const [timeout, setTimeout] = useState("20");
-  const [httpHeaders, setHttpHeaders] = useState<Array<{key: string, value: string}>>([]);
-  const [newHeaderKey, setNewHeaderKey] = useState("");
-  const [newHeaderValue, setNewHeaderValue] = useState("");
-  const [showAddHeader, setShowAddHeader] = useState(false);
-  
-  // Agent Configuration state
-  const [clientDetails, setClientDetails] = useState({
-    customerName: "",
-    customerPhone: "",
-    serviceAdvisorName: "",
-    serviceType: "",
-    lastServiceComment: ""
-  });
-  
-  const [organizationDetails, setOrganizationDetails] = useState({
-    organizationName: "",
-    organizationDescription: "",
-    serviceCentreDescription: "",
-    location: "",
-    googleReviewLink: "",
-    areasToFocus: ""
-  });
-  
-  const [knowledgeFiles, setKnowledgeFiles] = useState<Array<{name: string, size: string, type: string}>>([]);
+  // Custom hook for API key management
+  const { 
+    apiKeys, 
+    loading, 
+    creating, 
+    updating, 
+    createApiKey: createNewApiKey, 
+    deleteApiKey: deleteKey, 
+    updateApiKey: updateKey 
+  } = useAPIKeys();
 
-  // Section collapse state
-  const [expandedSections, setExpandedSections] = useState({
-    apiKeys: false,
-    webhookConfiguration: false,
-    clientDetails: false,
-    organizationDetails: false,
-    knowledgeFiles: false
-  });
-
-  // Load API keys on component mount
-  useEffect(() => {
-    const loadApiKeys = async () => {
-      try {
-        setLoading(true);
-        const keys = await listApiKeys();
-        setApiKeys(keys);
-      } catch (error) {
-        console.error("Failed to load API keys:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load API keys",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadApiKeys();
-  }, []);
-
-  const handleCreateKey = async () => {
-    if (!newKeyName.trim()) return;
-    
-    try {
-      setCreating(true);
-      const keyData: ApiKeyCreate = {
-        name: newKeyName,
-        rate_limit_per_minute: 10,
-        webhook_url: serverUrl || undefined,
-        webhook_secret: secretToken || undefined,
-        webhook_timeout: parseInt(timeout) || 30,
-        webhook_headers: httpHeaders.reduce((acc, header) => {
-          acc[header.key] = header.value;
-          return acc;
-        }, {} as Record<string, string>),
-      };
-      
-      const result = await createApiKey(keyData);
-      
-      setNewKeyValue(result.secret_key);
-      setShowNewKey(true);
-      setNewKeyName("");
-      
-      // Reload API keys
-      const keys = await listApiKeys();
-      setApiKeys(keys);
-      
-      toast({
-        title: "API Key created",
-        description: "Your new API key has been created successfully.",
-      });
-    } catch (error) {
-      console.error("Failed to create API key:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create API key",
-        variant: "destructive",
-      });
-    } finally {
-      setCreating(false);
-    }
+  // Event handlers
+  const handleViewDetails = (apiKey: ApiKey) => {
+    setSelectedApiKey(apiKey);
+    setDetailsModalOpen(true);
   };
 
-  // Function to mask the secret key for display
-  const maskSecretKey = (key: string) => {
-    if (key.length <= 6) return key;
-    return `${key.substring(0, 3)}...${key.substring(key.length - 3)}`;
+  const handleCloseDetails = () => {
+    setDetailsModalOpen(false);
+    setSelectedApiKey(null);
   };
 
   const handleDeleteKey = async (id: string) => {
-    try {
-      await deleteApiKey(id);
-      
-      // Remove from local state
-      setApiKeys(apiKeys.filter(key => key.id !== id));
-      
-      toast({
-        title: "API Key deleted",
-        description: "The API key has been permanently deleted."
-      });
-    } catch (error) {
-      console.error("Failed to delete API key:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete API key",
-        variant: "destructive",
-      });
+    await deleteKey(id);
+    // Close modal if it was open for this key
+    if (selectedApiKey?.id === id) {
+      handleCloseDetails();
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied to clipboard",
-      description: "API key has been copied to your clipboard."
-    });
-  };
-
-  const closeDialog = () => {
-    setNewKeyOpen(false);
-    setShowNewKey(false);
-    setNewKeyName("");
-    setNewKeyValue("");
-    // Reset webhook configuration
-    setServerUrl("");
-    setSecretToken("");
-    setTimeout("30");
-    setHttpHeaders([]);
-  };
-
-  const getMethodColor = (method: string) => {
-    const colors = {
-      GET: "bg-green-100 text-green-800 border-green-200",
-      POST: "bg-blue-100 text-blue-800 border-blue-200", 
-      PATCH: "bg-yellow-100 text-yellow-800 border-yellow-200",
-      DELETE: "bg-red-100 text-red-800 border-red-200"
-    };
-    return colors[method as keyof typeof colors] || "bg-gray-100 text-gray-800 border-gray-200";
-  };
-
-  const copyCodeToClipboard = (code: string) => {
-    navigator.clipboard.writeText(code);
-    toast({
-      title: "Copied to clipboard",
-      description: "Code sample has been copied to your clipboard."
-    });
-  };
-
-  const addHttpHeader = () => {
-    if (newHeaderKey.trim() && newHeaderValue.trim()) {
-      setHttpHeaders([...httpHeaders, { key: newHeaderKey.trim(), value: newHeaderValue.trim() }]);
-      setNewHeaderKey("");
-      setNewHeaderValue("");
-      setShowAddHeader(false);
-      toast({
-        title: "Header added",
-        description: "HTTP header has been added successfully."
-      });
-    }
-  };
-
-  const removeHttpHeader = (index: number) => {
-    setHttpHeaders(httpHeaders.filter((_, i) => i !== index));
-    toast({
-      title: "Header removed",
-      description: "HTTP header has been removed."
-    });
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files) {
-      const newFiles = Array.from(files).map(file => ({
-        name: file.name,
-        size: `${(file.size / 1024).toFixed(1)} KB`,
-        type: file.type
-      }));
-      setKnowledgeFiles([...knowledgeFiles, ...newFiles]);
-      toast({
-        title: "Files uploaded",
-        description: `${files.length} file(s) have been uploaded successfully.`
-      });
-    }
-  };
-
-  const removeKnowledgeFile = (index: number) => {
-    setKnowledgeFiles(knowledgeFiles.filter((_, i) => i !== index));
-    toast({
-      title: "File removed",
-      description: "Knowledge file has been removed."
-    });
-  };
-
-
-
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-
-  const generateConfigurationJSON = (): string => {
-    const config = {
-      feedback_call: {
-        client_details: {
-          customer_name: clientDetails.customerName || null,
-          customer_phone: clientDetails.customerPhone || null,
-          service_advisor_name: clientDetails.serviceAdvisorName || null,
-          service_type: clientDetails.serviceType || null,
-          last_service_comment: clientDetails.lastServiceComment || null
-        },
-        organization_details: {
-          organization_name: organizationDetails.organizationName || null,
-          organization_description: organizationDetails.organizationDescription || null,
-          service_centre_description: organizationDetails.serviceCentreDescription || null,
-          location: organizationDetails.location || null,
-          google_review_link: organizationDetails.googleReviewLink || null,
-          areas_to_focus: organizationDetails.areasToFocus || null
-        },
-        knowledge_files: knowledgeFiles.map(file => ({
-          name: file.name,
-          size: file.size,
-          type: file.type
-        })),
-        webhook_configuration: {
-          server_url: serverUrl,
-          timeout: parseInt(timeout) || 20,
-          http_headers: httpHeaders.reduce((acc, header) => {
-            acc[header.key] = header.value;
-            return acc;
-          }, {} as Record<string, string>)
-        }
-      }
-    };
-
-    return JSON.stringify(config, null, 2);
+  const toggleApiKeysSection = () => {
+    setExpandedApiKeys(!expandedApiKeys);
   };
 
   const renderAPIKeysTab = () => (
     <div className="flex flex-col gap-8">
       <Card>
         <CardHeader>
-          <Collapsible open={expandedSections.apiKeys} onOpenChange={() => toggleSection('apiKeys')}>
+          <Collapsible open={expandedApiKeys} onOpenChange={toggleApiKeysSection}>
             <CollapsibleTrigger asChild>
               <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors -m-2">
                 <div>
@@ -486,7 +76,7 @@ export default function APIKeys() {
                     Each configuration includes an API key and webhook settings for secure access to Lokam API.
                   </CardDescription>
                 </div>
-                {expandedSections.apiKeys ? (
+                {expandedApiKeys ? (
                   <ChevronDown className="w-5 h-5 text-gray-500" />
                 ) : (
                   <ChevronRight className="w-5 h-5 text-gray-500" />
@@ -495,574 +85,34 @@ export default function APIKeys() {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="pt-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Secret Key</TableHead>
-                      <TableHead>Webhook URL</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead>Created by</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {apiKeys.map((key) => (
-                      <TableRow key={key.id}>
-                        <TableCell>{key.name}</TableCell>
-                        <TableCell className="font-mono">{key.secret_key_preview}</TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {key.webhook_url ? (
-                            <span className="text-sm text-muted-foreground" title={key.webhook_url}>
-                              {key.webhook_url}
-                            </span>
-                          ) : (
-                            <span className="text-sm text-muted-foreground italic">Not configured</span>
-                          )}
-                        </TableCell>
-                        <TableCell>{new Date(key.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</TableCell>
-                        <TableCell>{key.created_by_name}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteKey(key.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {loading && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-6">
-                          Loading API keys...
-                        </TableCell>
-                      </TableRow>
-                    )}
-                    {!loading && apiKeys.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-6">
-                          No API configurations found. Create your first configuration to get started.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                <APIKeysTable 
+                  apiKeys={apiKeys}
+                  loading={loading}
+                  onViewDetails={handleViewDetails}
+                />
               </div>
             </CollapsibleContent>
           </Collapsible>
         </CardHeader>
       </Card>
 
-      {/* Add Header Dialog */}
-      <Dialog open={showAddHeader} onOpenChange={setShowAddHeader}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add HTTP Header</DialogTitle>
-            <DialogDescription>
-              Add a custom HTTP header to include in API requests.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="header-key" className="text-right">
-                Key
-              </Label>
-              <Input
-                id="header-key"
-                placeholder="Content-Type"
-                className="col-span-3"
-                value={newHeaderKey}
-                onChange={(e) => setNewHeaderKey(e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="header-value" className="text-right">
-                Value
-              </Label>
-              <Input
-                id="header-value"
-                placeholder="application/json"
-                className="col-span-3"
-                value={newHeaderValue}
-                onChange={(e) => setNewHeaderValue(e.target.value)}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddHeader(false)}>
-              Cancel
-            </Button>
-            <Button onClick={addHttpHeader} disabled={!newHeaderKey.trim() || !newHeaderValue.trim()}>
-              Add Header
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Details Modal */}
+      <APIKeyDetailsModal
+        open={detailsModalOpen}
+        onOpenChange={handleCloseDetails}
+        apiKey={selectedApiKey}
+        onUpdate={updateKey}
+        onDelete={handleDeleteKey}
+        updating={updating}
+      />
 
       {/* Agent Configuration Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Configure your feedback call API</CardTitle>
-          <CardDescription>
-            Configure default values for the Feedback Agent that will be used in API calls
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-8">
-            {/* Left Side - Configuration Form */}
-            <div className="space-y-6">
-              {/* Section 1: Client & Service Details */}
-              <Collapsible open={expandedSections.clientDetails} onOpenChange={() => toggleSection('clientDetails')}>
-                <div className="space-y-4">
-                  <CollapsibleTrigger asChild>
-                    <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors">
-                      <div className="flex items-center gap-2">
-                        <User className="w-5 h-5 text-primary" />
-                        <h3 className="text-lg font-semibold">Client & Service Details</h3>
-                      </div>
-                      {expandedSections.clientDetails ? (
-                        <ChevronDown className="w-5 h-5 text-gray-500" />
-                      ) : (
-                        <ChevronRight className="w-5 h-5 text-gray-500" />
-                      )}
-                    </div>
-                  </CollapsibleTrigger>
-                  
-                  <CollapsibleContent className="space-y-4">
-                    <div>
-                      <Label htmlFor="customer-name">Customer Name</Label>
-                      <Input
-                        id="customer-name"
-                        value={clientDetails.customerName}
-                        onChange={(e) => setClientDetails({...clientDetails, customerName: e.target.value})}
-                        placeholder="Enter customer name"
-                        className="mt-1"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="customer-phone">Customer Phone Number</Label>
-                      <Input
-                        id="customer-phone"
-                        value={clientDetails.customerPhone}
-                        onChange={(e) => setClientDetails({...clientDetails, customerPhone: e.target.value})}
-                        placeholder="+1 (555) 123-4567"
-                        className="mt-1"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="service-advisor">Service Advisor Name</Label>
-                      <Input
-                        id="service-advisor"
-                        value={clientDetails.serviceAdvisorName}
-                        onChange={(e) => setClientDetails({...clientDetails, serviceAdvisorName: e.target.value})}
-                        placeholder="Enter service advisor name"
-                        className="mt-1"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="service-type">Service Type</Label>
-                      <Select value={clientDetails.serviceType} onValueChange={(value) => setClientDetails({...clientDetails, serviceType: value})}>
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Select service type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="oil-change">Oil Change</SelectItem>
-                          <SelectItem value="brake-service">Brake Service</SelectItem>
-                          <SelectItem value="tire-rotation">Tire Rotation</SelectItem>
-                          <SelectItem value="engine-repair">Engine Repair</SelectItem>
-                          <SelectItem value="transmission">Transmission Service</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="last-service-comment">Last Service Comment</Label>
-                      <Textarea
-                        id="last-service-comment"
-                        value={clientDetails.lastServiceComment}
-                        onChange={(e) => setClientDetails({...clientDetails, lastServiceComment: e.target.value})}
-                        placeholder="Enter details about the last service performed"
-                        className="mt-1"
-                        rows={3}
-                      />
-                    </div>
-                  </CollapsibleContent>
-                </div>
-              </Collapsible>
+      <ConfigurationForm />
 
-              <Separator />
-
-              {/* Section 2: Organization Details */}
-              <Collapsible open={expandedSections.organizationDetails} onOpenChange={() => toggleSection('organizationDetails')}>
-                <div className="space-y-4">
-                  <CollapsibleTrigger asChild>
-                    <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors">
-                      <div className="flex items-center gap-2">
-                        <Building className="w-5 h-5 text-primary" />
-                        <h3 className="text-lg font-semibold">Organization Details</h3>
-                      </div>
-                      {expandedSections.organizationDetails ? (
-                        <ChevronDown className="w-5 h-5 text-gray-500" />
-                      ) : (
-                        <ChevronRight className="w-5 h-5 text-gray-500" />
-                      )}
-                    </div>
-                  </CollapsibleTrigger>
-                  
-                  <CollapsibleContent className="space-y-4">
-                    <div>
-                      <Label htmlFor="org-name">Organization Name</Label>
-                      <Input
-                        id="org-name"
-                        value={organizationDetails.organizationName}
-                        onChange={(e) => setOrganizationDetails({...organizationDetails, organizationName: e.target.value})}
-                        placeholder="Enter organization name"
-                        className="mt-1"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="location">Location</Label>
-                      <Input
-                        id="location"
-                        value={organizationDetails.location}
-                        onChange={(e) => setOrganizationDetails({...organizationDetails, location: e.target.value})}
-                        placeholder="Enter location"
-                        className="mt-1"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="org-description">Organization Description</Label>
-                      <Textarea
-                        id="org-description"
-                        value={organizationDetails.organizationDescription}
-                        onChange={(e) => setOrganizationDetails({...organizationDetails, organizationDescription: e.target.value})}
-                        placeholder="Enter organization description"
-                        className="mt-1"
-                        rows={2}
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="service-centre-description">Service Centre Description</Label>
-                      <Textarea
-                        id="service-centre-description"
-                        value={organizationDetails.serviceCentreDescription}
-                        onChange={(e) => setOrganizationDetails({...organizationDetails, serviceCentreDescription: e.target.value})}
-                        placeholder="Enter service centre description"
-                        className="mt-1"
-                        rows={2}
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="google-review-link">Google Review Link</Label>
-                      <Input
-                        id="google-review-link"
-                        value={organizationDetails.googleReviewLink}
-                        onChange={(e) => setOrganizationDetails({...organizationDetails, googleReviewLink: e.target.value})}
-                        placeholder="https://g.page/your-business/review"
-                        className="mt-1"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="areas-to-focus">Areas to Focus</Label>
-                      <Input
-                        id="areas-to-focus"
-                        value={organizationDetails.areasToFocus}
-                        onChange={(e) => setOrganizationDetails({...organizationDetails, areasToFocus: e.target.value})}
-                        placeholder="e.g., Customer satisfaction, Service quality"
-                        className="mt-1"
-                      />
-                    </div>
-                  </CollapsibleContent>
-                </div>
-              </Collapsible>
-
-              <Separator />
-
-              {/* Section 3: Knowledge Files */}
-              <Collapsible open={expandedSections.knowledgeFiles} onOpenChange={() => toggleSection('knowledgeFiles')}>
-                <div className="space-y-4">
-                  <CollapsibleTrigger asChild>
-                    <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors">
-                      <div className="flex items-center gap-2">
-                        <FileTextIcon className="w-5 h-5 text-primary" />
-                        <h3 className="text-lg font-semibold">Knowledge Files</h3>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {expandedSections.knowledgeFiles ? (
-                          <ChevronDown className="w-5 h-5 text-gray-500" />
-                        ) : (
-                          <ChevronRight className="w-5 h-5 text-gray-500" />
-                        )}
-                      </div>
-                    </div>
-                  </CollapsibleTrigger>
-                  
-                  <CollapsibleContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground">
-                        Upload files that will act as knowledge sources for the Feedback Agent
-                      </p>
-                      <div className="relative">
-                        <input
-                          type="file"
-                          multiple
-                          accept=".pdf,.doc,.docx,.txt"
-                          onChange={handleFileUpload}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
-                        <Button variant="outline" size="sm">
-                          <Upload className="w-4 h-4 mr-2" />
-                          Upload Files
-                        </Button>
-                      </div>
-                    </div>
-
-                    {knowledgeFiles.length === 0 ? (
-                      <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center bg-gray-50">
-                        <FileTextIcon className="mx-auto h-6 w-6 text-gray-400 mb-2" />
-                        <p className="text-gray-500 text-sm">
-                          No knowledge files uploaded. Click "Upload Files" to add your first file.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2 max-h-40 overflow-y-auto">
-                        {knowledgeFiles.map((file, index) => (
-                          <div key={index} className="flex items-center gap-3 p-2 border rounded-lg bg-gray-50">
-                            <FileTextIcon className="h-4 w-4 text-gray-500" />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">{file.name}</p>
-                              <p className="text-xs text-gray-500">{file.size} • {file.type}</p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeKnowledgeFile(index)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CollapsibleContent>
-                </div>
-              </Collapsible>
-            </div>
-
-            {/* Right Side - Generated JSON */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Code2 className="w-5 h-5 text-primary" />
-                  <h3 className="text-lg font-semibold">Generated Configuration</h3>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => copyCodeToClipboard(generateConfigurationJSON())}
-                >
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copy JSON
-                </Button>
-              </div>
-              
-              <div className="border rounded-lg bg-gray-900 text-gray-100 p-4 h-[600px] overflow-y-auto">
-                <pre className="text-sm font-mono">
-                  <code>{generateConfigurationJSON()}</code>
-                </pre>
-              </div>
-              
-              <div className="text-sm text-muted-foreground">
-                <p>This JSON configuration can be used directly in your API calls to configure the Feedback Agent with the specified parameters.</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 
-  const renderAPIReferenceTab = () => (
-    <div className="flex h-[calc(100vh-12rem)] gap-4">
-      {/* Left Sidebar - Endpoints */}
-      <div className="w-48 border-r bg-muted/30 overflow-y-auto">
-        <div className="p-3">
-          <h3 className="font-semibold mb-3 text-sm">Endpoints</h3>
-          {API_ENDPOINTS.map((category) => (
-            <div key={category.category} className="mb-4">
-              <h4 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
-                {category.category}
-              </h4>
-              <div className="space-y-1">
-                {category.endpoints.map((endpoint) => (
-                  <button
-                    key={`${endpoint.method}-${endpoint.path}`}
-                    onClick={() => setSelectedEndpoint(endpoint)}
-                    className={`w-full text-left p-2 rounded-md text-xs transition-colors ${
-                      selectedEndpoint === endpoint
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className={`text-xs ${getMethodColor(endpoint.method)}`}>
-                        {endpoint.method}
-                      </Badge>
-                      <span className="truncate">{endpoint.name}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Middle Section - Documentation */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-4">
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Badge variant="outline" className={`${getMethodColor(selectedEndpoint.method)}`}>
-                {selectedEndpoint.method}
-              </Badge>
-              <code className="text-sm bg-muted px-2 py-1 rounded">
-                {selectedEndpoint.path}
-              </code>
-            </div>
-            <h2 className="text-xl font-bold">{selectedEndpoint.name}</h2>
-            <p className="text-sm text-muted-foreground mt-2">{selectedEndpoint.description}</p>
-          </div>
-
-          {selectedEndpoint.parameters.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-4">Query Parameters</h3>
-              <div className="space-y-4">
-                {selectedEndpoint.parameters.map((param) => (
-                  <div key={param.name} className="border rounded-lg p-4 bg-card">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
-                          {param.name}
-                        </code>
-                        <Badge variant={param.required ? "default" : "secondary"}>
-                          {param.required ? "Required" : "Optional"}
-                        </Badge>
-                      </div>
-                      <span className="text-sm text-muted-foreground font-medium">{param.type}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{param.description}</p>
-                    {(param as any).format && (
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        <span className="font-medium">Format:</span> {(param as any).format}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Right Section - Request/Response Samples */}
-      <div className="flex-1 border-l bg-muted/30 overflow-y-auto">
-        <div className="p-4">
-          <h3 className="font-semibold mb-4 text-sm">Try It</h3>
-          
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Request</span>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => copyCodeToClipboard(`curl -X POST "http://localhost:8000/api/v1/public/calls" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "feedback_call": {
-      "client_details": {
-        "customer_name": "John Doe",
-        "customer_phone": "+1234567890",
-        "service_advisor_name": "Mike Smith",
-        "service_type": "oil-change",
-        "last_service_comment": "Oil and filter changed"
-      },
-      "organization_details": {
-        "organization_name": "ABC Auto Service",
-        "organization_description": "Professional auto service center",
-        "service_centre_description": "Full-service automotive repair",
-        "location": "123 Main St, City, State",
-        "google_review_link": "https://g.page/abc-auto/review",
-        "areas_to_focus": "Customer satisfaction, Service quality"
-      },
-      "knowledge_files": [],
-      "webhook_configuration": {
-        "server_url": "https://your-server.com/webhook",
-        "timeout": 20,
-        "http_headers": {}
-      }
-    }
-  }'`)}
-              >
-                <Copy className="w-4 h-4" />
-              </Button>
-            </div>
-            <div className="bg-black text-green-400 p-3 rounded-md text-xs font-mono">
-              <div>$ curl -X POST "http://localhost:8000/api/v1/public/calls" \</div>
-              <div>&gt;  -H "Authorization: Bearer YOUR_API_KEY" \</div>
-              <div>&gt;  -H "Content-Type: application/json" \</div>
-              <div>&gt;  -d '{`{`}</div>
-              <div>&gt;    "feedback_call": {`{`}</div>
-              <div>&gt;      "client_details": {`{`}</div>
-              <div>&gt;        "customer_name": "John Doe",</div>
-              <div>&gt;        "customer_phone": "+1234567890",</div>
-              <div>&gt;        "service_type": "oil-change"</div>
-              <div>&gt;      {`}`},</div>
-              <div>&gt;      "organization_details": {`{`}</div>
-              <div>&gt;        "organization_name": "ABC Auto Service"</div>
-              <div>&gt;      {`}`},</div>
-              <div>&gt;      "knowledge_files": [],</div>
-              <div>&gt;      "webhook_configuration": {`{`}</div>
-              <div>&gt;        "server_url": "https://your-server.com/webhook"</div>
-              <div>&gt;      {`}`}</div>
-              <div>&gt;    {`}`}</div>
-              <div>&gt;  {`}`}'</div>
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-green-600">Response</span>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => copyCodeToClipboard(JSON.stringify(selectedEndpoint.response, null, 2))}
-              >
-                <Copy className="w-4 h-4" />
-              </Button>
-            </div>
-            <div className="bg-black text-gray-300 p-3 rounded-md text-xs font-mono h-[calc(100vh-20rem)] overflow-y-auto">
-              <pre>{JSON.stringify(selectedEndpoint.response, null, 2)}</pre>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  const renderAPIReferenceTab = () => <APIReferenceViewer />;
 
   return (
     <SidebarProvider>
@@ -1087,158 +137,12 @@ export default function APIKeys() {
                           Create New Configuration
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-2xl p-6">
-                        <DialogHeader>
-                          <DialogTitle>Create new Configuration</DialogTitle>
-                          <DialogDescription>
-                            {!showNewKey 
-                              ? "Create a new API configuration with webhook settings to access Lokam services programmatically." 
-                              : "Keep your API key secure. You won't be able to see it again."}
-                          </DialogDescription>
-                        </DialogHeader>
-                        
-                        {!showNewKey ? (
-                          <>
-                            <div className="grid gap-6 py-4 max-h-96 overflow-y-auto">
-                              {/* API Key Name */}
-                              <div className="space-y-2">
-                                <label htmlFor="name" className="text-sm font-medium">
-                                  Configuration Name
-                                </label>
-                                <Input
-                                  id="name"
-                                  placeholder="Production API Configuration"
-                                  value={newKeyName}
-                                  onChange={(e) => setNewKeyName(e.target.value)}
-                                />
-                              </div>
-
-                              {/* Webhook Configuration */}
-                              <div className="space-y-4">
-                                <h3 className="text-sm font-medium">Webhook Configuration</h3>
-                                
-                                <div className="space-y-2">
-                                  <label htmlFor="webhook-url" className="text-sm font-medium">
-                                    Webhook URL
-                                  </label>
-                                  <Input
-                                    id="webhook-url"
-                                    type="url"
-                                    placeholder="https://your-server.com/webhook"
-                                    value={serverUrl}
-                                    onChange={(e) => setServerUrl(e.target.value)}
-                                  />
-                                </div>
-
-                                <div className="space-y-2">
-                                  <label htmlFor="webhook-secret" className="text-sm font-medium">
-                                    Webhook Secret (Optional)
-                                  </label>
-                                  <Input
-                                    id="webhook-secret"
-                                    placeholder="Your webhook secret"
-                                    value={secretToken}
-                                    onChange={(e) => setSecretToken(e.target.value)}
-                                  />
-                                </div>
-
-                                <div className="space-y-2">
-                                  <label htmlFor="webhook-timeout" className="text-sm font-medium">
-                                    Timeout (seconds)
-                                  </label>
-                                  <Input
-                                    id="webhook-timeout"
-                                    type="number"
-                                    placeholder="30"
-                                    value={timeout}
-                                    onChange={(e) => setTimeout(e.target.value)}
-                                  />
-                                </div>
-
-                                {/* HTTP Headers */}
-                                <div className="space-y-2">
-                                  <label className="text-sm font-medium">HTTP Headers (Optional)</label>
-                                  {httpHeaders.map((header, index) => (
-                                    <div key={index} className="flex gap-2">
-                                      <Input
-                                        placeholder="Header name"
-                                        value={header.key}
-                                        onChange={(e) => {
-                                          const newHeaders = [...httpHeaders];
-                                          newHeaders[index].key = e.target.value;
-                                          setHttpHeaders(newHeaders);
-                                        }}
-                                      />
-                                      <Input
-                                        placeholder="Header value"
-                                        value={header.value}
-                                        onChange={(e) => {
-                                          const newHeaders = [...httpHeaders];
-                                          newHeaders[index].value = e.target.value;
-                                          setHttpHeaders(newHeaders);
-                                        }}
-                                      />
-                                      <Button
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={() => {
-                                          const newHeaders = httpHeaders.filter((_, i) => i !== index);
-                                          setHttpHeaders(newHeaders);
-                                        }}
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  ))}
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setHttpHeaders([...httpHeaders, { key: "", value: "" }])}
-                                  >
-                                    <Plus className="h-4 w-4 mr-1" />
-                                    Add Header
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                            <DialogFooter>
-                              <Button variant="outline" onClick={closeDialog}>
-                                Cancel
-                              </Button>
-                              <Button onClick={handleCreateKey} disabled={!newKeyName || creating}>
-                                {creating ? "Creating..." : "Create Configuration"}
-                              </Button>
-                            </DialogFooter>
-                          </>
-                        ) : (
-                          <>
-                            <Alert>
-                              <Key className="h-4 w-4" />
-                              <AlertDescription>
-                                This is the only time your API key will be displayed.
-                              </AlertDescription>
-                            </Alert>
-                            <div className="mt-4 flex items-center space-x-2">
-                              <Input
-                                readOnly
-                                value={newKeyValue}
-                                className="font-mono"
-                              />
-                              <Button 
-                                variant="secondary" 
-                                onClick={() => copyToClipboard(newKeyValue)}
-                              >
-                                Copy
-                              </Button>
-                            </div>
-                            <DialogFooter className="mt-4">
-                              <Button onClick={closeDialog}>
-                                Done
-                              </Button>
-                            </DialogFooter>
-                          </>
-                        )}
-                      </DialogContent>
+                      <CreateAPIKeyDialog 
+                        open={newKeyOpen}
+                        onOpenChange={setNewKeyOpen}
+                        onCreateKey={createNewApiKey}
+                        creating={creating}
+                      />
                     </Dialog>
 
                   </div>
