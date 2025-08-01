@@ -81,6 +81,7 @@ class Organization(Base):
     settings = relationship("Setting", back_populates="organization")
     audit_logs = relationship("AuditLog", back_populates="organization")
     knowledge_files = relationship("KnowledgeFile", back_populates="organization")
+    api_keys = relationship("ApiKey", back_populates="organization", cascade="all, delete-orphan")
     
     def __repr__(self) -> str:
         return f"<Organization {self.name}>"

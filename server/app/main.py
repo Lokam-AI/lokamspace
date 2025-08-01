@@ -3,6 +3,7 @@ Main FastAPI application entry point.
 """
 
 import logging
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -14,6 +15,7 @@ from app.core.database import create_db_and_tables
 from app.core.exceptions import setup_exception_handlers
 from app.core.middleware import TenantMiddleware
 from app.core.logging_middleware import RequestLoggingMiddleware
+from app.core.rate_limiter import cleanup_old_requests
 
 
 # Configure logging
@@ -36,8 +38,24 @@ async def lifespan(app: FastAPI):
         logger.info("Creating database tables...")
         await create_db_and_tables()
     
+    # Start background task for rate limiter cleanup
+    async def periodic_cleanup():
+        while True:
+            cleanup_old_requests()
+            await asyncio.sleep(300)  # Cleanup every 5 minutes
+    
+    cleanup_task = asyncio.create_task(periodic_cleanup())
+    
     logger.info("Application startup complete")
     yield
+    
+    # Cancel cleanup task on shutdown
+    cleanup_task.cancel()
+    try:
+        await cleanup_task
+    except asyncio.CancelledError:
+        pass
+        
     logger.info("Application shutdown complete")
 
 

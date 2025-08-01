@@ -13,7 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.middleware import TenantQueryFilter
 from app.core.security import TokenData, decode_access_token
-from app.models import Organization, User
+from app.models import Organization, User, ApiKey
+from app.services.api_key_service import ApiKeyService
 from app.core.config import settings
 
 # OAuth2 configuration
@@ -179,4 +180,79 @@ async def verify_vapi_secret(
             detail="Invalid VAPI secret token"
         )
     
-    return x_vapi_secret 
+    return x_vapi_secret
+
+
+async def get_api_key_auth(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+) -> ApiKey:
+    """
+    Authenticate requests using API key.
+    
+    Args:
+        request: The request object
+        db: Database session
+        
+    Returns:
+        ApiKey: The authenticated API key record
+        
+    Raises:
+        HTTPException: If authentication fails
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid API key",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    # Get Authorization header
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise credentials_exception
+    
+    # Extract API key
+    api_key = auth_header.split("Bearer ")[1]
+    
+    # Verify API key
+    api_key_record = await ApiKeyService.verify_api_key(api_key, db)
+    
+    if not api_key_record:
+        raise credentials_exception
+    
+    # Store organization context in request
+    request.state.organization_id = api_key_record.organization_id
+    request.state.api_key = api_key_record
+    
+    # Update usage statistics (async, don't await to avoid blocking)
+    await ApiKeyService.update_usage(api_key_record, db)
+    
+    return api_key_record
+
+
+async def get_api_key_organization(
+    api_key: ApiKey = Depends(get_api_key_auth),
+    db: AsyncSession = Depends(get_db)
+) -> Organization:
+    """
+    Get organization from API key authentication.
+    
+    Args:
+        api_key: Authenticated API key
+        db: Database session
+        
+    Returns:
+        Organization: The API key's organization
+    """
+    result = await db.execute(
+        select(Organization).where(Organization.id == api_key.organization_id)
+    )
+    organization = result.scalar_one_or_none()
+    
+    if not organization:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found"
+        )
+    
+    return organization 

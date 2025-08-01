@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Key, Plus, Trash2, Copy, FileText, Settings, Code2, Eye, EyeOff, Upload, FileText as FileTextIcon, MapPin, Building, User, Phone, Car, MessageSquare, Save, ChevronDown, ChevronRight } from "lucide-react";
+import { listApiKeys, createApiKey, deleteApiKey, ApiKey, ApiKeyCreate, ApiKeySecret } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -17,30 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-// Static data for demonstration
-const STATIC_API_KEYS = [
-  {
-    id: "1",
-    name: "Development Key",
-    secret_key: "sk-8kIA...8kIA",
-    created: "Jul 28, 2025",
-    created_by: "Admin"
-  },
-  {
-    id: "2",
-    name: "Production Key",
-    secret_key: "sk-1N4A...1N4A",
-    created: "Jul 28, 2025",
-    created_by: "Admin"
-  },
-  {
-    id: "3",
-    name: "Testing Key",
-    secret_key: "sk-Co4A...Co4A",
-    created: "Jul 28, 2025",
-    created_by: "Admin"
-  }
-];
+// API Keys will be loaded from the backend
 
 // API Reference data
 const API_ENDPOINTS = [
@@ -226,16 +204,18 @@ const API_ENDPOINTS = [
 ];
 
 export default function APIKeys() {
-  const [apiKeys, setApiKeys] = useState(STATIC_API_KEYS);
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [loading, setLoading] = useState(true);
   const [newKeyOpen, setNewKeyOpen] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
   const [newKeyValue, setNewKeyValue] = useState("");
   const [showNewKey, setShowNewKey] = useState(false);
   const [selectedEndpoint, setSelectedEndpoint] = useState(API_ENDPOINTS[0].endpoints[0]);
+  const [creating, setCreating] = useState(false);
   
   // Configuration state
-  const [serverUrl, setServerUrl] = useState("https://dev-api.lokam.ai/api/v1/webhooks/vapi-webhook");
-  const [secretToken, setSecretToken] = useState("sk-8kIA...8kIA");
+  const [serverUrl, setServerUrl] = useState("");
+  const [secretToken, setSecretToken] = useState("");
   const [showSecretToken, setShowSecretToken] = useState(false);
   const [timeout, setTimeout] = useState("20");
   const [httpHeaders, setHttpHeaders] = useState<Array<{key: string, value: string}>>([]);
@@ -272,22 +252,69 @@ export default function APIKeys() {
     knowledgeFiles: false
   });
 
-  const handleCreateKey = () => {
-    // Generate a random key (in a real app this would come from the backend)
-    const randomKey = `sk-${Math.random().toString(36).substring(2, 6)}${Math.random().toString(36).substring(2, 6)}`;
-    
-    const newKey = {
-      id: `${apiKeys.length + 1}`,
-      name: newKeyName,
-      secret_key: randomKey,
-      created: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-      created_by: "Admin"
+  // Load API keys on component mount
+  useEffect(() => {
+    const loadApiKeys = async () => {
+      try {
+        setLoading(true);
+        const keys = await listApiKeys();
+        setApiKeys(keys);
+      } catch (error) {
+        console.error("Failed to load API keys:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load API keys",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
     };
+
+    loadApiKeys();
+  }, []);
+
+  const handleCreateKey = async () => {
+    if (!newKeyName.trim()) return;
     
-    setApiKeys([...apiKeys, newKey]);
-    setNewKeyValue(randomKey);
-    setShowNewKey(true);
-    setNewKeyName("");
+    try {
+      setCreating(true);
+      const keyData: ApiKeyCreate = {
+        name: newKeyName,
+        rate_limit_per_minute: 10,
+        webhook_url: serverUrl || undefined,
+        webhook_secret: secretToken || undefined,
+        webhook_timeout: parseInt(timeout) || 30,
+        webhook_headers: httpHeaders.reduce((acc, header) => {
+          acc[header.key] = header.value;
+          return acc;
+        }, {} as Record<string, string>),
+      };
+      
+      const result = await createApiKey(keyData);
+      
+      setNewKeyValue(result.secret_key);
+      setShowNewKey(true);
+      setNewKeyName("");
+      
+      // Reload API keys
+      const keys = await listApiKeys();
+      setApiKeys(keys);
+      
+      toast({
+        title: "API Key created",
+        description: "Your new API key has been created successfully.",
+      });
+    } catch (error) {
+      console.error("Failed to create API key:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create API key",
+        variant: "destructive",
+      });
+    } finally {
+      setCreating(false);
+    }
   };
 
   // Function to mask the secret key for display
@@ -296,12 +323,25 @@ export default function APIKeys() {
     return `${key.substring(0, 3)}...${key.substring(key.length - 3)}`;
   };
 
-  const handleDeleteKey = (id: string) => {
-    setApiKeys(apiKeys.filter(key => key.id !== id));
-    toast({
-      title: "API Key deleted",
-      description: "The API key has been permanently deleted."
-    });
+  const handleDeleteKey = async (id: string) => {
+    try {
+      await deleteApiKey(id);
+      
+      // Remove from local state
+      setApiKeys(apiKeys.filter(key => key.id !== id));
+      
+      toast({
+        title: "API Key deleted",
+        description: "The API key has been permanently deleted."
+      });
+    } catch (error) {
+      console.error("Failed to delete API key:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete API key",
+        variant: "destructive",
+      });
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -317,6 +357,11 @@ export default function APIKeys() {
     setShowNewKey(false);
     setNewKeyName("");
     setNewKeyValue("");
+    // Reset webhook configuration
+    setServerUrl("");
+    setSecretToken("");
+    setTimeout("30");
+    setHttpHeaders([]);
   };
 
   const getMethodColor = (method: string) => {
@@ -382,13 +427,7 @@ export default function APIKeys() {
     });
   };
 
-  const handleSaveConfiguration = () => {
-    // Save all configuration data
-    toast({
-      title: "Configuration saved",
-      description: "All settings have been saved successfully."
-    });
-  };
+
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({
@@ -436,96 +475,15 @@ export default function APIKeys() {
 
   const renderAPIKeysTab = () => (
     <div className="flex flex-col gap-8">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">API Configuration</h2>
-          <p className="text-muted-foreground mt-2">
-            Manage API keys to securely access the Lokam API
-          </p>
-        </div>
-        <Dialog open={newKeyOpen} onOpenChange={setNewKeyOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Create new secret key
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create new API key</DialogTitle>
-              <DialogDescription>
-                {!showNewKey 
-                  ? "Create a new API key to access Lokam services programmatically." 
-                  : "Keep your API key secure. You won't be able to see it again."}
-              </DialogDescription>
-            </DialogHeader>
-            
-            {!showNewKey ? (
-              <>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <label htmlFor="name" className="text-right">
-                      Name
-                    </label>
-                    <Input
-                      id="name"
-                      placeholder="My API Key"
-                      className="col-span-3"
-                      value={newKeyName}
-                      onChange={(e) => setNewKeyName(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={closeDialog}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleCreateKey} disabled={!newKeyName}>
-                    Create key
-                  </Button>
-                </DialogFooter>
-              </>
-            ) : (
-              <>
-                <Alert>
-                  <Key className="h-4 w-4" />
-                  <AlertDescription>
-                    This is the only time your API key will be displayed.
-                  </AlertDescription>
-                </Alert>
-                <div className="mt-4 flex items-center space-x-2">
-                  <Input
-                    readOnly
-                    value={newKeyValue}
-                    className="font-mono"
-                  />
-                  <Button 
-                    variant="secondary" 
-                    onClick={() => copyToClipboard(newKeyValue)}
-                  >
-                    Copy
-                  </Button>
-                </div>
-                <DialogFooter className="mt-4">
-                  <Button onClick={closeDialog}>
-                    Done
-                  </Button>
-                </DialogFooter>
-              </>
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
-
       <Card>
         <CardHeader>
           <Collapsible open={expandedSections.apiKeys} onOpenChange={() => toggleSection('apiKeys')}>
             <CollapsibleTrigger asChild>
               <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors -m-2">
                 <div>
-                  <CardTitle>Your API Keys</CardTitle>
+                  <CardTitle>Your API Configurations</CardTitle>
                   <CardDescription>
-                    API keys provide access to Lokam API. Keep them secure.
+                    Each configuration includes an API key and webhook settings for secure access to Lokam API.
                   </CardDescription>
                 </div>
                 {expandedSections.apiKeys ? (
@@ -542,6 +500,7 @@ export default function APIKeys() {
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Secret Key</TableHead>
+                      <TableHead>Webhook URL</TableHead>
                       <TableHead>Created</TableHead>
                       <TableHead>Created by</TableHead>
                       <TableHead className="w-[100px]">Actions</TableHead>
@@ -551,9 +510,18 @@ export default function APIKeys() {
                     {apiKeys.map((key) => (
                       <TableRow key={key.id}>
                         <TableCell>{key.name}</TableCell>
-                        <TableCell className="font-mono">{maskSecretKey(key.secret_key)}</TableCell>
-                        <TableCell>{key.created}</TableCell>
-                        <TableCell>{key.created_by}</TableCell>
+                        <TableCell className="font-mono">{key.secret_key_preview}</TableCell>
+                        <TableCell className="max-w-xs truncate">
+                          {key.webhook_url ? (
+                            <span className="text-sm text-muted-foreground" title={key.webhook_url}>
+                              {key.webhook_url}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-muted-foreground italic">Not configured</span>
+                          )}
+                        </TableCell>
+                        <TableCell>{new Date(key.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</TableCell>
+                        <TableCell>{key.created_by_name}</TableCell>
                         <TableCell>
                           <Button
                             variant="ghost"
@@ -565,148 +533,22 @@ export default function APIKeys() {
                         </TableCell>
                       </TableRow>
                     ))}
-                    {apiKeys.length === 0 && (
+                    {loading && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-6">
-                          No API keys found. Create your first key to get started.
+                        <TableCell colSpan={6} className="text-center py-6">
+                          Loading API keys...
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {!loading && apiKeys.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-6">
+                          No API configurations found. Create your first configuration to get started.
                         </TableCell>
                       </TableRow>
                     )}
                   </TableBody>
                 </Table>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </CardHeader>
-      </Card>
-
-      {/* Configuration Section */}
-      <Card>
-        <CardHeader>
-          <Collapsible open={expandedSections.webhookConfiguration} onOpenChange={() => toggleSection('webhookConfiguration')}>
-            <CollapsibleTrigger asChild>
-              <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors -m-2">
-                <div>
-                  <CardTitle>Webhook Configuration</CardTitle>
-                  <CardDescription>
-                    Configure server settings and HTTP headers for API integration
-                  </CardDescription>
-                </div>
-                {expandedSections.webhookConfiguration ? (
-                  <ChevronDown className="w-5 h-5 text-gray-500" />
-                ) : (
-                  <ChevronRight className="w-5 h-5 text-gray-500" />
-                )}
-              </div>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="pt-4 space-y-6">
-                {/* Server Settings */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Server Settings</h3>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="server-url">Server URL</Label>
-                      <Input
-                        id="server-url"
-                        value={serverUrl}
-                        onChange={(e) => setServerUrl(e.target.value)}
-                        placeholder="https://your-server.com/api/webhook"
-                        className="mt-1"
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="secret-token">Secret Token</Label>
-                        <div className="relative mt-1">
-                          <Input
-                            id="secret-token"
-                            type={showSecretToken ? "text" : "password"}
-                            value={secretToken}
-                            onChange={(e) => setSecretToken(e.target.value)}
-                            placeholder="Enter your secret token"
-                            className="pr-10"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                            onClick={() => setShowSecretToken(!showSecretToken)}
-                          >
-                            {showSecretToken ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="timeout">Timeout (seconds)</Label>
-                        <Input
-                          id="timeout"
-                          type="number"
-                          value={timeout}
-                          onChange={(e) => setTimeout(e.target.value)}
-                          placeholder="20"
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* HTTP Headers */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold">HTTP Headers</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Custom HTTP headers to include in API requests to your server
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowAddHeader(true)}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Header
-                    </Button>
-                  </div>
-
-                  {httpHeaders.length === 0 ? (
-                    <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center bg-gray-50">
-                      <p className="text-gray-500">
-                        No headers configured. Click "Add Header" to add your first header.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {httpHeaders.map((header, index) => (
-                        <div key={index} className="flex items-center gap-2 p-3 border rounded-lg bg-gray-50">
-                          <div className="flex-1">
-                            <span className="font-medium text-sm">{header.key}:</span>
-                            <span className="text-sm text-gray-600 ml-2">{header.value}</span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeHttpHeader(index)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </div>
             </CollapsibleContent>
           </Collapsible>
@@ -1147,19 +989,58 @@ export default function APIKeys() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => copyCodeToClipboard(`curl https://api.lokam.ai${selectedEndpoint.path} \\
-  -H "Authorization: Bearer <token>" \\
+                onClick={() => copyCodeToClipboard(`curl -X POST "http://localhost:8000/api/v1/public/calls" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '${JSON.stringify(selectedEndpoint.parameters.reduce((acc, param) => { acc[param.name] = param.required ? `${param.name}_value` : null; return acc; }, {} as Record<string, any>), null, 2)}'`)}
+  -d '{
+    "feedback_call": {
+      "client_details": {
+        "customer_name": "John Doe",
+        "customer_phone": "+1234567890",
+        "service_advisor_name": "Mike Smith",
+        "service_type": "oil-change",
+        "last_service_comment": "Oil and filter changed"
+      },
+      "organization_details": {
+        "organization_name": "ABC Auto Service",
+        "organization_description": "Professional auto service center",
+        "service_centre_description": "Full-service automotive repair",
+        "location": "123 Main St, City, State",
+        "google_review_link": "https://g.page/abc-auto/review",
+        "areas_to_focus": "Customer satisfaction, Service quality"
+      },
+      "knowledge_files": [],
+      "webhook_configuration": {
+        "server_url": "https://your-server.com/webhook",
+        "timeout": 20,
+        "http_headers": {}
+      }
+    }
+  }'`)}
               >
                 <Copy className="w-4 h-4" />
               </Button>
             </div>
             <div className="bg-black text-green-400 p-3 rounded-md text-xs font-mono">
-              <div>$ curl https://api.lokam.ai{selectedEndpoint.path} \</div>
-              <div>&gt;    -H "Authorization: Bearer &lt;token&gt;" \</div>
-              <div>&gt;    -H "Content-Type: application/json" \</div>
-              <div>&gt;    -d '{JSON.stringify(selectedEndpoint.parameters.reduce((acc, param) => { acc[param.name] = param.required ? `"${param.name}_value"` : "null"; return acc; }, {} as Record<string, string>), null, 2)}'</div>
+              <div>$ curl -X POST "http://localhost:8000/api/v1/public/calls" \</div>
+              <div>&gt;  -H "Authorization: Bearer YOUR_API_KEY" \</div>
+              <div>&gt;  -H "Content-Type: application/json" \</div>
+              <div>&gt;  -d '{`{`}</div>
+              <div>&gt;    "feedback_call": {`{`}</div>
+              <div>&gt;      "client_details": {`{`}</div>
+              <div>&gt;        "customer_name": "John Doe",</div>
+              <div>&gt;        "customer_phone": "+1234567890",</div>
+              <div>&gt;        "service_type": "oil-change"</div>
+              <div>&gt;      {`}`},</div>
+              <div>&gt;      "organization_details": {`{`}</div>
+              <div>&gt;        "organization_name": "ABC Auto Service"</div>
+              <div>&gt;      {`}`},</div>
+              <div>&gt;      "knowledge_files": [],</div>
+              <div>&gt;      "webhook_configuration": {`{`}</div>
+              <div>&gt;        "server_url": "https://your-server.com/webhook"</div>
+              <div>&gt;      {`}`}</div>
+              <div>&gt;    {`}`}</div>
+              <div>&gt;  {`}`}'</div>
             </div>
           </div>
 
@@ -1183,8 +1064,6 @@ export default function APIKeys() {
     </div>
   );
 
-
-
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
@@ -1200,10 +1079,169 @@ export default function APIKeys() {
                       Manage your API integration and access
                     </p>
                   </div>
-                  <Button onClick={handleSaveConfiguration} className="flex items-center gap-2">
-                    <Save className="w-4 h-4" />
-                    Save Configuration
-                  </Button>
+                  <div className="flex gap-2">
+                    <Dialog open={newKeyOpen} onOpenChange={setNewKeyOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" className="flex items-center gap-2">
+                          <Plus className="w-3 h-3" />
+                          Create New Configuration
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl p-6">
+                        <DialogHeader>
+                          <DialogTitle>Create new Configuration</DialogTitle>
+                          <DialogDescription>
+                            {!showNewKey 
+                              ? "Create a new API configuration with webhook settings to access Lokam services programmatically." 
+                              : "Keep your API key secure. You won't be able to see it again."}
+                          </DialogDescription>
+                        </DialogHeader>
+                        
+                        {!showNewKey ? (
+                          <>
+                            <div className="grid gap-6 py-4 max-h-96 overflow-y-auto">
+                              {/* API Key Name */}
+                              <div className="space-y-2">
+                                <label htmlFor="name" className="text-sm font-medium">
+                                  Configuration Name
+                                </label>
+                                <Input
+                                  id="name"
+                                  placeholder="Production API Configuration"
+                                  value={newKeyName}
+                                  onChange={(e) => setNewKeyName(e.target.value)}
+                                />
+                              </div>
+
+                              {/* Webhook Configuration */}
+                              <div className="space-y-4">
+                                <h3 className="text-sm font-medium">Webhook Configuration</h3>
+                                
+                                <div className="space-y-2">
+                                  <label htmlFor="webhook-url" className="text-sm font-medium">
+                                    Webhook URL
+                                  </label>
+                                  <Input
+                                    id="webhook-url"
+                                    type="url"
+                                    placeholder="https://your-server.com/webhook"
+                                    value={serverUrl}
+                                    onChange={(e) => setServerUrl(e.target.value)}
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <label htmlFor="webhook-secret" className="text-sm font-medium">
+                                    Webhook Secret (Optional)
+                                  </label>
+                                  <Input
+                                    id="webhook-secret"
+                                    placeholder="Your webhook secret"
+                                    value={secretToken}
+                                    onChange={(e) => setSecretToken(e.target.value)}
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <label htmlFor="webhook-timeout" className="text-sm font-medium">
+                                    Timeout (seconds)
+                                  </label>
+                                  <Input
+                                    id="webhook-timeout"
+                                    type="number"
+                                    placeholder="30"
+                                    value={timeout}
+                                    onChange={(e) => setTimeout(e.target.value)}
+                                  />
+                                </div>
+
+                                {/* HTTP Headers */}
+                                <div className="space-y-2">
+                                  <label className="text-sm font-medium">HTTP Headers (Optional)</label>
+                                  {httpHeaders.map((header, index) => (
+                                    <div key={index} className="flex gap-2">
+                                      <Input
+                                        placeholder="Header name"
+                                        value={header.key}
+                                        onChange={(e) => {
+                                          const newHeaders = [...httpHeaders];
+                                          newHeaders[index].key = e.target.value;
+                                          setHttpHeaders(newHeaders);
+                                        }}
+                                      />
+                                      <Input
+                                        placeholder="Header value"
+                                        value={header.value}
+                                        onChange={(e) => {
+                                          const newHeaders = [...httpHeaders];
+                                          newHeaders[index].value = e.target.value;
+                                          setHttpHeaders(newHeaders);
+                                        }}
+                                      />
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={() => {
+                                          const newHeaders = httpHeaders.filter((_, i) => i !== index);
+                                          setHttpHeaders(newHeaders);
+                                        }}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setHttpHeaders([...httpHeaders, { key: "", value: "" }])}
+                                  >
+                                    <Plus className="h-4 w-4 mr-1" />
+                                    Add Header
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button variant="outline" onClick={closeDialog}>
+                                Cancel
+                              </Button>
+                              <Button onClick={handleCreateKey} disabled={!newKeyName || creating}>
+                                {creating ? "Creating..." : "Create Configuration"}
+                              </Button>
+                            </DialogFooter>
+                          </>
+                        ) : (
+                          <>
+                            <Alert>
+                              <Key className="h-4 w-4" />
+                              <AlertDescription>
+                                This is the only time your API key will be displayed.
+                              </AlertDescription>
+                            </Alert>
+                            <div className="mt-4 flex items-center space-x-2">
+                              <Input
+                                readOnly
+                                value={newKeyValue}
+                                className="font-mono"
+                              />
+                              <Button 
+                                variant="secondary" 
+                                onClick={() => copyToClipboard(newKeyValue)}
+                              >
+                                Copy
+                              </Button>
+                            </div>
+                            <DialogFooter className="mt-4">
+                              <Button onClick={closeDialog}>
+                                Done
+                              </Button>
+                            </DialogFooter>
+                          </>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+
+                  </div>
                 </div>
 
                 <Tabs defaultValue="api-keys" className="w-full">

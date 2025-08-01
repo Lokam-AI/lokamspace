@@ -19,6 +19,8 @@ from app.api.v1.endpoints.tags import router as tags_router
 from app.api.v1.endpoints.transcripts import router as transcripts_router
 from app.api.v1.endpoints.users import router as users_router
 from app.api.v1.endpoints.webhooks import router as webhook_router
+from app.api.v1.endpoints.api_keys import router as api_keys_router
+from app.api.v1.endpoints.public_api import router as public_api_router
 
 # Create main API router
 api_router = APIRouter()
@@ -38,4 +40,6 @@ api_router.include_router(settings_router, prefix="/settings", tags=["Settings"]
 api_router.include_router(tags_router, prefix="/tags", tags=["Tags"])
 api_router.include_router(knowledge_files_router, prefix="/knowledge-files", tags=["Knowledge Files"])
 api_router.include_router(dms_integration_router, prefix="/dms-integration", tags=["DMS Integration"])
-api_router.include_router(webhook_router, prefix="/webhooks", tags=["Webhooks"]) 
+api_router.include_router(webhook_router, prefix="/webhooks", tags=["Webhooks"])
+api_router.include_router(api_keys_router, prefix="/api-keys", tags=["API Keys"])
+api_router.include_router(public_api_router, prefix="/public", tags=["Public API"]) 
