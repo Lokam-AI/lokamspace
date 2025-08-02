@@ -254,6 +254,30 @@ class OrganizationService:
         } 
 
     @staticmethod
+    async def get_all_organizations(
+        db: AsyncSession,
+        skip: int = 0,
+        limit: int = 1000
+    ) -> List[Organization]:
+        """
+        Get all organizations from the database.
+        
+        Args:
+            db: Database session
+            skip: Number of organizations to skip
+            limit: Maximum number of organizations to return
+            
+        Returns:
+            List[Organization]: List of all organizations
+        """
+        result = await db.execute(
+            select(Organization)
+            .offset(skip)
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
     async def check_and_initialize_descriptions(
         db: AsyncSession,
         organization_id: UUID
