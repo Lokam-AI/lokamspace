@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_current_organization, get_tenant_db
 from app.models import Organization
 from app.services.analytics_service import AnalyticsService
+from app.services.activity_service import ActivityService
+from app.schemas.activity import ActivityResponse
 
 router = APIRouter()
 
@@ -269,4 +271,43 @@ async def get_feedback_insights(
     return await AnalyticsService.get_feedback_insights(
         db=db,
         organization_id=organization.id
-    ) 
+    )
+
+
+@router.get("/recent-activities", response_model=List[ActivityResponse])
+async def get_recent_activities(
+    organization: Organization = Depends(get_current_organization),
+    db: AsyncSession = Depends(get_tenant_db),
+) -> Any:
+    """
+    Get recent activities for the organization.
+    
+    Returns exactly 5 activity items:
+    - Top 3 activities generated using AI summarization of calls, feedback, and service records
+    - 2 mandatory system-generated metrics: "Ready for Call" and "Missed/Failed Calls" counts
+    
+    Args:
+        organization: Current organization
+        db: Database session
+        
+    Returns:
+        List[ActivityResponse]: List of 5 recent activities from yesterday
+    """
+    activities = await ActivityService.get_recent_activities(
+        db=db,
+        organization_id=organization.id,
+        limit=5
+    )
+    
+    # Convert to response format
+    return [
+        ActivityResponse(
+            type=activity["type"],
+            title=activity["title"],
+            description=activity["description"],
+            count=activity.get("count"),
+            timestamp=datetime.fromisoformat(activity["timestamp"].replace('Z', '+00:00')),
+            priority=activity["priority"]
+        )
+        for activity in activities
+    ] 

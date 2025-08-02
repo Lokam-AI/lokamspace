@@ -48,6 +48,11 @@ from app.schemas.organization import (
     OrganizationResponse,
     OrganizationSettingsUpdate,
 )
+from app.schemas.activity import (
+    ActivityBase,
+    ActivityResponse,
+    RecentActivitiesResponse,
+)
 from app.schemas.service_record import (
     ServiceRecordBase,
     ServiceRecordCreate,
@@ -172,4 +177,8 @@ __all__ = [
     "KnowledgeFileCreate",
     "KnowledgeFileUpdate",
     "KnowledgeFileResponse",
+    # Activity schemas
+    "ActivityBase",
+    "ActivityResponse",
+    "RecentActivitiesResponse",
 ]

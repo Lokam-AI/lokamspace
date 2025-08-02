@@ -226,3 +226,153 @@ class OpenAIService:
                 "positive_mentions": [],
                 "detractors": []
             }
+
+    async def summarize_daily_activities(
+        self,
+        organization_data: Dict[str, Any],
+        activity_data: Dict[str, Any],
+        date_str: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate AI-powered summaries for daily activities.
+        
+        Args:
+            organization_data: Organization context data
+            activity_data: Raw activity data from database
+            date_str: Date string for the activities
+            
+        Returns:
+            List[Dict[str, Any]]: List of summarized activities (max 3)
+        """
+        prompt = self._build_activity_summary_prompt(
+            organization_data, activity_data, date_str
+        )
+
+        payload = {
+            "model": settings.OPENAI_MODEL,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant that creates concise, actionable activity summaries for business dashboards. Always respond with valid JSON matching the provided schema."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "daily_activities",
+                    "strict": True,
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "activities": {
+                                "type": "array",
+                                "maxItems": 3,
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "type": {"type": "string"},
+                                        "title": {"type": "string"},
+                                        "description": {"type": "string"},
+                                        "priority": {"type": "integer", "minimum": 3, "maximum": 5}
+                                    },
+                                    "required": ["type", "title", "description", "priority"],
+                                    "additionalProperties": False
+                                }
+                            }
+                        },
+                        "required": ["activities"],
+                        "additionalProperties": False
+                    }
+                }
+            }
+        }
+
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    f"{self.base_url}/chat/completions",
+                    json=payload,
+                    headers=self.headers
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                content = data["choices"][0]["message"]["content"]
+                result = json.loads(content)
+                return result.get("activities", [])
+
+        except (httpx.HTTPError, json.JSONDecodeError, KeyError) as exc:
+            logger.error(f"OpenAI API error for activity summarization: {exc}")
+            # Return fallback activities
+            return self._get_fallback_ai_activities(activity_data)
+
+    def _build_activity_summary_prompt(
+        self,
+        organization_data: Dict[str, Any],
+        activity_data: Dict[str, Any],
+        date_str: str
+    ) -> str:
+        """Build prompt for activity summarization."""
+        
+        prompt = f"""
+Please analyze the following business activity data for {organization_data.get('name', 'the organization')} on {date_str} and create 1-3 concise, actionable activity summaries.
+
+Organization Context:
+- Name: {organization_data.get('name', 'Unknown')}
+- Industry: {organization_data.get('industry', 'General')}
+
+Activity Data Summary:
+- Calls: {activity_data.get('calls_count', 0)} calls processed
+- Feedback: {activity_data.get('feedback_count', 0)} feedback responses
+- Service Records: {activity_data.get('service_records_count', 0)} service records updated
+
+Requirements:
+1. Create 1-3 most important activities based on the data
+2. Each activity should have a clear title and actionable description
+3. Focus on business impact and customer insights
+4. Prioritize activities with higher business value
+5. Use professional, concise language suitable for executives
+
+Examples of good activities:
+- "New Promoter Identified" with NPS insights
+- "Service Quality Improvement" based on feedback patterns
+- "Customer Retention Success" based on call outcomes
+- "Operational Efficiency Gains" based on service record updates
+
+Return exactly this JSON structure with 1-3 activities:
+"""
+
+        return prompt
+
+    def _get_fallback_ai_activities(self, activity_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get fallback activities when AI fails."""
+        activities = []
+        
+        if activity_data.get('calls_count', 0) > 0:
+            activities.append({
+                "type": "calls_summary",
+                "title": "Call Activity Summary",
+                "description": f"Processed {activity_data['calls_count']} customer calls with various outcomes",
+                "priority": 3
+            })
+        
+        if activity_data.get('feedback_count', 0) > 0:
+            activities.append({
+                "type": "feedback_summary",
+                "title": "Customer Feedback Review",
+                "description": f"Received {activity_data['feedback_count']} customer feedback responses for analysis",
+                "priority": 4
+            })
+        
+        if activity_data.get('service_records_count', 0) > 0:
+            activities.append({
+                "type": "service_summary",
+                "title": "Service Operations Update",
+                "description": f"Updated {activity_data['service_records_count']} service records for improved tracking",
+                "priority": 5
+            })
+        
+        return activities[:3]
