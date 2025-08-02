@@ -72,7 +72,6 @@ async def create_feedback_call_api(
         # Initialize variables for initiation status
         initiation_status = "failed"
         initiation_message = "Call created but failed to initiate"
-        vapi_response = None
         
         # Try to initiate the call with VAPI
         try:
@@ -81,9 +80,8 @@ async def create_feedback_call_api(
                 organization_id=organization.id,
                 db=db
             )
-            initiation_status = "success"
+            initiation_status = "In Progress"
             initiation_message = "Call created and initiated successfully"
-            vapi_response = call_result.get("vapi_response") if isinstance(call_result, dict) else None
             
         except Exception as initiation_error:
             # Log the initiation error but don't fail the entire request
@@ -104,7 +102,6 @@ async def create_feedback_call_api(
                 "customer_phone": service_record.customer_phone,
                 "service_type": service_record.service_type,
                 "initiation_status": initiation_status,
-                "vapi_response": vapi_response,
             }
         )
         

@@ -603,7 +603,7 @@ class CallService:
             return response
             
         except Exception as e:
-            logger.error(f"Error initiating call {call_id}: {str(e)}")
+            print(f"Error initiating call {call_id}: {str(e)}")
             raise
 
     @staticmethod
