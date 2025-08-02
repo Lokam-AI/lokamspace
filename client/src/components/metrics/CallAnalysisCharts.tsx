@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCallAnalysisCharts } from "@/hooks/useMetrics";
+import { useCallAnalysisCharts, useCallTrends } from "@/hooks/useMetrics";
 
 interface CallAnalysisChartsProps {
   startDate?: string;
@@ -24,12 +24,16 @@ export const CallAnalysisCharts = ({
   };
 
   // Fetch call analysis charts data from API
-  const { data: chartsData, isLoading, error } = useCallAnalysisCharts(apiParams);
+  const { data: chartsData, isLoading: chartsLoading, error: chartsError } = useCallAnalysisCharts(apiParams);
+  
+  // Fetch call trends data for daily distribution
+  const { data: trendsData, isLoading: trendsLoading, error: trendsError } = useCallTrends(apiParams);
 
   // Use API data or fallback to empty arrays
   const reasonCallEndedData = chartsData?.reason_call_ended || [];
   const avgDurationByTypeData = chartsData?.avg_duration_by_type || [];
   const costBreakdownData = chartsData?.cost_breakdown || [];
+  const dailyDistributionData = trendsData?.trends || [];
 
   const COLORS = ['#3b82f6', '#f97316', '#10b981'];
 
@@ -68,7 +72,7 @@ export const CallAnalysisCharts = ({
   };
 
   // Loading skeleton
-  if (isLoading) {
+  if (chartsLoading || trendsLoading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {[1, 2, 3].map((i) => (
@@ -86,7 +90,8 @@ export const CallAnalysisCharts = ({
   }
 
   // Error state
-  if (error) {
+  if (chartsError || trendsError) {
+    const error = chartsError || trendsError;
     console.error('Call analysis charts error:', error);
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -244,6 +249,59 @@ export const CallAnalysisCharts = ({
                 </div>
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Daily Distribution - Full Width */}
+      <Card className="lg:col-span-2 shadow-lg border-border bg-card rounded-xl overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b border-border">
+          <CardTitle className="text-xl font-semibold text-foreground">Daily Call Distribution</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="h-96">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={dailyDistributionData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+                barCategoryGap={dailyDistributionData.length > 15 ? "5%" : "30%"}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 10, fill: 'hsl(var(--foreground-secondary))' }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  stroke="hsl(var(--border))"
+                  tickFormatter={(value) => {
+                    // Format date to show day and month (e.g., "15 Aug")
+                    const date = new Date(value);
+                    return `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })}`;
+                  }}
+                  interval={0} // Show all ticks for all days
+                />
+                <YAxis
+                  label={{ value: 'Number of Calls', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: 'hsl(var(--foreground-secondary))' } }}
+                  tick={{ fontSize: 12, fill: 'hsl(var(--foreground-secondary))' }}
+                  stroke="hsl(var(--border))"
+                />
+                <Tooltip
+                  formatter={(value, name) => [value, name === 'demo_calls' ? 'Demo Calls' : 'Service Calls']}
+                  labelFormatter={(label) => {
+                    const date = new Date(label);
+                    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                  }}
+                />
+                <Legend 
+                  verticalAlign="top"
+                  wrapperStyle={{ paddingBottom: 20 }}
+                  formatter={(value) => value === 'demo_calls' ? 'Demo Calls' : 'Service Calls'}
+                />
+                <Bar dataKey="demo_calls" stackId="a" name="demo_calls" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="service_calls" stackId="a" name="service_calls" fill="#10b981" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>

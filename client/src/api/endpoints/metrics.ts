@@ -88,6 +88,8 @@ export const metricsApi = {
    */
   getCallTrends: async (params?: {
     date_range?: string;
+    start_date?: string;
+    end_date?: string;
   }): Promise<CallTrendsResponse> => {
     const response = await api.get("/metrics/call-trends", {
       params,
