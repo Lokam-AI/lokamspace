@@ -12,7 +12,7 @@ from app.dependencies import get_current_organization, get_tenant_db
 from app.models import Organization
 from app.services.analytics_service import AnalyticsService
 from app.services.activity_service import ActivityService
-from app.schemas.activity import ActivityResponse
+from app.schemas.activity import ActivityResponse, RecentActivitiesResponse
 
 router = APIRouter()
 
@@ -274,7 +274,7 @@ async def get_feedback_insights(
     )
 
 
-@router.get("/recent-activities", response_model=List[ActivityResponse])
+@router.get("/recent-activities", response_model=RecentActivitiesResponse)
 async def get_recent_activities(
     organization: Organization = Depends(get_current_organization),
     db: AsyncSession = Depends(get_tenant_db),
@@ -283,31 +283,37 @@ async def get_recent_activities(
     Get recent activities for the organization.
     
     Returns exactly 5 activity items:
-    - Top 3 activities generated using AI summarization of calls, feedback, and service records
-    - 2 mandatory system-generated metrics: "Ready for Call" and "Missed/Failed Calls" counts
+    - Ready for Call: calls that became ready on the previous day
+    - Missed/Failed Calls: calls missed or failed on the previous day  
+    - Completed Calls: calls completed on the previous day
+    - Number of Detractors: detractors (NPS 0-6) from the previous day
+    - Average NPS: average NPS score from the previous day
     
     Args:
         organization: Current organization
         db: Database session
         
     Returns:
-        List[ActivityResponse]: List of 5 recent activities from yesterday
+        RecentActivitiesResponse: Activities with target date and list of 5 activities from yesterday
     """
-    activities = await ActivityService.get_recent_activities(
+    activities_data = await ActivityService.get_recent_activities(
         db=db,
         organization_id=organization.id,
         limit=5
     )
     
     # Convert to response format
-    return [
-        ActivityResponse(
-            type=activity["type"],
-            title=activity["title"],
-            description=activity["description"],
-            count=activity.get("count"),
-            timestamp=datetime.fromisoformat(activity["timestamp"].replace('Z', '+00:00')),
-            priority=activity["priority"]
-        )
-        for activity in activities
-    ] 
+    return RecentActivitiesResponse(
+        target_date=activities_data["target_date"],
+        activities=[
+            ActivityResponse(
+                type=activity["type"],
+                title=activity["title"],
+                description=activity["description"],
+                count=activity.get("count"),
+                timestamp=datetime.fromisoformat(activity["timestamp"].replace('Z', '+00:00')),
+                priority=activity["priority"]
+            )
+            for activity in activities_data["activities"]
+        ]
+    ) 

@@ -15,15 +15,14 @@ export interface Activity {
 }
 
 export interface RecentActivitiesResponse {
+  target_date: string;
   activities: Activity[];
-  generated_at: string;
-  organization_id: string;
 }
 
 /**
  * Get recent activities for the current organization
  */
-export const getRecentActivities = async (): Promise<Activity[]> => {
+export const getRecentActivities = async (): Promise<RecentActivitiesResponse> => {
   const url = `${API_BASE_URL}/analytics/recent-activities`;
 
   try {

@@ -24,6 +24,5 @@ class ActivityResponse(ActivityBase):
 
 class RecentActivitiesResponse(BaseModel):
     """Recent activities response schema."""
-    activities: list[ActivityResponse]
-    generated_at: datetime
-    organization_id: str 
+    target_date: str
+    activities: list[ActivityResponse] 

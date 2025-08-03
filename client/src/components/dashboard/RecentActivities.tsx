@@ -7,7 +7,11 @@ import { useRecentActivities } from "@/api/queries/activities";
 import { Activity } from "@/api/endpoints/activities";
 
 const RecentActivities = () => {
-  const { data: activities, isLoading, error } = useRecentActivities();
+  const { data: activitiesData, isLoading, error } = useRecentActivities();
+  
+  // Extract activities and target date from the response
+  const activities = activitiesData?.activities || [];
+  const targetDate = activitiesData?.target_date || "";
 
   // Icon mapping for different activity types
   const getActivityIcon = (type: string) => {
@@ -16,19 +20,12 @@ const RecentActivities = () => {
         return <CheckCircle className="h-5 w-5 text-success" />;
       case "missed_calls":
         return <XCircle className="h-5 w-5 text-destructive" />;
-      case "calls_completed":
-      case "calls_summary":
+      case "completed_calls":
         return <Phone className="h-5 w-5 text-success" />;
-      case "feedback_received":
-      case "feedback_summary":
-        return <Users className="h-5 w-5 text-warning" />;
-      case "service_records":
-      case "service_summary":
-        return <TrendingUp className="h-5 w-5 text-success" />;
-      case "promoter":
-        return <Users className="h-5 w-5 text-success" />;
-      case "detractor":
+      case "detractors":
         return <AlertTriangle className="h-5 w-5 text-destructive" />;
+      case "average_nps":
+        return <TrendingUp className="h-5 w-5 text-primary" />;
       default:
         return <BarChart3 className="h-5 w-5 text-primary" />;
     }
@@ -41,10 +38,15 @@ const RecentActivities = () => {
         return count && count > 0 ? "default" : "secondary";
       case "missed_calls":
         return count && count > 0 ? "destructive" : "secondary";
-      case "promoter":
+      case "completed_calls":
         return "default";
-      case "detractor":
-        return "destructive";
+      case "detractors":
+        return count && count > 0 ? "destructive" : "secondary";
+      case "average_nps":
+        // For average NPS, count represents score * 10 (e.g., 85 for 8.5)
+        if (count && count >= 90) return "default"; // 9.0+
+        if (count && count >= 70) return "secondary"; // 7.0-8.9
+        return "destructive"; // Below 7.0
       default:
         return "secondary";
     }
@@ -57,19 +59,12 @@ const RecentActivities = () => {
         return "bg-success/10 border-success/20";
       case "missed_calls":
         return "bg-destructive/10 border-destructive/20";
-      case "calls_completed":
-      case "calls_summary":
+      case "completed_calls":
         return "bg-success/10 border-success/20";
-      case "feedback_received":
-      case "feedback_summary":
-        return "bg-warning/10 border-warning/20";
-      case "service_records":
-      case "service_summary":
-        return "bg-success/10 border-success/20";
-      case "promoter":
-        return "bg-success/10 border-success/20";
-      case "detractor":
+      case "detractors":
         return "bg-destructive/10 border-destructive/20";
+      case "average_nps":
+        return "bg-primary/10 border-primary/20";
       default:
         return "bg-primary/10 border-primary/20";
     }
@@ -100,7 +95,14 @@ const RecentActivities = () => {
     return (
       <Card className="h-full shadow-lg">
         <CardHeader>
-          <CardTitle className="text-lg">Recent Activity</CardTitle>
+          <CardTitle className="text-lg">
+            Recent Activity
+            {targetDate && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                ({targetDate})
+              </span>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {[...Array(5)].map((_, index) => (
@@ -125,7 +127,14 @@ const RecentActivities = () => {
     return (
       <Card className="h-full shadow-lg">
         <CardHeader>
-          <CardTitle className="text-lg">Recent Activity</CardTitle>
+          <CardTitle className="text-lg">
+            Recent Activity
+            {targetDate && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                ({targetDate})
+              </span>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center justify-center p-8 text-center">
@@ -149,7 +158,14 @@ const RecentActivities = () => {
     return (
       <Card className="h-full shadow-lg">
         <CardHeader>
-          <CardTitle className="text-lg">Recent Activity</CardTitle>
+          <CardTitle className="text-lg">
+            Recent Activity
+            {targetDate && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                ({targetDate})
+              </span>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center justify-center p-8 text-center">
@@ -171,7 +187,14 @@ const RecentActivities = () => {
   return (
     <Card className="h-full shadow-lg transform transition-transform hover:scale-105">
       <CardHeader>
-        <CardTitle className="text-lg">Recent Activity</CardTitle>
+        <CardTitle className="text-lg">
+          Recent Activity
+          {targetDate && (
+            <span className="text-sm font-normal text-muted-foreground ml-2">
+              ({targetDate})
+            </span>
+          )}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {activities.map((activity: Activity, index: number) => (
@@ -193,7 +216,9 @@ const RecentActivities = () => {
               </div>
             </div>
             <Badge variant={getBadgeVariant(activity.type, activity.count)}>
-              {activity.count !== undefined && activity.count !== null 
+              {activity.type === "average_nps" && activity.count !== undefined && activity.count !== null
+                ? (activity.count / 10).toFixed(1)  // Convert back to decimal (e.g., 85 -> 8.5)
+                : activity.count !== undefined && activity.count !== null 
                 ? activity.count.toString()
                 : formatTimestamp(activity.timestamp)}
             </Badge>
