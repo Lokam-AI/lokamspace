@@ -5,10 +5,17 @@ import { CallAnalysisCharts } from "./CallAnalysisCharts";
 import { DateRangePicker } from "./DateRangePicker";
 
 export const MetricsSection = () => {
-  const [startDate, setStartDate] = useState<Date | undefined>(new Date('2025-05-28'));
-  const [endDate, setEndDate] = useState<Date | undefined>(new Date('2025-06-28'));
-  const [groupBy, setGroupBy] = useState("Day");
-  const [filterType, setFilterType] = useState("All Types");
+  // Get the first day of the current month
+  const firstDayOfMonth = new Date();
+  firstDayOfMonth.setDate(1);
+  
+  // Get the last day of the current month
+  const lastDayOfMonth = new Date();
+  lastDayOfMonth.setMonth(lastDayOfMonth.getMonth() + 1);
+  lastDayOfMonth.setDate(0);
+  
+  const [startDate, setStartDate] = useState<Date | undefined>(firstDayOfMonth);
+  const [endDate, setEndDate] = useState<Date | undefined>(lastDayOfMonth);
 
   return (
     <div className="space-y-6 bg-background min-h-screen p-6">
@@ -18,22 +25,24 @@ export const MetricsSection = () => {
         <DateRangePicker
           startDate={startDate}
           endDate={endDate}
-          groupBy={groupBy}
-          filterType={filterType}
           onStartDateChange={setStartDate}
           onEndDateChange={setEndDate}
-          onGroupByChange={setGroupBy}
-          onFilterTypeChange={setFilterType}
         />
       </div>
 
       {/* KPI Cards */}
-      <MetricsKPICards />
+      <MetricsKPICards 
+        startDate={startDate?.toISOString().split('T')[0]}
+        endDate={endDate?.toISOString().split('T')[0]}
+      />
 
       {/* Call Analysis */}
       <div className="space-y-6">
         <h3 className="text-2xl font-semibold text-foreground">Call Analysis</h3>
-        <CallAnalysisCharts />
+        <CallAnalysisCharts 
+          startDate={startDate?.toISOString().split('T')[0]}
+          endDate={endDate?.toISOString().split('T')[0]}
+        />
       </div>
     </div>
   );
