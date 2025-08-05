@@ -54,19 +54,19 @@ export function CitySearch({
         isClearable
         classNames={{
           control: (state) =>
-            `border rounded-md px-3 py-1 bg-background font-sans ${
+            `border rounded-md px-3 py-1 bg-background ${
               state.isFocused
                 ? "border-primary ring-1 ring-primary"
                 : "border-input"
             }`,
           menu: () =>
-            "bg-popover border rounded-md shadow-md mt-1 z-50 font-sans",
+            "bg-popover border rounded-md shadow-md mt-1 z-50",
           option: (state) =>
-            `px-3 py-2 cursor-pointer font-sans ${
+            `px-3 py-2 cursor-pointer ${
               state.isFocused ? "bg-accent" : ""
             } ${state.isSelected ? "bg-primary text-primary-foreground" : ""}`,
-          placeholder: () => "text-muted-foreground font-sans",
-          singleValue: () => "text-foreground font-sans",
+          placeholder: () => "text-muted-foreground",
+          singleValue: () => "text-foreground",
         }}
       />
       <div className="text-sm text-foreground-secondary">

@@ -43,9 +43,7 @@ class Organization(Base):
     # Basic info
     name = Column(String(255), nullable=False, unique=True)
     email = Column(String(255), nullable=False, unique=True)
-    phone_feedback = Column(String(20))
-    phone_booking = Column(String(20))  # Renamed from phone_service
-    phone_inquiry = Column(String(20))  # Renamed from phone_support
+    google_review_link = Column(String(500))  # Google review link
     description = Column(Text)
     service_center_description = Column(Text)
     

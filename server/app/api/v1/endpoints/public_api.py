@@ -75,12 +75,21 @@ async def create_feedback_call_api(
         initiation_status = "failed"
         initiation_message = "Call created but failed to initiate"
         
+        # Determine which Google review link to use
+        # Priority: API request > Organization setting
+        google_review_link = None
+        if feedback_call.organization_details and feedback_call.organization_details.google_review_link:
+            google_review_link = feedback_call.organization_details.google_review_link
+        elif organization.google_review_link:
+            google_review_link = organization.google_review_link
+        
         # Try to initiate the call with VAPI
         try:
             call_result = await CallService.initiate_call(
                 call_id=call.id,
                 organization_id=organization.id,
-                db=db
+                db=db,
+                google_review_link=google_review_link
             )
             initiation_status = "In Progress"
             initiation_message = "Call created and initiated successfully"

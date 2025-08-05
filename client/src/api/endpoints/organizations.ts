@@ -5,9 +5,7 @@ export interface Organization {
   id: string;
   name: string;
   email: string;
-  phone_feedback?: string;
-  phone_booking?: string;
-  phone_inquiry?: string;
+  google_review_link?: string;
   location?: string;
   location_city?: string;
   location_value?: string;
@@ -20,9 +18,7 @@ export interface OrganizationSettings {
   email?: string;
   location_city?: string;
   location_value?: string;
-  phone_feedback?: string;
-  phone_booking?: string;
-  phone_inquiry?: string;
+  google_review_link?: string;
 }
 
 /**
