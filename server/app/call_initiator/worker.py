@@ -8,7 +8,7 @@ import sys
 from datetime import datetime, time
 from zoneinfo import ZoneInfo
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, update
+from sqlalchemy import select, and_, update, func
 from sqlalchemy.orm import joinedload
 
 from app.core.database import get_engine, async_session_factory
@@ -42,29 +42,38 @@ class CallInitiatorWorker:
         
         try:
             async with await self._get_db_session() as db:
-                # Get all organizations
-                result = await db.execute(select(Organization.name, Organization.id))
-                organizations = result.fetchall()
+                # Check current "In Progress" calls count
+                in_progress_count = await self._get_in_progress_calls_count(db)
+                print(f"📊 Current 'In Progress' calls: {in_progress_count}")
                 
-                print("📋 All Organizations:")
-                if organizations:
-                    for i, (org_name, org_id) in enumerate(organizations, 1):
-                        print(f"   {i}. {org_name} - ID: {org_id}")
-                        
-                        # Check if organization is in active time window
-                        if await self._is_organization_in_time_window(org_id, org_name, db):
-                            # Process service records and calls for this organization
-                            await self._process_organization(org_id, org_name, db)
-                        else:
-                            print(f"   ⏰ Organization {org_name} is not in active time window - skipping calls")
-                else:
-                    print("   No organizations found.")
+                if in_progress_count > 5:
+                    print("⚠️  Too many concurrent calls (>5). Holding service and waiting for next run.")
+                    return
+                
+                # If In Progress calls <= 5, proceed with processing
+                if in_progress_count <= 5:
+                    # First, queue calls for organizations
+                    await self._queue_calls_for_organizations(db)
+                    
+                    # Then process queued calls by making them In Progress and initiating VAPI calls
+                    await self._process_queued_calls(db)
                     
         except Exception as e:
             logger.error(f"💥 Error: {str(e)}")
             sys.exit(1)
         finally:
             print("✅ Worker completed")
+    
+    async def _get_in_progress_calls_count(self, db: AsyncSession) -> int:
+        """Get the count of calls with 'In Progress' status."""
+        try:
+            result = await db.execute(
+                select(func.count(Call.id)).where(Call.status == "In Progress")
+            )
+            return result.scalar() or 0
+        except Exception as e:
+            logger.error(f"❌ Error getting in progress calls count: {str(e)}")
+            return 0
     
     async def _is_organization_in_time_window(self, org_id, org_name: str, db: AsyncSession) -> bool:
         """Check if organization is in active time window based on schedule config."""
@@ -80,8 +89,8 @@ class CallInitiatorWorker:
             schedule_config = schedule_result.scalar_one_or_none()
             
             if not schedule_config:
-                print(f"   📅 No schedule config found for {org_name} - assuming always active")
-                return True
+                print(f"   📅 No schedule config found for {org_name} - returning False")
+                return False
             
             config = schedule_config.config_json
             
@@ -140,11 +149,51 @@ class CallInitiatorWorker:
             logger.error(f"❌ Error checking time window for {org_name}: {str(e)}")
             return False
     
-    async def _process_organization(self, org_id, org_name: str, db: AsyncSession):
-        """Process service records and calls for a specific organization."""
-        print(f"🔄 Processing organization: {org_name}")
+    async def _queue_calls_for_organizations(self, db: AsyncSession):
+        """Queue calls for all organizations that are in active time window."""
+        print("🔄 Queuing calls for organizations...")
         
         try:
+            # Get all organizations
+            result = await db.execute(select(Organization.name, Organization.id))
+            organizations = result.fetchall()
+            
+            print("📋 All Organizations:")
+            if organizations:
+                for i, (org_name, org_id) in enumerate(organizations, 1):
+                    print(f"   {i}. {org_name} - ID: {org_id}")
+                    
+                    # Check if organization is in active time window
+                    if await self._is_organization_in_time_window(org_id, org_name, db):
+                        # Queue call for this organization
+                        await self._queue_call_for_organization(org_id, org_name, db)
+                    else:
+                        print(f"   ⏰ Organization {org_name} is not in active time window - skipping calls")
+            else:
+                print("   No organizations found.")
+                
+        except Exception as e:
+            logger.error(f"❌ Error queuing calls for organizations: {str(e)}")
+    
+    async def _queue_call_for_organization(self, org_id, org_name: str, db: AsyncSession):
+        """Queue a call for a specific organization."""
+        print(f"🔄 Queuing call for organization: {org_name}")
+        
+        try:
+            # Check if we already have a "Queued" call for this organization
+            queued_call_query = select(Call).join(Call.service_record).where(
+                and_(
+                    ServiceRecord.organization_id == org_id,
+                    Call.status == "Queued"
+                )
+            )
+            queued_result = await db.execute(queued_call_query)
+            queued_call = queued_result.scalar_one_or_none()
+            
+            if queued_call:
+                print(f"   ⏳ Organization {org_name} already has a queued call - skipping")
+                return
+            
             # Find service records with "Ready" status for this organization
             service_records_query = select(ServiceRecord).where(
                 and_(
@@ -162,21 +211,59 @@ class CallInitiatorWorker:
             
             print(f"   📋 Found {len(ready_service_records)} ready service records")
             
-            # Process each service record
-            for i, service_record in enumerate(ready_service_records):
-                await self._process_service_record(service_record, org_name, db)
+            # Take the first ready service record and queue its call
+            first_service_record = ready_service_records[0]
+            await self._queue_service_record_call(first_service_record, org_name, db)
                 
-                # Add 3-minute delay between calls (except for the last one)
-                if i < len(ready_service_records) - 1:
-                    print(f"   ⏳ Waiting 3 minutes before next call...")
-                    await asyncio.sleep(180)  # 3 minutes = 180 seconds
+        except Exception as e:
+            logger.error(f"❌ Error queuing call for organization {org_name}: {str(e)}")
+    
+    async def _process_organization(self, org_id, org_name: str, db: AsyncSession):
+        """Process service records and calls for a specific organization."""
+        print(f"🔄 Processing organization: {org_name}")
+        
+        try:
+            # Check if we already have a "Queued" call for this organization
+            queued_call_query = select(Call).join(Call.service_record).where(
+                and_(
+                    ServiceRecord.organization_id == org_id,
+                    Call.status == "Queued"
+                )
+            )
+            queued_result = await db.execute(queued_call_query)
+            queued_call = queued_result.scalar_one_or_none()
+            
+            if queued_call:
+                print(f"   ⏳ Organization {org_name} already has a queued call - skipping")
+                return
+            
+            # Find service records with "Ready" status for this organization
+            service_records_query = select(ServiceRecord).where(
+                and_(
+                    ServiceRecord.organization_id == org_id,
+                    ServiceRecord.status == "Ready"
+                )
+            ).options(joinedload(ServiceRecord.calls))
+            
+            service_records_result = await db.execute(service_records_query)
+            ready_service_records = service_records_result.unique().scalars().all()
+            
+            if not ready_service_records:
+                print(f"   ⏭️  No ready service records found for {org_name}")
+                return
+            
+            print(f"   📋 Found {len(ready_service_records)} ready service records")
+            
+            # Take the first ready service record and queue its call
+            first_service_record = ready_service_records[0]
+            await self._queue_service_record_call(first_service_record, org_name, db)
                 
         except Exception as e:
             logger.error(f"❌ Error processing organization {org_name}: {str(e)}")
     
-    async def _process_service_record(self, service_record: ServiceRecord, org_name: str, db: AsyncSession):
-        """Process a single service record and its associated call."""
-        print(f"   📞 Processing service record {service_record.id} for {service_record.customer_name}")
+    async def _queue_service_record_call(self, service_record: ServiceRecord, org_name: str, db: AsyncSession):
+        """Queue a call for a service record by changing its status to 'Queued'."""
+        print(f"   📞 Queuing call for service record {service_record.id} - {service_record.customer_name}")
         
         try:
             # Find the associated call with "Ready" status
@@ -193,8 +280,66 @@ class CallInitiatorWorker:
                 print(f"      ⚠️  No ready call found for service record {service_record.id}")
                 return
             
+            # Update call status to "Queued"
+            call.status = "Queued"
+            
+            # Commit the status change
+            await db.commit()
+            
+            print(f"      ✅ Queued call {call.id} for service record {service_record.id}")
+            
+        except Exception as e:
+            logger.error(f"❌ Error queuing call for service record {service_record.id}: {str(e)}")
+            await db.rollback()
+    
+    async def _process_queued_calls(self, db: AsyncSession):
+        """Process queued calls by changing their status to 'In Progress' and triggering VAPI calls."""
+        print("🔄 Processing queued calls...")
+        
+        try:
+            # Get current "In Progress" calls count
+            in_progress_count = await self._get_in_progress_calls_count(db)
+            available_slots = 5 - in_progress_count
+            
+            if available_slots <= 0:
+                print("⚠️  No available slots for processing queued calls")
+                return
+            
+            # Find queued calls
+            queued_calls_query = select(Call).join(Call.service_record).join(Call.organization).where(
+                Call.status == "Queued"
+            ).options(joinedload(Call.service_record), joinedload(Call.organization))
+            
+            queued_calls_result = await db.execute(queued_calls_query)
+            queued_calls = queued_calls_result.unique().scalars().all()
+            
+            if not queued_calls:
+                print("   ⏭️  No queued calls found")
+                return
+            
+            print(f"   📋 Found {len(queued_calls)} queued calls")
+            
+            # Process up to available_slots queued calls
+            calls_to_process = queued_calls[:available_slots]
+            
+            for call in calls_to_process:
+                await self._process_queued_call(call, db)
+                
+                # Add 3-minute delay between calls (except for the last one)
+                if call != calls_to_process[-1]:
+                    print(f"   ⏳ Waiting 3 minutes before next call...")
+                    await asyncio.sleep(180)  # 3 minutes = 180 seconds
+                
+        except Exception as e:
+            logger.error(f"❌ Error processing queued calls: {str(e)}")
+    
+    async def _process_queued_call(self, call: Call, db: AsyncSession):
+        """Process a single queued call by changing status to 'In Progress' and triggering VAPI call."""
+        print(f"   📞 Processing queued call {call.id} for {call.service_record.customer_name}")
+        
+        try:
             # Update service record status to "In Progress"
-            service_record.status = "In Progress"
+            call.service_record.status = "In Progress"
             
             # Update call status to "In Progress"
             call.status = "In Progress"
@@ -202,14 +347,13 @@ class CallInitiatorWorker:
             # Commit the status changes
             await db.commit()
             
-            print(f"      ✅ Updated status to 'In Progress' for service record {service_record.id} and call {call.id}")
+            print(f"      ✅ Updated status to 'In Progress' for service record {call.service_record.id} and call {call.id}")
             
             # Trigger VAPI call
-            await self._trigger_vapi_call(call, service_record, org_name)
+            await self._trigger_vapi_call(call, call.service_record, call.organization.name)
             
         except Exception as e:
-            logger.error(f"❌ Error processing service record {service_record.id}: {str(e)}")
-            # Rollback on error
+            logger.error(f"❌ Error processing queued call {call.id}: {str(e)}")
             await db.rollback()
     
     async def _trigger_vapi_call(self, call: Call, service_record: ServiceRecord, org_name: str):
@@ -247,30 +391,32 @@ class CallInitiatorWorker:
         
         try:
             async with await self._get_db_session() as db:
-                # Get all organizations
-                result = await db.execute(select(Organization.name, Organization.id))
-                organizations = result.fetchall()
+                # Check current "In Progress" calls count
+                in_progress_count = await self._get_in_progress_calls_count(db)
+                print(f"📊 Current 'In Progress' calls: {in_progress_count}")
                 
                 stats = {
-                    "total_organizations": len(organizations),
+                    "total_organizations": 0,
                     "organizations_processed": 0,
                     "calls_processed": 0,
                     "calls_initiated": 0,
-                    "calls_skipped": 0
+                    "calls_skipped": 0,
+                    "calls_queued": 0
                 }
                 
-                if organizations:
-                    for org_name, org_id in organizations:
-                        # Check if organization is in active time window
-                        if await self._is_organization_in_time_window(org_id, org_name, db):
-                            # Process service records and calls for this organization
-                            org_stats = await self._process_organization_with_stats(org_id, org_name, db)
-                            stats["organizations_processed"] += 1
-                            stats["calls_processed"] += org_stats.get("calls_processed", 0)
-                            stats["calls_initiated"] += org_stats.get("calls_initiated", 0)
-                            stats["calls_skipped"] += org_stats.get("calls_skipped", 0)
-                        else:
-                            stats["calls_skipped"] += 1
+                if in_progress_count > 5:
+                    print("⚠️  Too many concurrent calls (>5). Holding service and waiting for next run.")
+                    return stats
+                
+                # If In Progress calls <= 5, proceed with processing
+                if in_progress_count <= 5:
+                    # First, queue calls for organizations
+                    queue_stats = await self._queue_calls_for_organizations_with_stats(db)
+                    stats.update(queue_stats)
+                    
+                    # Then process queued calls by making them In Progress and initiating VAPI calls
+                    queued_stats = await self._process_queued_calls_with_stats(db)
+                    stats.update(queued_stats)
                 
                 print(f"📊 Single cycle completed: {stats}")
                 return stats
@@ -279,15 +425,59 @@ class CallInitiatorWorker:
             logger.error(f"💥 Error in single cycle: {str(e)}")
             return {"error": str(e)}
     
-    async def _process_organization_with_stats(self, org_id, org_name: str, db: AsyncSession) -> dict:
-        """Process organization and return statistics."""
+    async def _queue_calls_for_organizations_with_stats(self, db: AsyncSession) -> dict:
+        """Queue calls for all organizations and return statistics."""
         stats = {
+            "total_organizations": 0,
+            "organizations_processed": 0,
             "calls_processed": 0,
             "calls_initiated": 0,
-            "calls_skipped": 0
+            "calls_skipped": 0,
+            "calls_queued": 0
         }
         
         try:
+            # Get all organizations
+            result = await db.execute(select(Organization.name, Organization.id))
+            organizations = result.fetchall()
+            stats["total_organizations"] = len(organizations)
+            
+            if organizations:
+                for org_name, org_id in organizations:
+                    # Check if organization is in active time window
+                    if await self._is_organization_in_time_window(org_id, org_name, db):
+                        # Queue call for this organization
+                        org_stats = await self._queue_call_for_organization_with_stats(org_id, org_name, db)
+                        stats["organizations_processed"] += 1
+                        stats["calls_queued"] += org_stats.get("calls_queued", 0)
+                    else:
+                        stats["calls_skipped"] += 1
+                        
+        except Exception as e:
+            logger.error(f"❌ Error queuing calls for organizations: {str(e)}")
+        
+        return stats
+    
+    async def _queue_call_for_organization_with_stats(self, org_id, org_name: str, db: AsyncSession) -> dict:
+        """Queue a call for a specific organization and return statistics."""
+        stats = {
+            "calls_queued": 0
+        }
+        
+        try:
+            # Check if we already have a "Queued" call for this organization
+            queued_call_query = select(Call).join(Call.service_record).where(
+                and_(
+                    ServiceRecord.organization_id == org_id,
+                    Call.status == "Queued"
+                )
+            )
+            queued_result = await db.execute(queued_call_query)
+            queued_call = queued_result.scalar_one_or_none()
+            
+            if queued_call:
+                return stats
+            
             # Find service records with "Ready" status for this organization
             service_records_query = select(ServiceRecord).where(
                 and_(
@@ -302,26 +492,67 @@ class CallInitiatorWorker:
             if not ready_service_records:
                 return stats
             
-            # Process each service record
-            for i, service_record in enumerate(ready_service_records):
-                call_processed = await self._process_service_record_with_stats(service_record, org_name, db)
-                if call_processed:
-                    stats["calls_processed"] += 1
-                    stats["calls_initiated"] += 1
-                else:
-                    stats["calls_skipped"] += 1
+            # Take the first ready service record and queue its call
+            first_service_record = ready_service_records[0]
+            call_queued = await self._queue_service_record_call_with_stats(first_service_record, org_name, db)
+            if call_queued:
+                stats["calls_queued"] += 1
                 
-                # Add 3-minute delay between calls (except for the last one)
-                if i < len(ready_service_records) - 1:
-                    await asyncio.sleep(180)  # 3 minutes = 180 seconds
+        except Exception as e:
+            logger.error(f"❌ Error queuing call for organization {org_name}: {str(e)}")
+        
+        return stats
+    
+    async def _process_organization_with_stats(self, org_id, org_name: str, db: AsyncSession) -> dict:
+        """Process organization and return statistics."""
+        stats = {
+            "calls_processed": 0,
+            "calls_initiated": 0,
+            "calls_skipped": 0,
+            "calls_queued": 0
+        }
+        
+        try:
+            # Check if we already have a "Queued" call for this organization
+            queued_call_query = select(Call).join(Call.service_record).where(
+                and_(
+                    ServiceRecord.organization_id == org_id,
+                    Call.status == "Queued"
+                )
+            )
+            queued_result = await db.execute(queued_call_query)
+            queued_call = queued_result.scalar_one_or_none()
+            
+            if queued_call:
+                return stats
+            
+            # Find service records with "Ready" status for this organization
+            service_records_query = select(ServiceRecord).where(
+                and_(
+                    ServiceRecord.organization_id == org_id,
+                    ServiceRecord.status == "Ready"
+                )
+            ).options(joinedload(ServiceRecord.calls))
+            
+            service_records_result = await db.execute(service_records_query)
+            ready_service_records = service_records_result.unique().scalars().all()
+            
+            if not ready_service_records:
+                return stats
+            
+            # Take the first ready service record and queue its call
+            first_service_record = ready_service_records[0]
+            call_queued = await self._queue_service_record_call_with_stats(first_service_record, org_name, db)
+            if call_queued:
+                stats["calls_queued"] += 1
                 
         except Exception as e:
             logger.error(f"❌ Error processing organization {org_name}: {str(e)}")
         
         return stats
     
-    async def _process_service_record_with_stats(self, service_record: ServiceRecord, org_name: str, db: AsyncSession) -> bool:
-        """Process a single service record and return whether call was processed."""
+    async def _queue_service_record_call_with_stats(self, service_record: ServiceRecord, org_name: str, db: AsyncSession) -> bool:
+        """Queue a call for a service record and return whether it was queued successfully."""
         try:
             # Find the associated call with "Ready" status
             call_query = select(Call).where(
@@ -336,8 +567,70 @@ class CallInitiatorWorker:
             if not call:
                 return False
             
+            # Update call status to "Queued"
+            call.status = "Queued"
+            
+            # Commit the status change
+            await db.commit()
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Error queuing call for service record {service_record.id}: {str(e)}")
+            await db.rollback()
+            return False
+    
+    async def _process_queued_calls_with_stats(self, db: AsyncSession) -> dict:
+        """Process queued calls and return statistics."""
+        stats = {
+            "calls_processed": 0,
+            "calls_initiated": 0,
+            "calls_skipped": 0,
+            "calls_queued": 0
+        }
+        
+        try:
+            # Get current "In Progress" calls count
+            in_progress_count = await self._get_in_progress_calls_count(db)
+            available_slots = 5 - in_progress_count
+            
+            if available_slots <= 0:
+                return stats
+            
+            # Find queued calls
+            queued_calls_query = select(Call).join(Call.service_record).join(Call.organization).where(
+                Call.status == "Queued"
+            ).options(joinedload(Call.service_record), joinedload(Call.organization))
+            
+            queued_calls_result = await db.execute(queued_calls_query)
+            queued_calls = queued_calls_result.unique().scalars().all()
+            
+            if not queued_calls:
+                return stats
+            
+            # Process up to available_slots queued calls
+            calls_to_process = queued_calls[:available_slots]
+            
+            for call in calls_to_process:
+                call_processed = await self._process_queued_call_with_stats(call, db)
+                if call_processed:
+                    stats["calls_processed"] += 1
+                    stats["calls_initiated"] += 1
+                
+                # Add 3-minute delay between calls (except for the last one)
+                if call != calls_to_process[-1]:
+                    await asyncio.sleep(180)  # 3 minutes = 180 seconds
+                
+        except Exception as e:
+            logger.error(f"❌ Error processing queued calls: {str(e)}")
+        
+        return stats
+    
+    async def _process_queued_call_with_stats(self, call: Call, db: AsyncSession) -> bool:
+        """Process a single queued call and return whether it was processed successfully."""
+        try:
             # Update service record status to "In Progress"
-            service_record.status = "In Progress"
+            call.service_record.status = "In Progress"
             
             # Update call status to "In Progress"
             call.status = "In Progress"
@@ -346,12 +639,12 @@ class CallInitiatorWorker:
             await db.commit()
             
             # Trigger VAPI call
-            await self._trigger_vapi_call(call, service_record, org_name)
+            await self._trigger_vapi_call(call, call.service_record, call.organization.name)
             
             return True
             
         except Exception as e:
-            logger.error(f"❌ Error processing service record {service_record.id}: {str(e)}")
+            logger.error(f"❌ Error processing queued call {call.id}: {str(e)}")
             await db.rollback()
             return False
 

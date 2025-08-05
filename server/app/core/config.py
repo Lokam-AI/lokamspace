@@ -69,6 +69,7 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-2024-08-06"  # Default model for call analysis
     OPENAI_MAX_TOKENS: int = 1000
     OPENAI_TEMPERATURE: float = 0.2
+    CALL_INITIATOR_ACCESS_TOKEN: str = "your_call_initiator_access_token_here"
     
     # Model configuration
     model_config = SettingsConfigDict(
