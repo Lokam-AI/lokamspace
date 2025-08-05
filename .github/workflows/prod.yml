@@ -48,6 +48,14 @@ jobs:
           echo "DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}" >> $GITHUB_ENV
         fi
 
+    - name: Run database migrations
+      run: |
+        cd server
+        export DATABASE_URL=$DATABASE_URL
+        alembic upgrade head
+      env:
+        DATABASE_URL: ${{ github.ref == 'refs/heads/main' && secrets.PROD_DATABASE_URL || secrets.DEV_DATABASE_URL }}
+
     - name: Log in to Amazon ECR
       run: |
         aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
