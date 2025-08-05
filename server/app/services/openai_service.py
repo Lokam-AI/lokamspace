@@ -129,89 +129,291 @@ class OpenAIService:
             "location": organization_data.get('location', 'N/A')
         }, indent=2)
 
-        output_schema = """
-    \"\"\"json
-    {
-    "call_summary": "<string>",
-    "nps_score": <integer|null>,
-    "overall_feedback": "<string>",
-    "positive_mentions": ["<tag1>", "..."],
-    "detractors": ["<tag2>", "..."]
-    }
-    \"\"\""""
-
+        # Define the output schema
+        output_schema = """json
+{
+  "call_summary": "<string>",
+  "nps_score": <integer|null>,
+  "overall_feedback": "<string>",
+  "positive_mentions": ["<tag1>", "..."],
+  "detractors": ["<tag2>", "..."]
+}"""
+        
+        # Return the formatted prompt
         return f"""
-    ## --- ROLE ---
-    You are an expert conversation analyzer. Always respond with valid JSON matching exactly the schema given—no extra text or metadata.
+```
 
-    ## --- INPUT — TRANSCRIPT & CONTEXT —
-    Call Transcript:
-    {formatted_transcript}
+## --- ROLE DEFINITION ---
 
-    Service Record Info:
-    ```json
-    {service_record_json}
-    ```
+You are a highly capable AI specializing in **call transcript analysis** and **customer sentiment extraction** for service-oriented businesses. Your task is to produce **valid JSON** that adheres **exactly** to the provided schema.
 
-    Organization Info:
-    ```json
-    {organization_json}
-    ```
+## --- AVAILABLE INPUTS ---
 
-    Focus Tags: {formatted_tags}
+You are given three structured data blocks:
 
-    ## --- TASK INSTRUCTIONS — STEP-BY-STEP —
-    Follow this reasoning internally and make your final JSON concise and strict:
+1. **Call Transcript** (Role-tagged customer conversation):
 
-    **Step 1 - Summarize call outcome in one sentence.**
+```
+{formatted_transcript}
+```
 
-    **Step 2 - Locate an NPS score (0-10):**
-    - If a number in that range is uttered explicitly (“NPS: 8”, “I'd give you a 9”), record that.
-    - If phrased indirectly (“That's top-tier service”) interpret to the most appropriate numeric equivalent (e.g. 9-10), but only if clearly implied.
-    - If unclear or not stated, set to `null`.
+2. **Service Record Info** (Prior records and interactions in JSON format):
 
-    **Step 3 - Overall feedback:** Write 1-2 sentences reflecting customer sentiment.
+```json
+{service_record_json}
+```
 
-    **Step 4 - For each focus tag:**
-    - If mentioned positively (praise, enjoyment, satisfaction), include in `positive_mentions`.
-    - If mentioned negatively (issue, complaint, dissatisfaction), include in `detractors`.
-    - If not clearly mentioned, exclude.
+3. **Organization Info** (Company profile in JSON):
 
-    ### Few-Shot Examples:
+```json
+{organization_json}
+```
 
-    --Example A--
-    Transcript:
-    Customer: “I'd say my experience was a 9 — amazing service.”
-    Tags: “timeliness, cleanliness, communication”
+4. **Focus Tags** (aspects to analyze):
 
-    Output:
-    {{
-    "call_summary": "Customer gave exceptionally positive feedback.",
-    "nps_score": 9,
-    "overall_feedback": "Customer rated the experience very highly and expressed satisfaction across all areas.",
-    "positive_mentions": ["timeliness","communication"],
-    "detractors": []
-    }}
+```
+{formatted_tags}
+```
 
-    --Example B--
-    Transcript:
-    Customer: “Honestly it was okay, nothing stood out, but the pickup was late.”
-    Tags: “timeliness, professionalism, value”
+---
 
-    Output:
-    {{
-    "call_summary": "Customer had mixed feelings, noting a delay in pickup.",
-    "nps_score": null,
-    "overall_feedback": "Customer felt neutral overall but was disappointed by the pickup delay.",
-    "positive_mentions": [],
-    "detractors": ["timeliness"]
-    }}
+## --- TASK OBJECTIVE ---
 
-    ## --- OUTPUT SCHEMA ---
-    {output_schema}
+Your goal is to analyze the **customer conversation** and extract structured insights in JSON based on the schema provided.
 
-    Respond with only the valid JSON object.
-    """
+---
+
+## --- INTERNAL REASONING STEPS (Chain-of-Thought) ---
+
+1. **Summarize the Call Outcome in One Sentence**
+
+   * Focus on the customer's final sentiment and the resolution status.
+
+2. **Infer NPS Score (0–10):**
+
+   * If a score is explicitly stated (e.g., "I'd give it an 8"), extract it as-is.
+   * If implied ("Fantastic service!"), interpret reasonably:
+
+     * Highly positive (9–10), somewhat positive (7–8), neutral (4–6), negative (0–3).
+   * If unclear or uncertain, return `null`.
+
+3. **Summarize Overall Feedback (1–2 lines):**
+
+   * Reflect the **emotional tone** and **general experience** of the customer.
+
+4. **Classify Each Focus Tag:**
+
+   * If tag is clearly mentioned **positively**, add to `"positive_mentions"`.
+   * If mentioned **negatively**, add to `"detractors"`.
+   * If ambiguous or not mentioned, exclude from both lists.
+
+---
+
+## --- FEW-SHOT EXAMPLES ---
+
+### Example A:
+
+**Transcript:**
+Customer: "It was perfect, I'd rate it a 10. Super fast response and really helpful."
+**Tags:** `communication, response time, transparency`
+
+**Output:**
+
+```json
+{{
+  "call_summary": "Customer expressed delight with the fast and helpful service.",
+  "nps_score": 10,
+  "overall_feedback": "Customer was highly satisfied and praised the quick response.",
+  "positive_mentions": ["communication", "response time"],
+  "detractors": []
+}}
+```
+
+### Example B:
+
+**Transcript:**
+Customer: "Pickup was delayed and nobody told me. The mechanic was okay, I guess."
+**Tags:** `timeliness, communication, professionalism`
+
+**Output:**
+
+```json
+{{
+  "call_summary": "Customer was dissatisfied with the lack of communication and delays.",
+  "nps_score": null,
+  "overall_feedback": "Customer was frustrated with the delay and lack of updates.",
+  "positive_mentions": [],
+  "detractors": ["timeliness", "communication"]
+}}
+```
+
+### Example C:
+
+**Transcript:**
+Customer: "The technician was great and explained everything clearly. Bit of a wait though."
+**Tags:** `professionalism, wait time, communication`
+
+**Output:**
+
+```json
+{{
+  "call_summary": "Customer praised technician's clarity but noted delay.",
+  "nps_score": 8,
+  "overall_feedback": "Customer had a good experience overall with minor delay concerns.",
+  "positive_mentions": ["communication", "professionalism"],
+  "detractors": ["wait time"]
+}}
+```
+
+### Example D:
+
+**Transcript:**
+Customer: "No updates until I called three times. I wouldn't recommend this."
+**Tags:** `transparency, responsiveness, satisfaction`
+
+**Output:**
+
+```json
+{{
+  "call_summary": "Customer was extremely dissatisfied with lack of updates.",
+  "nps_score": 2,
+  "overall_feedback": "Customer felt ignored and expressed strong dissatisfaction.",
+  "positive_mentions": [],
+  "detractors": ["transparency", "responsiveness", "satisfaction"]
+}}
+```
+
+### Example E:
+
+**Transcript:**
+Customer: "I liked the reminder call before the appointment. Very professional."
+**Tags:** `professionalism, scheduling, communication`
+
+**Output:**
+
+```json
+{{
+  "call_summary": "Customer appreciated the reminder and professionalism.",
+  "nps_score": 9,
+  "overall_feedback": "Customer was happy with the smooth appointment process.",
+  "positive_mentions": ["communication", "professionalism", "scheduling"],
+  "detractors": []
+}}
+```
+
+### Example F:
+
+**Transcript:**
+Customer: "Your technician arrived on time and fixed the issue in under an hour. I'm impressed with how knowledgeable he was."
+**Tags:** `timeliness, expertise, efficiency, courtesy`
+
+**Output:**
+
+```json
+{{
+  "call_summary": "Customer was impressed with the technician's punctuality and knowledge.",
+  "nps_score": 9,
+  "overall_feedback": "Customer had an excellent experience with prompt service and efficient problem resolution.",
+  "positive_mentions": ["timeliness", "expertise", "efficiency"],
+  "detractors": []
+}}
+```
+
+### Example G:
+
+**Transcript:**
+Customer: "While the repair was done correctly, I had to wait an extra day because of parts availability. The staff was apologetic though."
+**Tags:** `repair quality, timeliness, communication, parts availability`
+
+**Output:**
+
+```json
+{{
+  "call_summary": "Customer satisfied with repair quality despite delay due to parts.",
+  "nps_score": 6,
+  "overall_feedback": "Customer acknowledged good repair work but experienced frustration with the extended timeline.",
+  "positive_mentions": ["repair quality", "communication"],
+  "detractors": ["timeliness", "parts availability"]
+}}
+```
+
+### Example H:
+
+**Transcript:**
+Customer: "The work was expensive but worth every penny. Your team went above and beyond to fix issues I didn't even know about."
+**Tags:** `pricing, value, thoroughness, expertise`
+
+**Output:**
+
+```json
+{{
+  "call_summary": "Customer found service expensive but valuable due to thorough work.",
+  "nps_score": 8,
+  "overall_feedback": "Customer expressed high satisfaction with thoroughness despite high cost, indicating good perceived value.",
+  "positive_mentions": ["value", "thoroughness", "expertise"],
+  "detractors": ["pricing"]
+}}
+```
+
+### Example I:
+
+**Transcript:**
+Customer: "I've been coming here for years and have never been disappointed. Today was no exception - quick service, fair price."
+**Tags:** `loyalty, timeliness, pricing, satisfaction`
+
+**Output:**
+
+```json
+{{
+  "call_summary": "Long-time customer expressed continued satisfaction with service quality.",
+  "nps_score": 10,
+  "overall_feedback": "Customer demonstrated strong loyalty due to consistently positive experiences with speed and fair pricing.",
+  "positive_mentions": ["loyalty", "timeliness", "pricing", "satisfaction"],
+  "detractors": []
+}}
+```
+
+### Example J:
+
+**Transcript:**
+Customer: "The online booking system was confusing and when I arrived, they had no record of my appointment. The mechanic made up for it though."
+**Tags:** `scheduling, online experience, customer service, professionalism`
+
+**Output:**
+
+```json
+{{
+  "call_summary": "Customer frustrated with booking system issues but appreciated mechanic's service.",
+  "nps_score": 5,
+  "overall_feedback": "Customer experienced scheduling problems that created initial disappointment, though service recovery somewhat mitigated the issue.",
+  "positive_mentions": ["professionalism"],
+  "detractors": ["scheduling", "online experience"]
+}}
+```
+
+---
+
+## --- JSON OUTPUT SCHEMA ---
+
+Respond with a valid JSON object that follows this structure:
+
+```json
+{{
+  "call_summary": "string (max 1 sentence)",
+  "nps_score": integer or null,
+  "overall_feedback": "string (1–2 lines)",
+  "positive_mentions": ["list of tags"],
+  "detractors": ["list of tags"]
+}}
+```
+
+---
+
+**Response Format:**
+Format your analysis as valid JSON following the exact schema provided above.
+
+"""
+
 
     def _parse_analysis_result(self, content: str) -> Dict[str, Any]:
         try:
