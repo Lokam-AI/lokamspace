@@ -520,7 +520,8 @@ class CallService:
     async def initiate_call(
         call_id: int,
         organization_id: UUID,
-        db: AsyncSession = None
+        db: AsyncSession = None,
+        google_review_link: Optional[str] = None
     ) -> Dict:
         """
         Initiate a regular call using VAPI service.
@@ -529,6 +530,7 @@ class CallService:
             call_id: Call ID
             organization_id: Organization ID
             db: Database session
+            google_review_link: Optional Google review link to override organization default
             
         Returns:
             Dict: Dictionary with call details and VAPI response
@@ -569,6 +571,10 @@ class CallService:
         vapi_service = VAPIService()
         
         try:
+            # Determine which Google review link to use
+            # Priority: Provided parameter > Organization setting
+            final_google_review_link = google_review_link or organization.google_review_link
+            
             # Make the call to VAPI
             vapi_response = await vapi_service.create_call(
                 phone=service_record.customer_phone,
@@ -577,6 +583,7 @@ class CallService:
                 service_type=service_record.service_type or "Service Call",
                 organization_name=organization.name,
                 location=organization.location or "Main Location",
+                google_review_link=final_google_review_link,
                 call_id=call.id
             )
             
@@ -668,6 +675,7 @@ class CallService:
                 service_type=service_record.service_type or "Feedback Call",
                 organization_name=organization.name,
                 location=organization.location or "Demo Location",
+                google_review_link=organization.google_review_link,
                 call_id=call.id
             )
             
