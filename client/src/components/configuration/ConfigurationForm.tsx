@@ -28,7 +28,9 @@ export const ConfigurationForm = () => {
       clientDetails: {
         serviceAdvisorName: "Mike Smith",
         serviceType: "oil-change",
-        lastServiceComment: "Regular maintenance service completed successfully"
+        lastServiceComment: "Regular maintenance service completed successfully",
+        vehicleInfo: "2020 Honda Civic",
+        appointmentDate: "2024-01-15T10:00"
       },
       organizationDetails: {
         organizationName: "ABC Auto Service",

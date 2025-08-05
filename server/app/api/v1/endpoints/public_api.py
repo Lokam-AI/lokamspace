@@ -49,6 +49,8 @@ async def create_feedback_call_api(
             customer_phone=feedback_call.client_details.customer_phone,
             service_advisor_name=feedback_call.client_details.service_advisor_name,
             service_type=feedback_call.client_details.service_type or "Feedback Call",
+            vehicle_info=feedback_call.client_details.vehicle_info,
+            appointment_date=feedback_call.client_details.appointment_date,
             status="Ready",
         )
         
@@ -101,6 +103,8 @@ async def create_feedback_call_api(
                 "customer_name": service_record.customer_name,
                 "customer_phone": service_record.customer_phone,
                 "service_type": service_record.service_type,
+                "vehicle_info": service_record.vehicle_info,
+                "appointment_date": service_record.appointment_date.isoformat() if service_record.appointment_date else None,
                 "initiation_status": initiation_status,
             }
         )

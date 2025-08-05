@@ -3,6 +3,7 @@ Feedback Call schemas for API integration.
 """
 
 from typing import Optional, Dict, List, Any
+from datetime import datetime
 from pydantic import BaseModel, Field
 
 
@@ -13,6 +14,8 @@ class ClientDetails(BaseModel):
     service_advisor_name: Optional[str] = None
     service_type: Optional[str] = None
     last_service_comment: Optional[str] = None
+    vehicle_info: Optional[str] = None
+    appointment_date: Optional[datetime] = None
 
 
 class OrganizationDetails(BaseModel):

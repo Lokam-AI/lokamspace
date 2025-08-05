@@ -7,7 +7,9 @@ const defaultClientDetails: ClientDetails = {
   customerPhone: "",
   serviceAdvisorName: "",
   serviceType: "",
-  lastServiceComment: ""
+  lastServiceComment: "",
+  vehicleInfo: "",
+  appointmentDate: ""
 };
 
 const defaultOrganizationDetails: OrganizationDetails = {

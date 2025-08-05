@@ -21,7 +21,9 @@ export const APIReferenceViewer = () => {
         "customer_phone": "+1234567890",
         "service_advisor_name": "Mike Smith",
         "service_type": "oil-change",
-        "last_service_comment": "Oil and filter changed"
+        "last_service_comment": "Oil and filter changed",
+        "vehicle_info": "2020 Honda Civic",
+        "appointment_date": "2024-01-15T10:00:00Z"
       },
       "organization_details": {
         "organization_name": "ABC Auto Service",
@@ -144,7 +146,11 @@ export const APIReferenceViewer = () => {
               <div>&gt;      "client_details": {`{`}</div>
               <div>&gt;        "customer_name": "John Doe",</div>
               <div>&gt;        "customer_phone": "+1234567890",</div>
-              <div>&gt;        "service_type": "oil-change"</div>
+              <div>&gt;        "service_advisor_name": "Mike Smith",</div>
+              <div>&gt;        "service_type": "oil-change",</div>
+              <div>&gt;        "last_service_comment": "Oil and filter changed",</div>
+              <div>&gt;        "vehicle_info": "2020 Honda Civic",</div>
+              <div>&gt;        "appointment_date": "2024-01-15T10:00:00Z"</div>
               <div>&gt;      {`}`},</div>
               <div>&gt;      "organization_details": {`{`}</div>
               <div>&gt;        "organization_name": "ABC Auto Service"</div>

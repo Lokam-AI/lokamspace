@@ -96,6 +96,28 @@ export const ClientDetailsForm = ({ clientDetails, onUpdate, expanded, onToggle 
               rows={3}
             />
           </div>
+          
+          <div>
+            <Label htmlFor="vehicle-info">Vehicle Information</Label>
+            <Input
+              id="vehicle-info"
+              value={clientDetails.vehicleInfo}
+              onChange={(e) => onUpdate({ vehicleInfo: e.target.value })}
+              placeholder="e.g., 2020 Honda Civic"
+              className="mt-1"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="appointment-date">Appointment Date</Label>
+            <Input
+              id="appointment-date"
+              type="datetime-local"
+              value={clientDetails.appointmentDate}
+              onChange={(e) => onUpdate({ appointmentDate: e.target.value })}
+              className="mt-1"
+            />
+          </div>
         </CollapsibleContent>
       </div>
     </Collapsible>

@@ -60,6 +60,18 @@ export const API_ENDPOINTS: APICategory[] = [
             description: "Details about the last service performed."
           },
           {
+            name: "vehicle_info",
+            type: "string",
+            required: false,
+            description: "Vehicle information including make, model, year, and VIN."
+          },
+          {
+            name: "appointment_date",
+            type: "datetime",
+            required: false,
+            description: "The date and time of the service appointment (ISO 8601 format)."
+          },
+          {
             name: "organization_name",
             type: "string",
             required: true,
@@ -175,6 +187,8 @@ export const API_ENDPOINTS: APICategory[] = [
             service_advisor_name: "Mike Smith",
             service_type: "oil-change",
             last_service_comment: "Oil change and filter replacement completed",
+            vehicle_info: "2020 Honda Civic",
+            appointment_date: "2024-01-15T10:00:00Z",
             organization_name: "ABC Auto Service",
             organization_description: "Professional auto service center",
             service_centre_description: "Full-service automotive repair and maintenance",
