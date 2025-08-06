@@ -25,9 +25,7 @@ export function OrganizationSettings() {
   const [orgData, setOrgData] = useState({
     name: "",
     email: "",
-    phone_feedback: "",
-    phone_booking: "",
-    phone_inquiry: "",
+    google_review_link: "",
     id: "",
     call_concurrency_limit: 1,
   });
@@ -45,9 +43,7 @@ export function OrganizationSettings() {
         setOrgData({
           name: data.name || "",
           email: data.email || "",
-          phone_feedback: data.phone_feedback || "",
-          phone_booking: data.phone_booking || "",
-          phone_inquiry: data.phone_inquiry || "",
+          google_review_link: data.google_review_link || "",
           id: data.id || "",
           call_concurrency_limit: data.call_concurrency_limit || 1,
         });
@@ -107,9 +103,7 @@ export function OrganizationSettings() {
         email: orgData.email,
         location_city: selectedCity?.label,
         location_value: selectedCity?.value,
-        phone_feedback: orgData.phone_feedback,
-        phone_booking: orgData.phone_booking,
-        phone_inquiry: orgData.phone_inquiry,
+        google_review_link: orgData.google_review_link,
       });
 
       toast({
@@ -197,46 +191,16 @@ export function OrganizationSettings() {
           />
 
           <div className="space-y-2">
-            <Label htmlFor="phone_feedback">
-              Customer Feedback Agent Number
-            </Label>
+            <Label htmlFor="google_review_link">Google Review Link</Label>
             <Input
-              id="phone_feedback"
-              type="tel"
-              placeholder="+1 (555) 123-4567"
-              value={orgData.phone_feedback}
+              id="google_review_link"
+              type="url"
+              placeholder="https://g.page/your-business/review"
+              value={orgData.google_review_link}
               onChange={handleInputChange}
             />
             <div className="text-sm text-foreground-secondary">
-              Phone number for the AI agent handling customer feedback calls.
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="phone_booking">Booking Agent Number</Label>
-            <Input
-              id="phone_booking"
-              type="tel"
-              placeholder="+1 (555) 123-4568"
-              value={orgData.phone_booking}
-              onChange={handleInputChange}
-            />
-            <div className="text-sm text-foreground-secondary">
-              Phone number for the AI agent handling appointment bookings.
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="phone_inquiry">Inquiry Agent Number</Label>
-            <Input
-              id="phone_inquiry"
-              type="tel"
-              placeholder="+1 (555) 123-4569"
-              value={orgData.phone_inquiry}
-              onChange={handleInputChange}
-            />
-            <div className="text-sm text-foreground-secondary">
-              Phone number for the AI agent handling general inquiries.
+              Link to your Google Business profile for customer reviews.
             </div>
           </div>
 

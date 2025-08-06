@@ -17,12 +17,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useCallsSummaryMetricsWithTrends } from "@/api/queries/calls";
 import { getFeedbackInsights, FeedbackInsights } from "@/api/endpoints/analytics";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
   const [currentFilter, setCurrentFilter] = useState("This Month");
   const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   
   // Get the metrics data for PDF export
   const { data: summaryData } = useCallsSummaryMetricsWithTrends();
@@ -31,6 +33,25 @@ const Dashboard = () => {
   const [feedbackInsights, setFeedbackInsights] = useState<FeedbackInsights | null>(null);
   const [isLoadingInsights, setIsLoadingInsights] = useState(true);
   const [insightsError, setInsightsError] = useState<string | null>(null);
+
+  // Get greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
+
+  // Get user's first name
+  const getFirstName = (fullName: string): string => {
+    if (!fullName || typeof fullName !== 'string') {
+      return 'User';
+    }
+    const nameParts = fullName.trim().split(' ');
+    return nameParts[0] || 'User';
+  };
+
+  const userFirstName = user?.full_name ? getFirstName(user.full_name) : (user?.email || "User");
   
   const handleViewDetails = (call: Call) => {
     setSelectedCall(call);
@@ -116,7 +137,10 @@ const Dashboard = () => {
               {/* Dashboard Section */}
               <div className="space-y-8">
                 <div className="flex items-center justify-between pt-4">
-                  <h1 className="text-2xl font-bold text-foreground">Overview</h1>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">My Workspace</p>
+                    <h1 className="text-2xl font-bold text-foreground">{getGreeting()}, {userFirstName}</h1>
+                  </div>
                   <DateFilterDropdown 
                     onFilterChange={handleFilterChange} 
                     onExport={handleExport}

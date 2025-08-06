@@ -13,9 +13,7 @@ class OrganizationBase(BaseModel):
     
     name: str
     email: EmailStr
-    phone_feedback: Optional[str] = None
-    phone_booking: Optional[str] = None  # Renamed from phone_service
-    phone_inquiry: Optional[str] = None  # Renamed from phone_support
+    google_review_link: Optional[str] = None
     description: Optional[str] = None
     service_center_description: Optional[str] = None
     location: Optional[str] = None
@@ -38,9 +36,7 @@ class OrganizationUpdate(BaseModel):
     
     name: Optional[str] = None
     email: Optional[EmailStr] = None
-    phone_feedback: Optional[str] = None
-    phone_booking: Optional[str] = None
-    phone_inquiry: Optional[str] = None
+    google_review_link: Optional[str] = None
     description: Optional[str] = None
     service_center_description: Optional[str] = None
     location: Optional[str] = None
@@ -60,9 +56,7 @@ class OrganizationSettingsUpdate(BaseModel):
     email: Optional[EmailStr] = None
     location_city: Optional[str] = None
     location_value: Optional[str] = None
-    phone_feedback: Optional[str] = None
-    phone_booking: Optional[str] = None
-    phone_inquiry: Optional[str] = None
+    google_review_link: Optional[str] = None
 
 
 class OrganizationDB(OrganizationBase):
