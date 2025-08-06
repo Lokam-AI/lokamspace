@@ -164,7 +164,7 @@ export default function APIKeys() {
                     {renderAPIKeysTab()}
                   </TabsContent>
                   
-                  <TabsContent value="api-reference" className="mt-6">
+                  <TabsContent value="api-reference" className="mt-6 h-[calc(100vh-16rem)] overflow-hidden">
                     {renderAPIReferenceTab()}
                   </TabsContent>
                 </Tabs>
