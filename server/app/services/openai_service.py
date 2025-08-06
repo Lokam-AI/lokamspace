@@ -214,180 +214,232 @@ Your goal is to analyze the **customer conversation** and extract structured ins
 ### Example A:
 
 **Transcript:**
-Customer: "It was perfect, I'd rate it a 10. Super fast response and really helpful."
-**Tags:** `communication, response time, transparency`
+assistant: "Hi there. Hope you're doing well. This is Luke from Garage 25. Now a good time to talk?"
+human: "Yep. Good time to talk."
+assistant: "Great. I just wanted to check-in and see how your recent oil change service experience was for you."
+human: "It was good. Thanks for asking."
+assistant: "Thanks for sharing that. Always nice to hear. Just 1 last question. On a scale of 0 to 10, 0 is not at all likely and 10 is extremely likely, how likely are you to recommend garage 25 to a friend or colleague?"
+human: "9."
+**Tags:** `Improve Advisor Communication, Enhance Customer Experience, Reduce Wait Time, Increase Service Transparency`
 
 **Output:**
 
 ```json
 {{
-  "call_summary": "Customer expressed delight with the fast and helpful service.",
-  "nps_score": 10,
-  "overall_feedback": "Customer was highly satisfied and praised the quick response.",
-  "positive_mentions": ["communication", "response time"],
-  "detractors": []
+  "call_summary": "Customer had a positive experience with the oil change service and gave a high recommendation score.",
+  "nps_score": 9,
+  "overall_feedback": "Customer was satisfied with the service and willing to recommend to others, indicating efficient service delivery.",
+  "positive_mentions": ["Enhance Customer Experience", "Reduce Wait Time"],
+  "detractors": ["Increase Service Transparency"]
 }}
 ```
 
 ### Example B:
 
 **Transcript:**
-Customer: "Pickup was delayed and nobody told me. The mechanic was okay, I guess."
-**Tags:** `timeliness, communication, professionalism`
+assistant: "Awesome. I just wanted to quickly check-in on your recent oil change with us. How was the overall service experience for you?"
+human: "It was alright. You could have improved the timing."
+assistant: "Thanks for sharing that. I appreciate your honesty. Just to understand how you feel overall. On a scale of 0 to 10, 0 is not at all likely, and 10 is extremely likely, likely are you to recommend Garage 25 to a friend or colleague?"
+human: "I'll give you the 8."
+human: "Time. Time. Timing."
+**Tags:** `Reduce Wait Time, Improve Advisor Communication, Enhance Customer Experience`
 
 **Output:**
 
 ```json
 {{
-  "call_summary": "Customer was dissatisfied with the lack of communication and delays.",
-  "nps_score": null,
-  "overall_feedback": "Customer was frustrated with the delay and lack of updates.",
-  "positive_mentions": [],
-  "detractors": ["timeliness", "communication"]
+  "call_summary": "Customer reported adequate service but highlighted timing issues with the oil change.",
+  "nps_score": 8,
+  "overall_feedback": "Customer felt the service was good overall but was dissatisfied with the wait time and emphasized this concern repeatedly.",
+  "positive_mentions": ["Enhance Customer Experience", "Improve Advisor Communication"],
+  "detractors": ["Reduce Wait Time"]
 }}
 ```
 
 ### Example C:
 
 **Transcript:**
-Customer: "The technician was great and explained everything clearly. Bit of a wait though."
-**Tags:** `professionalism, wait time, communication`
+assistant: "Great. Thanks. I'm just following up quickly about recent oil change service. Was the entire service experience for you?"
+human: "It's good. Thanks for asking."
+assistant: "Thanks for sharing that. Always nice to hear. Just 1 last question. On a scale of 0 to 10, where 0 is not at all likely, and 10 is extremely likely, likely are you to recommend garage 25 to a friend or colleague?"
+human: "7?"
+assistant: "Got it. A 7. Appreciate that. What do you think could have improved your experience to push that score closer to a 10?"
+human: "Maybe you can have you know, better communication because it was not communicated very well with me when to come and when to go."
+**Tags:** `Improve Advisor Communication, Enhance Customer Experience, Streamline Booking Process`
 
 **Output:**
 
 ```json
 {{
-  "call_summary": "Customer praised technician's clarity but noted delay.",
-  "nps_score": 8,
-  "overall_feedback": "Customer had a good experience overall with minor delay concerns.",
-  "positive_mentions": ["communication", "professionalism"],
-  "detractors": ["wait time"]
+  "call_summary": "Customer was satisfied with service but identified communication issues regarding timing.",
+  "nps_score": 7,
+  "overall_feedback": "Customer had a generally positive experience but expressed frustration about unclear communication regarding appointment scheduling and workflow.",
+  "positive_mentions": ["Enhance Customer Experience"],
+  "detractors": ["Improve Advisor Communication", "Streamline Booking Process"]
 }}
 ```
 
 ### Example D:
 
 **Transcript:**
-Customer: "No updates until I called three times. I wouldn't recommend this."
-**Tags:** `transparency, responsiveness, satisfaction`
+assistant: "I was referring to the engine diagnosis service you recently had at garage 25. Just wanted to know how your experience was."
+human: "It was okay. Nothing too great. Nothing too bad."
+assistant: "Appreciate that. And just to get a clearer picture, on a scale of 0 to 10, where 0 is not at all likely, and 10 is extremely likely, how likely are you to recommend garage"
+human: "It's nothing too great, nothing too bad."
+**Tags:** `Enhance Customer Experience, Increase Service Transparency`
 
 **Output:**
 
 ```json
 {{
-  "call_summary": "Customer was extremely dissatisfied with lack of updates.",
-  "nps_score": 2,
-  "overall_feedback": "Customer felt ignored and expressed strong dissatisfaction.",
+  "call_summary": "Customer felt the engine diagnosis service was average.",
+  "nps_score": 5,
+  "overall_feedback": "Customer expressed neutral sentiment about the service, indicating neither satisfaction nor dissatisfaction with the diagnostic quality or process.",
   "positive_mentions": [],
-  "detractors": ["transparency", "responsiveness", "satisfaction"]
+  "detractors": ["Enhance Customer Experience", "Increase Service Transparency"]
 }}
 ```
 
 ### Example E:
 
 **Transcript:**
-Customer: "I liked the reminder call before the appointment. Very professional."
-**Tags:** `professionalism, scheduling, communication`
+assistant: "Great. Just wanted to check was the entire service experience for you at Garage 25?"
+human: "Less Okeesh."
+assistant: "Thank you for being honest. Could you share a bit more about what made the experience less okay? Was it related to timeliness, pricing, quality of work, communication, or or or something else?"
+human: "The pricing as well as the bulk of your work."
+assistant: "I appreciate your feedback. To get a clearer picture, a scale of 0 to 10, where 0 is not at all likely, and 10 is extremely likely."
+human: "I'll do it at 3."
+**Tags:** `Increase Service Transparency, Enhance Customer Experience, Improve Advisor Communication`
 
 **Output:**
 
 ```json
 {{
-  "call_summary": "Customer appreciated the reminder and professionalism.",
-  "nps_score": 9,
-  "overall_feedback": "Customer was happy with the smooth appointment process.",
-  "positive_mentions": ["communication", "professionalism", "scheduling"],
-  "detractors": []
+  "call_summary": "Customer was dissatisfied with both pricing and quality of work.",
+  "nps_score": 3,
+  "overall_feedback": "Customer expressed significant concerns about value for money and workmanship quality, indicating a negative service experience.",
+  "positive_mentions": [],
+  "detractors": ["Increase Service Transparency", "Enhance Customer Experience", "Improve Advisor Communication"]
 }}
 ```
 
 ### Example F:
 
 **Transcript:**
-Customer: "Your technician arrived on time and fixed the issue in under an hour. I'm impressed with how knowledgeable he was."
-**Tags:** `timeliness, expertise, efficiency, courtesy`
+assistant: "Great. I just wanted to check how was the entire service experience for you?"
+human: "You mean the service experience that I had, I your service station that is?"
+assistant: "Exactly. I'm referring to the service experience at our station for your recent oil change. How did everything go for you?"
+human: "It went very well."
+assistant: "So nice to hear. Thanks for sharing that. Just 1 last question. On a scale of 0 to 10, where 0 is not at all likely, and 10 is extremely likely, how likely are you to recommend Garage 25 to a friend or colleague"
+human: "Maybe a 9"
+assistant: "Thanks so much for that. Glad to know you had a great experience. Could you tell me what stood out for you? Was it efficiency? Friendliness, satisfaction, or something else?"
+human: "The timeliness I got the car right on time, so the timeliness."
+**Tags:** `Reduce Wait Time, Enhance Customer Experience, Streamline Booking Process`
 
 **Output:**
 
 ```json
 {{
-  "call_summary": "Customer was impressed with the technician's punctuality and knowledge.",
+  "call_summary": "Customer had an excellent experience with emphasis on timely service completion.",
   "nps_score": 9,
-  "overall_feedback": "Customer had an excellent experience with prompt service and efficient problem resolution.",
-  "positive_mentions": ["timeliness", "expertise", "efficiency"],
-  "detractors": []
+  "overall_feedback": "Customer was very satisfied with the service, particularly highlighting the punctual delivery of the vehicle which exceeded expectations.",
+  "positive_mentions": ["Reduce Wait Time", "Enhance Customer Experience"],
+  "detractors": ["Streamline Booking Process"]
 }}
 ```
 
 ### Example G:
 
 **Transcript:**
-Customer: "While the repair was done correctly, I had to wait an extra day because of parts availability. The staff was apologetic though."
-**Tags:** `repair quality, timeliness, communication, parts availability`
+assistant: "Great. Just wanted to check how was the entire service experience for you?"
+human: "It was okay."
+assistant: "Appreciate that. And just to get a clearer picture, a scale of 0 to 10, where 0 is not at all likely and 10 is extremely likely, how likely are you to recommend garage 25 to a friend or colleague?"
+human: "6"
+assistant: "Thanks for being honest. Can you share what went wrong? Or what could have been better? Like, timeliness, pricing transparency, quality of work, staff professionalism,"
+**Tags:** `Enhance Customer Experience, Increase Service Transparency, Reduce Wait Time`
 
 **Output:**
 
 ```json
 {{
-  "call_summary": "Customer satisfied with repair quality despite delay due to parts.",
+  "call_summary": "Customer found the service experience to be mediocre.",
   "nps_score": 6,
-  "overall_feedback": "Customer acknowledged good repair work but experienced frustration with the extended timeline.",
-  "positive_mentions": ["repair quality", "communication"],
-  "detractors": ["timeliness", "parts availability"]
+  "overall_feedback": "Customer expressed moderate satisfaction but indicated room for improvement in the overall service experience.",
+  "positive_mentions": [],
+  "detractors": ["Enhance Customer Experience", "Increase Service Transparency", "Reduce Wait Time"]
 }}
 ```
 
 ### Example H:
 
 **Transcript:**
-Customer: "The work was expensive but worth every penny. Your team went above and beyond to fix issues I didn't even know about."
-**Tags:** `pricing, value, thoroughness, expertise`
+assistant: "great. Just wanted to check how was the entire service experience for you?"
+human: "Oh, it was amazing. The staff was on Boeing."
+assistant: "That's fantastic to hear. Thanks for sharing that."
+human: "Yeah."
+assistant: "Always nice to hear. Just 1 last question. On a scale of 0 to 10, where 0 got it. Thank you for your feedback."
+human: "7."
+assistant: "What could have made your experience a 10?"
+human: "Timeliness, maybe some customer experience, and pricing."
+**Tags:** `Reduce Wait Time, Enhance Customer Experience, Increase Service Transparency, Improve Advisor Communication`
 
 **Output:**
 
 ```json
 {{
-  "call_summary": "Customer found service expensive but valuable due to thorough work.",
-  "nps_score": 8,
-  "overall_feedback": "Customer expressed high satisfaction with thoroughness despite high cost, indicating good perceived value.",
-  "positive_mentions": ["value", "thoroughness", "expertise"],
-  "detractors": ["pricing"]
+  "call_summary": "Customer praised staff but identified three areas for service improvement.",
+  "nps_score": 7,
+  "overall_feedback": "Customer appreciated the staff interaction but felt improvements were needed in timeliness, overall experience, and pricing transparency.",
+  "positive_mentions": ["Improve Advisor Communication"],
+  "detractors": ["Reduce Wait Time", "Enhance Customer Experience", "Increase Service Transparency"]
 }}
 ```
 
 ### Example I:
 
 **Transcript:**
-Customer: "I've been coming here for years and have never been disappointed. Today was no exception - quick service, fair price."
-**Tags:** `loyalty, timeliness, pricing, satisfaction`
+assistant: "Thank you. I'm calling to get your feedback on your recent oil change service with us. Just wanted to check how was the entire service experience for you?"
+human: "Be honest, I'm really like, I have doubts that did you really change the oil?"
+assistant: "Really sorry to hear that you're feeling this way. Can you tell me what specifically led you to to doubt it? Was there any particular issue or concern?"
+human: "I'm not seeing any improvements in the driving experience. I'm still seeing some, I know, grinding noise from the engine. I have issue."
+assistant: "Thank you for sharing that. I understand how concerning that must be,"
+assistant: "especially after an oil change. That grinding noise"
+assistant: "isn't what you'd expect. On a scale of 0 to 10, how likely are you to recommend garage 25 to a friend or colleague considering this experience?"
+human: "I recommend it. I will give it a 2 or a 1."
+**Tags:** `Increase Service Transparency, Enhance Customer Experience, Improve Advisor Communication`
 
 **Output:**
 
 ```json
 {{
-  "call_summary": "Long-time customer expressed continued satisfaction with service quality.",
-  "nps_score": 10,
-  "overall_feedback": "Customer demonstrated strong loyalty due to consistently positive experiences with speed and fair pricing.",
-  "positive_mentions": ["loyalty", "timeliness", "pricing", "satisfaction"],
-  "detractors": []
+  "call_summary": "Customer expressed serious doubts about service completion due to persistent engine noise.",
+  "nps_score": 1,
+  "overall_feedback": "Customer was highly dissatisfied and suspicious that the oil change wasn't properly performed due to continued driving issues and lack of explanation.",
+  "positive_mentions": [],
+  "detractors": ["Increase Service Transparency", "Enhance Customer Experience", "Improve Advisor Communication"]
 }}
 ```
 
 ### Example J:
 
 **Transcript:**
-Customer: "The online booking system was confusing and when I arrived, they had no record of my appointment. The mechanic made up for it though."
-**Tags:** `scheduling, online experience, customer service, professionalism`
+assistant: "Thanks. Great. Thank you. Just wanted to check. How was the entire service experience for you."
+human: "Yeah. Quite good."
+assistant: "That's wonderful to hear. Thank you for sharing that with me. Just 1 last question. On a scale of 0 to 10, where 0 is not at all likely and 10 is extremely likely, How likely are you to recommend garage 25 to a friend or colleague?"
+human: "Say 8"
+assistant: "Appreciate that, Richard. What could we have done to improve your score to a perfect 10?"
+human: "Give me a cheaper price."
+**Tags:** `Increase Service Transparency, Enhance Customer Experience, Improve Advisor Communication`
 
 **Output:**
 
 ```json
 {{
-  "call_summary": "Customer frustrated with booking system issues but appreciated mechanic's service.",
-  "nps_score": 5,
-  "overall_feedback": "Customer experienced scheduling problems that created initial disappointment, though service recovery somewhat mitigated the issue.",
-  "positive_mentions": ["professionalism"],
-  "detractors": ["scheduling", "online experience"]
+  "call_summary": "Customer had a positive experience but noted pricing concerns affected their recommendation score.",
+  "nps_score": 8,
+  "overall_feedback": "Customer was generally satisfied with the service but felt the pricing was too high, suggesting a need for better value or pricing transparency.",
+  "positive_mentions": ["Enhance Customer Experience", "Improve Advisor Communication"],
+  "detractors": ["Increase Service Transparency"]
 }}
 ```
 
