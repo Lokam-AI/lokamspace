@@ -11,47 +11,35 @@ export const APIReferenceViewer = () => {
   const { copyCode } = useClipboard();
 
   const generateCurlCommand = () => {
-    return `curl -X POST "http://localhost:8000/api/v1/public/calls" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "feedback_call": {
-      "client_details": {
-        "customer_name": "John Doe",
-        "customer_phone": "+1234567890",
-        "service_advisor_name": "Mike Smith",
-        "service_type": "oil-change",
-        "last_service_comment": "Oil and filter changed",
-        "vehicle_info": "2020 Honda Civic",
-        "appointment_date": "2024-01-15T10:00:00Z"
-      },
-      "organization_details": {
-        "organization_name": "ABC Auto Service",
-        "organization_description": "Professional auto service center",
-        "service_centre_description": "Full-service automotive repair",
-        "location": "123 Main St, City, State",
-        "google_review_link": "https://g.page/abc-auto/review",
-        "areas_to_focus": "Customer satisfaction, Service quality"
-      },
-      "knowledge_files": [],
-      "webhook_configuration": {
-        "server_url": "https://your-server.com/webhook",
-        "timeout": 20,
-        "http_headers": {}
-      }
+    const baseUrl = "https://api.lokam.ai";
+    const method = selectedEndpoint.method === "WEBHOOK" ? "POST" : selectedEndpoint.method;
+    const path = selectedEndpoint.path === "N/A" ? "/webhook" : selectedEndpoint.path;
+    
+    let curlCommand = `curl -X ${method} "${baseUrl}${path}"`;
+    
+    // Add headers
+    if (selectedEndpoint.method !== "WEBHOOK") {
+      curlCommand += ` \\\n  -H "Authorization: Bearer YOUR_API_KEY"`;
     }
-  }'`;
+    curlCommand += ` \\\n  -H "Content-Type: application/json"`;
+    
+    // Add payload if exists
+    if (selectedEndpoint.payload) {
+      curlCommand += ` \\\n  -d '${JSON.stringify(selectedEndpoint.payload, null, 2)}'`;
+    }
+    
+    return curlCommand;
   };
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] gap-4">
-      {/* Left Sidebar - Endpoints */}
-      <div className="w-48 border-r bg-muted/30 overflow-y-auto">
-        <div className="p-3">
-          <h3 className="font-semibold mb-3 text-sm">Endpoints</h3>
+    <div className="flex h-full gap-4">
+        {/* Left Sidebar - Endpoints */}
+        <div className="w-80 border-r bg-muted/30 overflow-y-auto flex-shrink-0">
+        <div className="p-4">
+          <h3 className="font-semibold mb-4 text-sm">Endpoints</h3>
           {API_ENDPOINTS.map((category) => (
-            <div key={category.category} className="mb-4">
-              <h4 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
+            <div key={category.category} className="mb-6">
+              <h4 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
                 {category.category}
               </h4>
               <div className="space-y-1">
@@ -59,17 +47,20 @@ export const APIReferenceViewer = () => {
                   <button
                     key={`${endpoint.method}-${endpoint.path}`}
                     onClick={() => setSelectedEndpoint(endpoint)}
-                    className={`w-full text-left p-2 rounded-md text-xs transition-colors ${
+                    className={`w-full text-left p-3 rounded-md text-sm transition-colors ${
                       selectedEndpoint === endpoint
                         ? "bg-primary text-primary-foreground"
                         : "hover:bg-muted"
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className={`text-xs ${getMethodColor(endpoint.method)}`}>
+                    <div className="flex items-center gap-3 mb-1">
+                      <Badge variant="outline" className={`text-xs px-2 py-0.5 ${getMethodColor(endpoint.method)}`}>
                         {endpoint.method}
                       </Badge>
-                      <span className="truncate">{endpoint.name}</span>
+                      <span className="font-medium text-sm truncate">{endpoint.name}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground font-mono mt-1 truncate">
+                      {endpoint.path !== "N/A" ? endpoint.path : "Webhook Event"}
                     </div>
                   </button>
                 ))}
@@ -79,94 +70,79 @@ export const APIReferenceViewer = () => {
         </div>
       </div>
 
-      {/* Middle Section - Documentation */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-4">
+      {/* Right Section - Request/Response Samples */}
+      <div className="flex-1 bg-muted/30 overflow-y-auto">
+        <div className="p-6">
+          {/* Endpoint Header */}
           <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Badge variant="outline" className={`${getMethodColor(selectedEndpoint.method)}`}>
+            <div className="flex items-center gap-3 mb-4">
+              <Badge variant="outline" className={`${getMethodColor(selectedEndpoint.method)} text-sm px-3 py-1`}>
                 {selectedEndpoint.method}
               </Badge>
-              <code className="text-sm bg-muted px-2 py-1 rounded">
+              <code className="text-base bg-muted px-3 py-2 rounded font-mono">
                 {selectedEndpoint.path}
               </code>
             </div>
-            <h2 className="text-xl font-bold">{selectedEndpoint.name}</h2>
-            <p className="text-sm text-muted-foreground mt-2">{selectedEndpoint.description}</p>
+            <h1 className="text-2xl font-bold mb-3">{selectedEndpoint.name}</h1>
+            <p className="text-base text-muted-foreground leading-relaxed mb-6">{selectedEndpoint.description}</p>
+            
+            {selectedEndpoint.note && (
+              <div className="mb-6">
+                <div className="border-l-4 border-blue-500 bg-blue-50 p-4 rounded-r-md">
+                  <p className="text-sm text-blue-800 font-medium">
+                    <span className="font-semibold">Note:</span> {selectedEndpoint.note}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
-
-          {selectedEndpoint.parameters.length > 0 && (
+          
+          <h3 className="font-semibold mb-4 text-lg">Try It</h3>
+          
+          {selectedEndpoint.method !== "WEBHOOK" ? (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-4">Query Parameters</h3>
-              <div className="space-y-4">
-                {selectedEndpoint.parameters.map((param) => (
-                  <div key={param.name} className="border rounded-lg p-4 bg-card">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
-                          {param.name}
-                        </code>
-                        <Badge variant={param.required ? "default" : "secondary"}>
-                          {param.required ? "Required" : "Optional"}
-                        </Badge>
-                      </div>
-                      <span className="text-sm text-muted-foreground font-medium">{param.type}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{param.description}</p>
-                  </div>
-                ))}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Request</span>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => copyCode(generateCurlCommand())}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="bg-black text-green-400 p-3 rounded-md text-xs font-mono overflow-x-auto whitespace-pre-wrap">
+                {generateCurlCommand()}
+              </div>
+            </div>
+          ) : (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Webhook Event</span>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => copyCode(JSON.stringify(selectedEndpoint.response, null, 2))}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="bg-purple-50 border border-purple-200 p-3 rounded-md text-xs">
+                <p className="text-purple-800 mb-2">
+                  This is a webhook event that will be sent to your configured webhook URL.
+                </p>
+                <p className="text-purple-600 text-xs">
+                  Configure your webhook URL during API key creation.
+                </p>
               </div>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Right Section - Request/Response Samples */}
-      <div className="flex-1 border-l bg-muted/30 overflow-y-auto">
-        <div className="p-4">
-          <h3 className="font-semibold mb-4 text-sm">Try It</h3>
-          
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Request</span>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => copyCode(generateCurlCommand())}
-              >
-                <Copy className="w-4 h-4" />
-              </Button>
-            </div>
-            <div className="bg-black text-green-400 p-3 rounded-md text-xs font-mono">
-              <div>$ curl -X POST "http://localhost:8000/api/v1/public/calls" \</div>
-              <div>&gt;  -H "Authorization: Bearer YOUR_API_KEY" \</div>
-              <div>&gt;  -H "Content-Type: application/json" \</div>
-              <div>&gt;  -d '{`{`}</div>
-              <div>&gt;    "feedback_call": {`{`}</div>
-              <div>&gt;      "client_details": {`{`}</div>
-              <div>&gt;        "customer_name": "John Doe",</div>
-              <div>&gt;        "customer_phone": "+1234567890",</div>
-              <div>&gt;        "service_advisor_name": "Mike Smith",</div>
-              <div>&gt;        "service_type": "oil-change",</div>
-              <div>&gt;        "last_service_comment": "Oil and filter changed",</div>
-              <div>&gt;        "vehicle_info": "2020 Honda Civic",</div>
-              <div>&gt;        "appointment_date": "2024-01-15T10:00:00Z"</div>
-              <div>&gt;      {`}`},</div>
-              <div>&gt;      "organization_details": {`{`}</div>
-              <div>&gt;        "organization_name": "ABC Auto Service"</div>
-              <div>&gt;      {`}`},</div>
-              <div>&gt;      "knowledge_files": [],</div>
-              <div>&gt;      "webhook_configuration": {`{`}</div>
-              <div>&gt;        "server_url": "https://your-server.com/webhook"</div>
-              <div>&gt;      {`}`}</div>
-              <div>&gt;    {`}`}</div>
-              <div>&gt;  {`}`}'</div>
-            </div>
-          </div>
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-green-600">Response</span>
+              <span className="text-sm font-medium text-green-600">
+                {selectedEndpoint.method === "WEBHOOK" ? "Event Payload" : "Response"}
+              </span>
               <Button 
                 variant="outline" 
                 size="sm"
@@ -175,7 +151,7 @@ export const APIReferenceViewer = () => {
                 <Copy className="w-4 h-4" />
               </Button>
             </div>
-            <div className="bg-black text-gray-300 p-3 rounded-md text-xs font-mono h-[calc(100vh-20rem)] overflow-y-auto">
+            <div className="bg-black text-gray-300 p-3 rounded-md text-xs font-mono max-h-96 overflow-y-auto">
               <pre>{JSON.stringify(selectedEndpoint.response, null, 2)}</pre>
             </div>
           </div>
