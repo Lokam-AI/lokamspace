@@ -7,8 +7,6 @@ import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight } from "lucide-react";
 
 // Hooks
 import { useAPIKeys } from "@/hooks/useAPIKeys";
@@ -17,7 +15,6 @@ import { useAPIKeys } from "@/hooks/useAPIKeys";
 import { APIKeysTable } from "@/components/api-keys/APIKeysTable";
 import { APIKeyDetailsModal } from "@/components/api-keys/APIKeyDetailsModal";
 import { CreateAPIKeyDialog } from "@/components/api-keys/CreateAPIKeyDialog";
-import { ConfigurationForm } from "@/components/configuration/ConfigurationForm";
 import { APIReferenceViewer } from "@/components/api-reference/APIReferenceViewer";
 
 // API Keys will be loaded from the backend
@@ -27,7 +24,6 @@ export default function APIKeys() {
   const [newKeyOpen, setNewKeyOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedApiKey, setSelectedApiKey] = useState<ApiKey | null>(null);
-  const [expandedApiKeys, setExpandedApiKeys] = useState(false);
   
   // Custom hook for API key management
   const { 
@@ -59,41 +55,26 @@ export default function APIKeys() {
     }
   };
 
-  const toggleApiKeysSection = () => {
-    setExpandedApiKeys(!expandedApiKeys);
-  };
+
 
   const renderAPIKeysTab = () => (
     <div className="flex flex-col gap-8">
       <Card>
         <CardHeader>
-          <Collapsible open={expandedApiKeys} onOpenChange={toggleApiKeysSection}>
-            <CollapsibleTrigger asChild>
-              <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors -m-2">
-                <div>
-                  <CardTitle>Your API Configurations</CardTitle>
-                  <CardDescription>
-                    Each configuration includes an API key and webhook settings for secure access to Lokam API.
-                  </CardDescription>
-                </div>
-                {expandedApiKeys ? (
-                  <ChevronDown className="w-5 h-5 text-gray-500" />
-                ) : (
-                  <ChevronRight className="w-5 h-5 text-gray-500" />
-                )}
-              </div>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="pt-4">
-                <APIKeysTable 
-                  apiKeys={apiKeys}
-                  loading={loading}
-                  onViewDetails={handleViewDetails}
-                />
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+          <div>
+            <CardTitle>Your API Configurations</CardTitle>
+            <CardDescription>
+              Each configuration includes an API key and webhook settings for secure access to Lokam API.
+            </CardDescription>
+          </div>
         </CardHeader>
+        <CardContent>
+          <APIKeysTable 
+            apiKeys={apiKeys}
+            loading={loading}
+            onViewDetails={handleViewDetails}
+          />
+        </CardContent>
       </Card>
 
       {/* Details Modal */}
@@ -105,9 +86,6 @@ export default function APIKeys() {
         onDelete={handleDeleteKey}
         updating={updating}
       />
-
-      {/* Agent Configuration Section */}
-      <ConfigurationForm />
 
     </div>
   );

@@ -28,7 +28,7 @@ export const API_ENDPOINTS: APICategory[] = [
       {
         method: "GET",
         path: "/api/organization",
-        name: "Get Organization Information",
+        name: "Get Organization",
         description: "Retrieve current organization information and settings.",
         response: {
           organization_name: "Garage 25",
@@ -45,7 +45,7 @@ export const API_ENDPOINTS: APICategory[] = [
       {
         method: "PUT",
         path: "/api/organization",
-        name: "Update Organization Information",
+        name: "Update Organization",
         description: "Update organization details and configuration settings.",
         payload: {
           organization_name: "Garage 25",
@@ -292,7 +292,7 @@ export const API_ENDPOINTS: APICategory[] = [
       {
         method: "GET",
         path: "/api/calls/schedule",
-        name: "Get Schedule Configuration",
+        name: "Get Schedule",
         description: "Retrieve current call scheduling configuration and time slots.",
         response: {
           enabled: true,
@@ -306,7 +306,7 @@ export const API_ENDPOINTS: APICategory[] = [
       {
         method: "PUT",
         path: "/api/calls/schedule",
-        name: "Update Schedule Configuration",
+        name: "Update Schedule",
         description: "Update call scheduling settings including active days and time slots.",
         payload: {
           enabled: true,
