@@ -17,3 +17,10 @@ export * from "./endpoints/users";
 
 // Analytics endpoints
 export * from "./endpoints/analytics";
+
+// API Keys endpoints  
+export * from "./endpoints/apiKeys";
+
+// Metrics endpoints
+export * from "./endpoints/metrics";
+

@@ -43,9 +43,7 @@ class Organization(Base):
     # Basic info
     name = Column(String(255), nullable=False, unique=True)
     email = Column(String(255), nullable=False, unique=True)
-    phone_feedback = Column(String(20))
-    phone_booking = Column(String(20))  # Renamed from phone_service
-    phone_inquiry = Column(String(20))  # Renamed from phone_support
+    google_review_link = Column(String(500))  # Google review link
     description = Column(Text)
     service_center_description = Column(Text)
     
@@ -81,6 +79,7 @@ class Organization(Base):
     settings = relationship("Setting", back_populates="organization")
     audit_logs = relationship("AuditLog", back_populates="organization")
     knowledge_files = relationship("KnowledgeFile", back_populates="organization")
+    api_keys = relationship("ApiKey", back_populates="organization", cascade="all, delete-orphan")
     
     def __repr__(self) -> str:
         return f"<Organization {self.name}>"

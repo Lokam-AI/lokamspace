@@ -71,6 +71,15 @@ class Settings(BaseSettings):
     OPENAI_TEMPERATURE: float = 0.2
     CALL_INITIATOR_ACCESS_TOKEN: str = "your_call_initiator_access_token_here"
     
+    # Rate limiting settings (in-memory)
+    DEFAULT_RATE_LIMIT_PER_MINUTE: int = 10
+    
+    # API Key settings
+    API_KEY_LENGTH: int = 32
+    
+    # Public API settings  
+    PUBLIC_API_PREFIX: str = "/api/v1/public"
+    
     # Model configuration
     model_config = SettingsConfigDict(
         env_file=".env",

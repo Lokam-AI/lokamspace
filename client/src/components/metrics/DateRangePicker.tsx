@@ -11,34 +11,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface DateRangePickerProps {
   startDate: Date | undefined;
   endDate: Date | undefined;
-  groupBy: string;
-  filterType: string;
   onStartDateChange: (date: Date | undefined) => void;
   onEndDateChange: (date: Date | undefined) => void;
-  onGroupByChange: (value: string) => void;
-  onFilterTypeChange: (value: string) => void;
 }
 
 export const DateRangePicker = ({
   startDate,
   endDate,
-  groupBy,
-  filterType,
   onStartDateChange,
   onEndDateChange,
-  onGroupByChange,
-  onFilterTypeChange,
 }: DateRangePickerProps) => {
   return (
-    <div className="flex items-center space-x-4 flex-wrap gap-2">
+    <div className="flex items-center space-x-4 flex-wrap gap-3">
       <div className="flex items-center space-x-2">
-        <label className="text-sm font-medium text-gray-700">From:</label>
+        <label className="text-sm font-medium text-foreground">From:</label>
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               className={cn(
-                "w-36 justify-start text-left font-normal",
+                "w-40 justify-start text-left font-normal h-9",
                 !startDate && "text-muted-foreground"
               )}
             >
@@ -59,13 +51,13 @@ export const DateRangePicker = ({
       </div>
 
       <div className="flex items-center space-x-2">
-        <label className="text-sm font-medium text-gray-700">To:</label>
+        <label className="text-sm font-medium text-foreground">To:</label>
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               className={cn(
-                "w-36 justify-start text-left font-normal",
+                "w-40 justify-start text-left font-normal h-9",
                 !endDate && "text-muted-foreground"
               )}
             >
@@ -85,33 +77,6 @@ export const DateRangePicker = ({
           </PopoverContent>
         </Popover>
       </div>
-
-      <div className="flex items-center space-x-2">
-        <span className="text-sm text-gray-600">grouped by</span>
-        <Select value={groupBy} onValueChange={onGroupByChange}>
-          <SelectTrigger className="w-28">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Day">Day</SelectItem>
-            <SelectItem value="Month">Month</SelectItem>
-            <SelectItem value="Quarter">Quarter</SelectItem>
-            <SelectItem value="Yearly">Yearly</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <Select value={filterType} onValueChange={onFilterTypeChange}>
-        <SelectTrigger className="w-40">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="All Types">All Types</SelectItem>
-          <SelectItem value="Feedback Calls">Feedback Calls</SelectItem>
-          <SelectItem value="Bookings">Bookings</SelectItem>
-          <SelectItem value="Inquiries">Inquiries</SelectItem>
-        </SelectContent>
-      </Select>
     </div>
   );
 };

@@ -11,6 +11,7 @@ from app.api.v1.endpoints.calls import router as calls_router
 from app.api.v1.endpoints.campaigns import router as campaigns_router
 from app.api.v1.endpoints.dms_integration import router as dms_integration_router
 from app.api.v1.endpoints.knowledge_files import router as knowledge_files_router
+from app.api.v1.endpoints.metrics import router as metrics_router
 from app.api.v1.endpoints.organizations import router as organizations_router
 from app.api.v1.endpoints.schedule_config import router as schedule_config_router
 from app.api.v1.endpoints.service_records import router as service_records_router
@@ -19,6 +20,8 @@ from app.api.v1.endpoints.tags import router as tags_router
 from app.api.v1.endpoints.transcripts import router as transcripts_router
 from app.api.v1.endpoints.users import router as users_router
 from app.api.v1.endpoints.webhooks import router as webhook_router
+from app.api.v1.endpoints.api_keys import router as api_keys_router
+from app.api.v1.endpoints.public_api import router as public_api_router
 
 # Create main API router
 api_router = APIRouter()
@@ -34,8 +37,11 @@ api_router.include_router(schedule_config_router, prefix="/schedule-config", tag
 api_router.include_router(calls_router, prefix="/calls", tags=["Calls"])
 api_router.include_router(transcripts_router, prefix="/transcripts", tags=["Transcripts"])
 api_router.include_router(analytics_router, prefix="/analytics", tags=["Analytics"])
+api_router.include_router(metrics_router, prefix="/metrics", tags=["Metrics"])
 api_router.include_router(settings_router, prefix="/settings", tags=["Settings"])
 api_router.include_router(tags_router, prefix="/tags", tags=["Tags"])
 api_router.include_router(knowledge_files_router, prefix="/knowledge-files", tags=["Knowledge Files"])
 api_router.include_router(dms_integration_router, prefix="/dms-integration", tags=["DMS Integration"])
-api_router.include_router(webhook_router, prefix="/webhooks", tags=["Webhooks"]) 
+api_router.include_router(webhook_router, prefix="/webhooks", tags=["Webhooks"])
+api_router.include_router(api_keys_router, prefix="/api-keys", tags=["API Keys"])
+api_router.include_router(public_api_router, prefix="/public", tags=["Public API"]) 
