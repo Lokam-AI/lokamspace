@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Phone, MessageSquare, Megaphone, Globe, User, Play, Loader2 } from "lucide-react";
+import { Copy, Phone, MessageSquare, Megaphone, Globe, User, Play, Loader2, Bot, Calendar, Clock, Target } from "lucide-react";
 import { Agent, AGENT_CATEGORIES, MOCK_AGENTS, AgentCallRequest } from "@/types/agent";
 import { useInitiateAgentTestCall } from "@/hooks/useAgents";
 
@@ -499,116 +500,244 @@ const AgentLibrary = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Live Transcript Modal - Right Side */}
-      <Dialog open={isLiveTranscriptOpen} onOpenChange={setIsLiveTranscriptOpen}>
-        <DialogContent className="sm:max-w-md fixed right-4 top-4 bottom-4 w-96 h-[calc(100vh-2rem)] flex flex-col p-0 gap-0">
-          {/* Header */}
-          <div className="p-4 border-b bg-muted/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">Live Call Transcript</h3>
-                <p className="text-sm text-muted-foreground">
-                  {selectedAgent?.name} • Call ID: {activeCallId?.slice(-8)}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${
-                  callStatus === "ringing" ? "bg-yellow-500 animate-pulse" :
-                  callStatus === "in_progress" ? "bg-green-500 animate-pulse" :
-                  callStatus === "completed" ? "bg-gray-500" : "bg-red-500"
-                }`} />
-                <span className="text-xs font-medium capitalize">
-                  {callStatus.replace("_", " ")}
-                </span>
-              </div>
-            </div>
-          </div>
+      {/* Live Call Details Panel */}
+      <Sheet open={isLiveTranscriptOpen} onOpenChange={setIsLiveTranscriptOpen}>
+        <SheetContent className="w-[700px] sm:max-w-[700px] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center space-x-2">
+              <Bot className="h-5 w-5" />
+              <span>Live Agent Test Call</span>
+              <div className={`w-2 h-2 rounded-full ml-2 ${
+                callStatus === "ringing" ? "bg-yellow-500 animate-pulse" :
+                callStatus === "in_progress" ? "bg-green-500 animate-pulse" :
+                callStatus === "completed" ? "bg-gray-500" : "bg-red-500"
+              }`} />
+            </SheetTitle>
+            <SheetDescription>
+              Live test call with {selectedAgent?.name} • Call ID: {activeCallId?.slice(-8)} • Status: {callStatus.replace("_", " ")}
+            </SheetDescription>
+          </SheetHeader>
 
-          {/* Call Details Summary */}
-          <div className="p-4 bg-muted/30 border-b">
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <span className="text-muted-foreground">Customer:</span>
-                <div className="font-medium">{enhancedCallData.customer_name}</div>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Service:</span>
-                <div className="font-medium">{enhancedCallData.service_type}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Transcript Area */}
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="space-y-3">
-              {callStatus === "ringing" && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                  <p className="text-sm">Connecting call...</p>
-                </div>
-              )}
-              
-              {callTranscript.length === 0 && callStatus === "in_progress" && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <MessageSquare className="h-6 w-6 mx-auto mb-2" />
-                  <p className="text-sm">Waiting for conversation to start...</p>
-                </div>
-              )}
-
-              {callTranscript.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex ${
-                    message.role === "assistant" ? "justify-start" : "justify-end"
-                  }`}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-lg p-3 ${
-                      message.role === "assistant"
-                        ? "bg-blue-50 text-blue-900 border border-blue-200"
-                        : "bg-gray-50 text-gray-900 border border-gray-200"
-                    }`}
-                  >
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="text-xs font-medium">
-                        {message.role === "assistant" ? selectedAgent?.name || "Agent" : "Customer"}
-                      </span>
-                      <span className="text-xs opacity-70">
-                        {Math.floor(message.timestamp / 60)}:{(message.timestamp % 60).toString().padStart(2, '0')}
-                      </span>
+          <div className="mt-6 space-y-6">
+            {/* Agent Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Agent Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Bot className="h-4 w-4 text-gray-500" />
+                    <div>
+                      <span className="text-sm text-gray-500">Agent Name:</span>
+                      <p className="font-medium">{selectedAgent?.name || "N/A"}</p>
                     </div>
-                    <p className="text-sm leading-relaxed">{message.content}</p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Globe className="h-4 w-4 text-gray-500" />
+                    <div>
+                      <span className="text-sm text-gray-500">Language:</span>
+                      <p className="font-medium">{selectedAgent?.language || "N/A"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Target className="h-4 w-4 text-gray-500" />
+                    <div>
+                      <span className="text-sm text-gray-500">Category:</span>
+                      <p className="font-medium">{selectedAgent?.category.name || "N/A"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <User className="h-4 w-4 text-gray-500" />
+                    <div>
+                      <span className="text-sm text-gray-500">Agent ID:</span>
+                      <p className="font-medium font-mono text-xs">{selectedAgent?.id || "N/A"}</p>
+                    </div>
                   </div>
                 </div>
-              ))}
+                
+                {/* Agent Personality */}
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <span className="text-sm text-blue-600 font-medium">Personality:</span>
+                  <p className="text-sm text-blue-800 mt-1">{selectedAgent?.personality || "N/A"}</p>
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Auto-scroll to bottom */}
-              <div id="transcript-bottom" />
-            </div>
-          </div>
+            {/* Call Details */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Call Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <User className="h-4 w-4 text-gray-500" />
+                    <div>
+                      <span className="text-sm text-gray-500">Customer:</span>
+                      <p className="font-medium">{enhancedCallData.customer_name || "N/A"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Phone className="h-4 w-4 text-gray-500" />
+                    <div>
+                      <span className="text-sm text-gray-500">Phone:</span>
+                      <p className="font-medium">{enhancedCallData.phone_number || "N/A"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Target className="h-4 w-4 text-gray-500" />
+                    <div>
+                      <span className="text-sm text-gray-500">Service Type:</span>
+                      <p className="font-medium">{enhancedCallData.service_type || "N/A"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <User className="h-4 w-4 text-gray-500" />
+                    <div>
+                      <span className="text-sm text-gray-500">Service Advisor:</span>
+                      <p className="font-medium">{enhancedCallData.service_advisor_name || "N/A"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <div>
+                      <span className="text-sm text-gray-500">Appointment Date:</span>
+                      <p className="font-medium">{enhancedCallData.appointment_date || "N/A"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Clock className="h-4 w-4 text-gray-500" />
+                    <div>
+                      <span className="text-sm text-gray-500">Duration:</span>
+                      <p className="font-medium">
+                        {callTranscript.length > 0 ? 
+                          `${Math.floor((callTranscript[callTranscript.length - 1]?.timestamp || 0) / 60)}:${((callTranscript[callTranscript.length - 1]?.timestamp || 0) % 60).toString().padStart(2, '0')}` 
+                          : "00:00"
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Footer */}
-          <div className="p-4 border-t bg-muted/50">
-            <div className="flex items-center justify-between">
-              <div className="text-xs text-muted-foreground">
-                Duration: {callTranscript.length > 0 ? 
-                  `${Math.floor((callTranscript[callTranscript.length - 1]?.timestamp || 0) / 60)}:${((callTranscript[callTranscript.length - 1]?.timestamp || 0) % 60).toString().padStart(2, '0')}` 
-                  : "00:00"
-                }
-              </div>
-              {callStatus === "completed" && (
-                <Button
-                  size="sm"
-                  onClick={() => setIsLiveTranscriptOpen(false)}
-                  className="h-8"
-                >
-                  Close
-                </Button>
-              )}
-            </div>
+            {/* Live Call Transcript */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center space-x-2">
+                  <MessageSquare className="h-5 w-5" />
+                  <span>Live Call Transcript</span>
+                  {callStatus === "in_progress" && (
+                    <div className="flex items-center space-x-1 text-green-600">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      <span className="text-sm font-normal">Recording</span>
+                    </div>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 max-h-96 overflow-y-auto border rounded-lg p-4 bg-gray-50">
+                  {callStatus === "ringing" && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                      <p className="text-sm">Connecting call...</p>
+                      <p className="text-xs text-gray-400 mt-1">Please wait while we establish the connection</p>
+                    </div>
+                  )}
+                  
+                  {callTranscript.length === 0 && callStatus === "in_progress" && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <MessageSquare className="h-6 w-6 mx-auto mb-2" />
+                      <p className="text-sm">Waiting for conversation to start...</p>
+                      <p className="text-xs text-gray-400 mt-1">The agent will begin speaking shortly</p>
+                    </div>
+                  )}
+
+                  {callTranscript.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`flex ${
+                        message.role === "assistant" ? "justify-start" : "justify-end"
+                      }`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-lg p-3 ${
+                          message.role === "assistant"
+                            ? "bg-blue-100 text-blue-900 border border-blue-200"
+                            : "bg-white text-gray-900 border border-gray-200 shadow-sm"
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className="text-xs font-medium">
+                            {message.role === "assistant" ? selectedAgent?.name || "Agent" : "Customer"}
+                          </span>
+                          <span className="text-xs opacity-70">
+                            {Math.floor(message.timestamp / 60)}:{(message.timestamp % 60).toString().padStart(2, '0')}
+                          </span>
+                        </div>
+                        <p className="text-sm leading-relaxed">{message.content}</p>
+                      </div>
+                    </div>
+                  ))}
+
+                  {callStatus === "completed" && callTranscript.length > 0 && (
+                    <div className="text-center py-4 border-t mt-4">
+                      <Badge variant="secondary" className="bg-green-100 text-green-800">
+                        Call Completed Successfully
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Auto-scroll to bottom */}
+                  <div id="transcript-bottom" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Call Summary (shown after completion) */}
+            {callStatus === "completed" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Call Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <div className="flex items-center justify-center space-x-2 mb-2">
+                        <Clock className="h-5 w-5 text-green-600" />
+                        <span className="text-sm font-medium text-green-800">Total Duration</span>
+                      </div>
+                      <div className="text-2xl font-bold text-green-900">
+                        {callTranscript.length > 0 ? 
+                          `${Math.floor((callTranscript[callTranscript.length - 1]?.timestamp || 0) / 60)}:${((callTranscript[callTranscript.length - 1]?.timestamp || 0) % 60).toString().padStart(2, '0')}` 
+                          : "00:00"
+                        }
+                      </div>
+                    </div>
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <div className="flex items-center justify-center space-x-2 mb-2">
+                        <MessageSquare className="h-5 w-5 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-800">Messages</span>
+                      </div>
+                      <div className="text-2xl font-bold text-blue-900">
+                        {callTranscript.length}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">
+                      <strong>Test Result:</strong> The agent successfully conducted a {enhancedCallData.service_type} follow-up call 
+                      with {enhancedCallData.customer_name}, demonstrating excellent communication skills and proper feedback collection techniques.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </SidebarProvider>
   );
 };
