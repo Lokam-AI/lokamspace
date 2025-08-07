@@ -256,7 +256,7 @@ export const BulkUploadModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>New Feedback Calls Campaign</DialogTitle>
         </DialogHeader>
