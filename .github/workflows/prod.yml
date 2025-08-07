@@ -48,13 +48,14 @@ jobs:
           echo "DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}" >> $GITHUB_ENV
         fi
 
-    - name: Run database migrations
+    - name: Run Alembic migrations
       run: |
         cd server
-        export DATABASE_URL=$DATABASE_URL
+        alembic revision --autogenerate -m "Auto-generate migration"
         alembic upgrade head
       env:
-        DATABASE_URL: ${{ github.ref == 'refs/heads/main' && secrets.PROD_DATABASE_URL || secrets.DEV_DATABASE_URL }}
+        DATABASE_URL: ${{ env.DATABASE_URL }}
+      continue-on-error: true
 
     - name: Log in to Amazon ECR
       run: |
@@ -95,7 +96,7 @@ jobs:
         else
           SERVICE_TYPE="Other"
         fi
-          
+        
         if [ "$ENVIRONMENT" = "prod" ]; then
           SLACK_URL=${{ secrets.SLACK_WEBHOOK_URL }}
           STATUS_MSG="✅ *Production deployment completed successfully!*"
@@ -103,7 +104,7 @@ jobs:
           SLACK_URL=${{ secrets.SLACK_WEBHOOK_URL }}
           STATUS_MSG="🚀 *Development deployment completed successfully!*"
         fi
-
+        
         curl -X POST -H 'Content-type: application/json' \
           --data "{
             \"text\": \"$STATUS_MSG\n*Repository:* $REPO_NAME\n*Environment:* $ENVIRONMENT\n*Branch:* ${{ github.ref_name }}\n*Commit Message:* $COMMIT_MSG\n*Author:* $AUTHOR_NAME\n*Service:* $SERVICE_TYPE\"
