@@ -70,16 +70,6 @@ class Settings(BaseSettings):
     OPENAI_MAX_TOKENS: int = 1000
     OPENAI_TEMPERATURE: float = 0.2
     
-    # AnyLLM Additional Provider Settings
-    # Anthropic Claude
-    ANTHROPIC_API_KEY: str = ""
-    # Mistral
-    MISTRAL_API_KEY: str = ""
-    # Groq
-    GROQ_API_KEY: str = ""
-    # Ollama (local models)
-    OLLAMA_API_BASE: str = "http://localhost:11434"
-    
     # Model configuration
     model_config = SettingsConfigDict(
         env_file=".env",

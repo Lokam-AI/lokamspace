@@ -8,6 +8,7 @@ import logging
 import json
 import os
 from typing import Dict, Any, List, Optional
+from pathlib import Path
 from app.core.config import settings
 # Import any-llm with support for selected providers
 from any_llm import completion
@@ -41,16 +42,121 @@ class AnyLLMService:
         if settings.OLLAMA_API_BASE:
             os.environ["OLLAMA_API_BASE"] = settings.OLLAMA_API_BASE
 
+        # Load prompt templates on initialization
+        self._prompt_templates = self._load_prompt_templates()
+        self._prompt_metadata = self._load_prompt_metadata()
+
+    def _load_prompt_metadata(self) -> Dict[str, Any]:
+        """Load prompt metadata from JSON file for debugging/info purposes."""
+        try:
+            current_dir = Path(__file__).parent.parent.parent
+            prompts_file = current_dir / "config" / "prompts.json"
+            
+            if not prompts_file.exists():
+                return {}
+            
+            with open(prompts_file, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            
+            # Extract metadata and version info
+            metadata = {
+                'version': config.get('version', 'unknown'),
+                'description': config.get('description', ''),
+                'default_version': config.get('default_version', 1),
+                'available_prompts': {}
+            }
+            
+            if 'prompts' in config:
+                for version_str, prompt_data in config['prompts'].items():
+                    try:
+                        version_num = int(version_str)
+                        metadata['available_prompts'][version_num] = {
+                            'name': prompt_data.get('name', 'Unnamed'),
+                            'description': prompt_data.get('description', '')
+                        }
+                    except ValueError:
+                        continue
+            
+            return metadata
+            
+        except Exception as e:
+            logger.error(f"Error loading prompt metadata: {e}")
+            return {}
+
+    def _load_prompt_templates(self) -> Dict[int, str]:
+        """Load prompt templates from external JSON file."""
+        try:
+            # Get the path to the prompts file relative to the server directory
+            current_dir = Path(__file__).parent.parent.parent  # Go up to server directory
+            prompts_file = current_dir / "config" / "prompts.json"
+            
+            if not prompts_file.exists():
+                logger.warning(f"Prompts file not found at {prompts_file}. Using default prompt.")
+                return {}
+            
+            with open(prompts_file, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            
+            # Extract prompt templates from the JSON structure
+            prompts = {}
+            if 'prompts' in config:
+                for version_str, prompt_data in config['prompts'].items():
+                    try:
+                        version_num = int(version_str)
+                        if 'template' in prompt_data:
+                            prompts[version_num] = prompt_data['template']
+                            logger.debug(f"Loaded prompt version {version_num}: {prompt_data.get('name', 'Unnamed')}")
+                        else:
+                            logger.warning(f"No 'template' field found in prompt version {version_str}")
+                    except ValueError as e:
+                        logger.warning(f"Invalid version number '{version_str}': {e}")
+                        continue
+            
+            logger.info(f"Loaded {len(prompts)} prompt templates from {prompts_file}")
+            return prompts
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON format in prompts file: {e}")
+            return {}
+        except Exception as e:
+            logger.error(f"Error loading prompt templates: {e}")
+            return {}
+
+    def _get_prompt_template(self, version: Optional[int] = None) -> str:
+        """Get prompt template for specified version or default to version 1."""
+        if version is None:
+            version = 1  # Default to version 1 without relying on settings
+        
+        if version in self._prompt_templates:
+            return self._prompt_templates[version]
+        
+        # Fallback to version 1 if specified version doesn't exist
+        if 1 in self._prompt_templates:
+            logger.warning(f"Prompt version {version} not found, falling back to version 1")
+            return self._prompt_templates[1]
+        
+        # If no templates loaded, raise an error
+        raise ValueError("No prompt templates loaded and no fallback available")
+
+    def get_available_prompt_versions(self) -> Dict[str, Any]:
+        """Get information about available prompt versions."""
+        return {
+            'metadata': self._prompt_metadata,
+            'loaded_versions': list(self._prompt_templates.keys()),
+            'default_version': self._prompt_metadata.get('default_version', 1)
+        }
+
     async def analyze_call_transcript(
         self,
         transcript_messages: List[Dict[str, Any]],
         service_record_data: Dict[str, Any],
         organization_data: Dict[str, Any],
         tags: List[str],
-        model: Optional[str] = None
+        model: Optional[str] = None,
+        prompt_version: Optional[int] = None
     ) -> Dict[str, Any]:
         prompt = self._build_analysis_prompt(
-            transcript_messages, service_record_data, organization_data, tags
+            transcript_messages, service_record_data, organization_data, tags, prompt_version
         )
         # Can we save the prompt in markdown file? with overwrite
         with open("prompt.md", "w") as f:
@@ -195,8 +301,10 @@ class AnyLLMService:
         transcript_messages: List[Dict[str, Any]],
         service_record_data: Dict[str, Any],
         organization_data: Dict[str, Any],
-        tags: List[str]
+        tags: List[str],
+        prompt_version: Optional[int] = None
     ) -> str:
+        # Prepare the data for template formatting
         formatted_transcript = "\n".join(
             f"{m['role']}: {m['message']}" for m in transcript_messages
         )
@@ -217,291 +325,17 @@ class AnyLLMService:
             "location": organization_data.get('location', 'N/A')
         }, indent=2)
 
-        # Define the output schema
-        output_schema = """json
-{
-  "call_summary": "<string>",
-  "nps_score": <integer|null>,
-  "overall_feedback": "<string>",
-  "positive_mentions": ["<tag1>", "..."],
-  "detractors": ["<tag2>", "..."]
-}"""
+        # Get the prompt template for the specified version
+        prompt_template = self._get_prompt_template(prompt_version)
         
-        # Return the formatted prompt
-        return f"""
-```
-
-## --- ROLE DEFINITION ---
-
-You are a highly capable AI specializing in **call transcript analysis** and **customer sentiment extraction** for service-oriented businesses. Your task is to produce **valid JSON** that adheres **exactly** to the provided schema.
-
-## --- AVAILABLE INPUTS ---
-
-You are given three structured data blocks:
-
-1. **Call Transcript** (Role-tagged customer conversation):
-
-```
-{formatted_transcript}
-```
-
-2. **Service Record Info** (Prior records and interactions in JSON format):
-
-```json
-{service_record_json}
-```
-
-3. **Organization Info** (Company profile in JSON):
-
-```json
-{organization_json}
-```
-
-4. **Focus Tags** (aspects to analyze):
-
-```
-{formatted_tags}
-```
-
----
-
-## --- TASK OBJECTIVE ---
-
-Your goal is to analyze the **customer conversation** and extract structured insights in JSON based on the schema provided.
-
----
-
-## --- INTERNAL REASONING STEPS (Chain-of-Thought) ---
-
-1. **Summarize the Call Outcome in One Sentence**
-
-   * Focus on the customer's final sentiment and the resolution status.
-
-2. **Infer NPS Score (0–10):**
-
-   * If a score is explicitly stated (e.g., "I'd give it an 8"), extract it as-is.
-   * If implied ("Fantastic service!"), interpret reasonably:
-
-     * Highly positive (9–10), somewhat positive (7–8), neutral (4–6), negative (0–3).
-   * If unclear or uncertain, return `null`.
-
-3. **Summarize Overall Feedback (1–2 lines):**
-
-   * Reflect the **emotional tone** and **general experience** of the customer.
-
-4. **Classify Each Focus Tag:**
-
-   * If tag is clearly mentioned **positively**, add to `"positive_mentions"`.
-   * If mentioned **negatively**, add to `"detractors"`.
-   * If ambiguous or not mentioned, exclude from both lists.
-
----
-
-## --- FEW-SHOT EXAMPLES ---
-
-### Example A:
-
-**Transcript:**
-Customer: "It was perfect, I'd rate it a 10. Super fast response and really helpful."
-**Tags:** `communication, response time, transparency`
-
-**Output:**
-
-```json
-{{
-  "call_summary": "Customer expressed delight with the fast and helpful service.",
-  "nps_score": 10,
-  "overall_feedback": "Customer was highly satisfied and praised the quick response.",
-  "positive_mentions": ["communication", "response time"],
-  "detractors": []
-}}
-```
-
-### Example B:
-
-**Transcript:**
-Customer: "Pickup was delayed and nobody told me. The mechanic was okay, I guess."
-**Tags:** `timeliness, communication, professionalism`
-
-**Output:**
-
-```json
-{{
-  "call_summary": "Customer was dissatisfied with the lack of communication and delays.",
-  "nps_score": null,
-  "overall_feedback": "Customer was frustrated with the delay and lack of updates.",
-  "positive_mentions": [],
-  "detractors": ["timeliness", "communication"]
-}}
-```
-
-### Example C:
-
-**Transcript:**
-Customer: "The technician was great and explained everything clearly. Bit of a wait though."
-**Tags:** `professionalism, wait time, communication`
-
-**Output:**
-
-```json
-{{
-  "call_summary": "Customer praised technician's clarity but noted delay.",
-  "nps_score": 8,
-  "overall_feedback": "Customer had a good experience overall with minor delay concerns.",
-  "positive_mentions": ["communication", "professionalism"],
-  "detractors": ["wait time"]
-}}
-```
-
-### Example D:
-
-**Transcript:**
-Customer: "No updates until I called three times. I wouldn't recommend this."
-**Tags:** `transparency, responsiveness, satisfaction`
-
-**Output:**
-
-```json
-{{
-  "call_summary": "Customer was extremely dissatisfied with lack of updates.",
-  "nps_score": 2,
-  "overall_feedback": "Customer felt ignored and expressed strong dissatisfaction.",
-  "positive_mentions": [],
-  "detractors": ["transparency", "responsiveness", "satisfaction"]
-}}
-```
-
-### Example E:
-
-**Transcript:**
-Customer: "I liked the reminder call before the appointment. Very professional."
-**Tags:** `professionalism, scheduling, communication`
-
-**Output:**
-
-```json
-{{
-  "call_summary": "Customer appreciated the reminder and professionalism.",
-  "nps_score": 9,
-  "overall_feedback": "Customer was happy with the smooth appointment process.",
-  "positive_mentions": ["communication", "professionalism", "scheduling"],
-  "detractors": []
-}}
-```
-
-### Example F:
-
-**Transcript:**
-Customer: "Your technician arrived on time and fixed the issue in under an hour. I'm impressed with how knowledgeable he was."
-**Tags:** `timeliness, expertise, efficiency, courtesy`
-
-**Output:**
-
-```json
-{{
-  "call_summary": "Customer was impressed with the technician's punctuality and knowledge.",
-  "nps_score": 9,
-  "overall_feedback": "Customer had an excellent experience with prompt service and efficient problem resolution.",
-  "positive_mentions": ["timeliness", "expertise", "efficiency"],
-  "detractors": []
-}}
-```
-
-### Example G:
-
-**Transcript:**
-Customer: "While the repair was done correctly, I had to wait an extra day because of parts availability. The staff was apologetic though."
-**Tags:** `repair quality, timeliness, communication, parts availability`
-
-**Output:**
-
-```json
-{{
-  "call_summary": "Customer satisfied with repair quality despite delay due to parts.",
-  "nps_score": 6,
-  "overall_feedback": "Customer acknowledged good repair work but experienced frustration with the extended timeline.",
-  "positive_mentions": ["repair quality", "communication"],
-  "detractors": ["timeliness", "parts availability"]
-}}
-```
-
-### Example H:
-
-**Transcript:**
-Customer: "The work was expensive but worth every penny. Your team went above and beyond to fix issues I didn't even know about."
-**Tags:** `pricing, value, thoroughness, expertise`
-
-**Output:**
-
-```json
-{{
-  "call_summary": "Customer found service expensive but valuable due to thorough work.",
-  "nps_score": 8,
-  "overall_feedback": "Customer expressed high satisfaction with thoroughness despite high cost, indicating good perceived value.",
-  "positive_mentions": ["value", "thoroughness", "expertise"],
-  "detractors": ["pricing"]
-}}
-```
-
-### Example I:
-
-**Transcript:**
-Customer: "I've been coming here for years and have never been disappointed. Today was no exception - quick service, fair price."
-**Tags:** `loyalty, timeliness, pricing, satisfaction`
-
-**Output:**
-
-```json
-{{
-  "call_summary": "Long-time customer expressed continued satisfaction with service quality.",
-  "nps_score": 10,
-  "overall_feedback": "Customer demonstrated strong loyalty due to consistently positive experiences with speed and fair pricing.",
-  "positive_mentions": ["loyalty", "timeliness", "pricing", "satisfaction"],
-  "detractors": []
-}}
-```
-
-### Example J:
-
-**Transcript:**
-Customer: "The online booking system was confusing and when I arrived, they had no record of my appointment. The mechanic made up for it though."
-**Tags:** `scheduling, online experience, customer service, professionalism`
-
-**Output:**
-
-```json
-{{
-  "call_summary": "Customer frustrated with booking system issues but appreciated mechanic's service.",
-  "nps_score": 5,
-  "overall_feedback": "Customer experienced scheduling problems that created initial disappointment, though service recovery somewhat mitigated the issue.",
-  "positive_mentions": ["professionalism"],
-  "detractors": ["scheduling", "online experience"]
-}}
-```
-
----
-
-## --- JSON OUTPUT SCHEMA ---
-
-Respond with a valid JSON object that follows this structure:
-
-```json
-{{
-  "call_summary": "string (max 1 sentence)",
-  "nps_score": integer or null,
-  "overall_feedback": "string (1–2 lines)",
-  "positive_mentions": ["list of tags"],
-  "detractors": ["list of tags"]
-}}
-```
-
----
-
-**Response Format:**
-Format your analysis as valid JSON following the exact schema provided above.
-
-"""
-
+        # Format the template with the actual data
+        formatted_prompt = prompt_template.format(
+            formatted_transcript=formatted_transcript,
+            service_record_json=service_record_json,
+            organization_json=organization_json,
+            formatted_tags=formatted_tags
+        )
+        return formatted_prompt
 
     def _parse_analysis_result(self, content: str) -> Dict[str, Any]:
         try:
