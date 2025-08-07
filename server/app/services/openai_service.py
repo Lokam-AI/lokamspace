@@ -88,15 +88,16 @@ class OpenAIService:
             transcript_messages, service_record_data, organization_data, tags, prompt_version
         )
         # Can we save the prompt in markdown file? with overwrite
-        with open("prompt.md", "w") as f:
-            f.write(prompt)
+        if settings.ENVIRONMENT == "development":
+            with open("prompt.md", "w") as f:
+                f.write(prompt)
 
         payload = {
             "model": settings.OPENAI_MODEL,  # must be a gpt-4o model (e.g., "gpt-4o-2024-08-06")
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are a helpful assistant. Always respond with valid JSON matching the provided schema."
+                    "content": "You are an expert call transcript analyst specializing in customer service evaluation for automotive and service businesses. Your expertise includes sentiment analysis, NPS score extraction, and customer experience assessment. You must always respond with valid JSON that strictly adheres to the provided schema. Focus on accuracy, consistency, and extracting actionable insights from customer conversations. Never include explanations, markdown formatting, or any text outside the required JSON structure."
                 },
                 {
                     "role": "user",

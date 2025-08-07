@@ -97,7 +97,7 @@ class CallAnalysisService:
                 "description": organization.description,
                 "service_center_description": organization.service_center_description,
                 "focus_areas": organization.focus_areas,
-                "areas_to_improve": [],  # This field doesn't exist in the model yet
+                "areas_to_improve": tags,  # This field doesn't exist in the model yet
                 "location": organization.location,
             }
             
