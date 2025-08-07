@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { LayoutDashboard, Phone, Calendar, MessageSquare, Settings, User, LogOut, HelpCircle, Palette, BarChart3, Building, Key } from "lucide-react";
+import { LayoutDashboard, Phone, Calendar, MessageSquare, Settings, User, LogOut, HelpCircle, Palette, BarChart3, Building, Key, Bot } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator, SidebarFooter, SidebarHeader, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,11 @@ const primaryNavItems = [
     title: "Feedback Calls",
     url: "/calls",
     icon: Phone
+  },
+  {
+    title: "Agent Library",
+    url: "/agent-library",
+    icon: Bot
   },
   {
     title: "API Platform",

@@ -24,3 +24,6 @@ export * from "./endpoints/apiKeys";
 // Metrics endpoints
 export * from "./endpoints/metrics";
 
+// Agents endpoints
+export * from "./endpoints/agents";
+
