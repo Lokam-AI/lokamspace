@@ -350,16 +350,19 @@ class CallInitiatorWorker:
             print(f"      ✅ Updated status to 'In Progress' for service record {call.service_record.id} and call {call.id}")
             
             # Trigger VAPI call
-            await self._trigger_vapi_call(call, call.service_record, call.organization.name)
+            await self._trigger_vapi_call(call, call.service_record, call.organization)
             
         except Exception as e:
             logger.error(f"❌ Error processing queued call {call.id}: {str(e)}")
             await db.rollback()
     
-    async def _trigger_vapi_call(self, call: Call, service_record: ServiceRecord, org_name: str):
+    async def _trigger_vapi_call(self, call: Call, service_record: ServiceRecord, organization: Organization):
         """Trigger VAPI call for the given call and service record."""
         try:
             print(f"      📞 Triggering VAPI call for {service_record.customer_name}")
+            
+            # Get location from organization - prefer location_city, fallback to location, then default
+            location = organization.location_city or organization.location or "Main Location"
             
             # Initialize VAPI service
             vapi_service = VAPIService()
@@ -370,8 +373,8 @@ class CallInitiatorWorker:
                 customer_name=service_record.customer_name,
                 service_advisor_name=service_record.service_advisor_name or "Service Advisor",
                 service_type=service_record.service_type or "Service Call",
-                organization_name=org_name,
-                location="Main Location",  # You might want to get this from organization
+                organization_name=organization.name,
+                location=location,
                 call_id=call.id
             )
             
@@ -639,7 +642,7 @@ class CallInitiatorWorker:
             await db.commit()
             
             # Trigger VAPI call
-            await self._trigger_vapi_call(call, call.service_record, call.organization.name)
+            await self._trigger_vapi_call(call, call.service_record, call.organization)
             
             return True
             
