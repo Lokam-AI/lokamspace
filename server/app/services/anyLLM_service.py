@@ -325,6 +325,16 @@ class AnyLLMService:
             "location": organization_data.get('location', 'N/A')
         }, indent=2)
 
+        # Define the output schema
+        output_schema = """json
+{
+  "call_summary": "<string>",
+  "nps_score": <integer|null>,
+  "overall_feedback": "<string>",
+  "positive_mentions": ["<tag1>", "..."],
+  "detractors": ["<tag2>", "..."]
+}"""
+
         # Get the prompt template for the specified version
         prompt_template = self._get_prompt_template(prompt_version)
         
@@ -333,7 +343,8 @@ class AnyLLMService:
             formatted_transcript=formatted_transcript,
             service_record_json=service_record_json,
             organization_json=organization_json,
-            formatted_tags=formatted_tags
+            formatted_tags=formatted_tags,
+            output_schema=output_schema
         )
         return formatted_prompt
 
