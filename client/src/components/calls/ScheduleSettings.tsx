@@ -20,6 +20,8 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  Check,
+  Edit,
 } from "lucide-react";
 import { getScheduleConfig, updateScheduleConfig } from "@/api/endpoints/calls";
 
@@ -29,6 +31,7 @@ interface ScheduleConfig {
   active_days: string[];
   auto_call_enabled: boolean;
   timezone: string;
+  selected_agent_id?: string;
 }
 
 export const ScheduleSettings = () => {
@@ -37,6 +40,11 @@ export const ScheduleSettings = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Agent ID specific states
+  const [isEditingAgent, setIsEditingAgent] = useState(true); // Start in editing mode
+  const [savedAgentId, setSavedAgentId] = useState<string>("");
+  const [tempAgentId, setTempAgentId] = useState<string>("");
 
   const initialConfig: ScheduleConfig = {
     start_time: "09:00",
@@ -44,6 +52,7 @@ export const ScheduleSettings = () => {
     active_days: ["monday", "tuesday", "wednesday", "thursday", "friday"],
     auto_call_enabled: true,
     timezone: "America/New_York",
+    selected_agent_id: "",
   };
 
   const [scheduleConfig, setScheduleConfig] =
@@ -205,6 +214,38 @@ export const ScheduleSettings = () => {
     });
   };
 
+  // Handle saving agent ID
+  const handleSaveAgent = () => {
+    if (!tempAgentId.trim()) {
+      toast({
+        title: "Invalid Agent ID",
+        description: "Please enter a valid Agent ID",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavedAgentId(tempAgentId);
+    setIsEditingAgent(false);
+    
+    // Also update the schedule config
+    setScheduleConfig((prev) => ({
+      ...prev,
+      selected_agent_id: tempAgentId,
+    }));
+
+    toast({
+      title: "Agent Saved",
+      description: `Agent ID "${tempAgentId}" has been saved successfully`,
+    });
+  };
+
+  // Handle editing agent ID
+  const handleEditAgent = () => {
+    setTempAgentId(savedAgentId);
+    setIsEditingAgent(true);
+  };
+
   // Save configuration to API
   const handleSave = async () => {
     setIsSaving(true);
@@ -219,6 +260,7 @@ export const ScheduleSettings = () => {
         timezone: scheduleConfig.timezone,
         active_days: scheduleConfig.active_days,
         auto_call_enabled: scheduleConfig.auto_call_enabled,
+        selected_agent_id: scheduleConfig.selected_agent_id,
       };
 
       // Call API to update config
@@ -232,6 +274,7 @@ export const ScheduleSettings = () => {
         timezone: updatedConfig.timezone,
         active_days: updatedConfig.active_days,
         auto_call_enabled: updatedConfig.auto_call_enabled,
+        selected_agent_id: updatedConfig.selected_agent_id,
       });
 
       // Update original config to match current (for change detection)
@@ -261,7 +304,7 @@ export const ScheduleSettings = () => {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center space-x-2">
             <Calendar className="h-5 w-5" />
-            <span>Call Schedule Configuration</span>
+            <span>Configuration</span>
             {hasChanges && (
               <span className="text-sm text-orange-600 bg-orange-100 px-2 py-1 rounded-md">
                 Unsaved Changes
@@ -283,34 +326,91 @@ export const ScheduleSettings = () => {
         </div>
       </CardHeader>
 
-      {/* Auto Call Switch - Always visible */}
-      <CardContent className="pb-3">
+      {/* Agent Selection and Auto Call Switch - Always visible */}
+      <CardContent className="pb-3 space-y-4">
         {isLoading ? (
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
             <span className="text-sm">Loading configuration...</span>
           </div>
         ) : (
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label className="text-base font-medium">
-                Automatic Calling
-              </Label>
-              <p className="text-sm text-gray-600">
-                Enable automatic calling for "Ready for Call" status during
-                scheduled hours
+          <>
+            {/* Agent Selection - Moved above Automatic Calling */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Select Agent for Calls</Label>
+              
+              {isEditingAgent ? (
+                // Editing Mode
+                <div className="flex items-center space-x-2">
+                  <Input
+                    type="text"
+                    placeholder="Enter Agent ID (e.g., fb-001, mk-002)"
+                    value={tempAgentId}
+                    onChange={(e) => setTempAgentId(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleSaveAgent}
+                    disabled={!tempAgentId.trim()}
+                    size="sm"
+                    className="h-10 w-10 p-0 flex-shrink-0"
+                    title="Save Agent ID"
+                  >
+                    <Check className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                // Display Mode
+                <div className="flex items-center space-x-2">
+                  <div className="flex-1 p-2 bg-gray-50 border border-gray-200 rounded-md">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-medium text-gray-900">{savedAgentId}</span>
+                        <p className="text-xs text-gray-500 mt-1">Agent ID saved and ready for use</p>
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleEditAgent}
+                    size="sm"
+                    variant="outline"
+                    className="h-10 w-10 p-0 flex-shrink-0"
+                    title="Edit Agent ID"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+              
+              <p className="text-xs text-gray-500">
+                {isEditingAgent 
+                  ? "Enter the Agent ID from the Agent Library to use for automatic calls"
+                  : "Click the edit button to change the selected agent"
+                }
               </p>
             </div>
-            <Switch
-              checked={scheduleConfig.auto_call_enabled}
-              onCheckedChange={(checked) =>
-                setScheduleConfig((prev) => ({
-                  ...prev,
-                  auto_call_enabled: checked,
-                }))
-              }
-            />
-          </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-base font-medium">
+                  Automatic Calling
+                </Label>
+                <p className="text-sm text-gray-600">
+                  Enable automatic calling for "Ready for Call" status during
+                  scheduled hours
+                </p>
+              </div>
+              <Switch
+                checked={scheduleConfig.auto_call_enabled}
+                onCheckedChange={(checked) =>
+                  setScheduleConfig((prev) => ({
+                    ...prev,
+                    auto_call_enabled: checked,
+                  }))
+                }
+              />
+            </div>
+          </>
         )}
       </CardContent>
 
