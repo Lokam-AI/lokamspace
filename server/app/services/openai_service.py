@@ -88,7 +88,7 @@ class OpenAIService:
             transcript_messages, service_record_data, organization_data, tags, prompt_version
         )
         # Can we save the prompt in markdown file? with overwrite
-        if settings.ENVIRONMENT == "development":
+        if settings.ENVIRONMENT == "dev":
             with open("prompt.md", "w") as f:
                 f.write(prompt)
 
