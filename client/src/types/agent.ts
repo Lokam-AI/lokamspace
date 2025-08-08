@@ -6,16 +6,16 @@ export interface Agent {
   id: string;
   name: string;
   description: string;
-  category: AgentCategory;
+  category: string; // Now a simple string instead of AgentCategory object
   language: string;
   country: string;
-  countryCode: string; // For flag display
+  countryCode?: string; // For flag display - optional since backend doesn't provide it
   voice_id?: string;
   personality: string;
   capabilities: string[];
   is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  created_at?: string; // Optional since backend doesn't provide it
+  updated_at?: string; // Optional since backend doesn't provide it
 }
 
 export interface AgentCategory {

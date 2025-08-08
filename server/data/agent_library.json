@@ -1,0 +1,29 @@
+{
+  "agents": [
+    {
+      "id": "456e0080-0a65-4fca-9667-35377aa7cfdb",
+      "name": "Sarah - Customer Satisfaction Expert",
+      "description": "Friendly agent specialized in post-service feedback collection.",
+      "category": "Feedback Calling Agents",
+      "language": "English",
+      "country": "United States",
+      "voice_id": "789f1234-5b67-4def-8901-23456789abcd",
+      "personality": "Warm, professional, and patient",
+      "capabilities": ["NPS Collection", "Sentiment Analysis"],
+      "is_active": true
+    },
+    {
+      "id": "567f1191-1b76-5dga-0778-46488bb8dgfe",
+      "name": "Alex - Promotional Campaign Expert",
+      "description": "Dynamic marketing agent for automotive service promotions.",
+      "category": "Marketing Campaign Agents",
+      "language": "English",
+      "country": "United Kingdom",
+      "voice_id": "890g2345-6c78-5efg-9012-34567890bcde",
+      "personality": "Enthusiastic and persuasive",
+      "capabilities": ["Service Upselling", "Promotional Offers"],
+      "is_active": true
+    }
+  ]
+}
+

@@ -22,6 +22,7 @@ from app.api.v1.endpoints.users import router as users_router
 from app.api.v1.endpoints.webhooks import router as webhook_router
 from app.api.v1.endpoints.api_keys import router as api_keys_router
 from app.api.v1.endpoints.public_api import router as public_api_router
+from app.api.v1.endpoints.agents import router as agents_router
 
 # Create main API router
 api_router = APIRouter()
@@ -45,3 +46,4 @@ api_router.include_router(dms_integration_router, prefix="/dms-integration", tag
 api_router.include_router(webhook_router, prefix="/webhooks", tags=["Webhooks"])
 api_router.include_router(api_keys_router, prefix="/api-keys", tags=["API Keys"])
 api_router.include_router(public_api_router, prefix="/public", tags=["Public API"]) 
+api_router.include_router(agents_router, prefix="/agents", tags=["Agents"])

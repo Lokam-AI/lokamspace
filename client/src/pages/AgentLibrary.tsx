@@ -10,8 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Phone, MessageSquare, Megaphone, Globe, User, Play, Loader2, Bot, Calendar, Clock, Target } from "lucide-react";
-import { Agent, AGENT_CATEGORIES, MOCK_AGENTS, AgentCallRequest } from "@/types/agent";
-import { useInitiateAgentTestCall } from "@/hooks/useAgents";
+import { Agent, AgentCallRequest } from "@/types/agent";
+import { useAgents, useInitiateAgentTestCall } from "@/hooks/useAgents";
 
 const AgentLibrary = () => {
   const { toast } = useToast();
@@ -44,15 +44,37 @@ const AgentLibrary = () => {
 
   const initiateTestCallMutation = useInitiateAgentTestCall();
 
-  // Use mock data for demo
-  const agents = MOCK_AGENTS;
-  const categories = AGENT_CATEGORIES;
-  const agentsLoading = false;
-  const agentsError = null;
+  // Fetch from API (falls back handled at API/server layer)
+  const { data: apiAgents, isLoading: agentsLoading, error: agentsError } = useAgents();
+  const agents: Agent[] = (apiAgents as Agent[]) || [];
+  
+  // Hardcoded categories since they're fixed and no longer in the JSON
+  const categories = [
+    {
+      id: "feedback",
+      name: "Feedback Calling Agents",
+      description: "Agents for collecting customer feedback",
+      icon: "MessageSquare",
+      color: "bg-blue-500"
+    },
+    {
+      id: "marketing",
+      name: "Marketing Campaign Agents",
+      description: "Agents for outreach and promotions",
+      icon: "Megaphone",
+      color: "bg-green-500"
+    }
+  ];
 
   // Filter agents based on category and search term
   const filteredAgents = agents.filter(agent => {
-    const matchesCategory = selectedCategory === "all" || agent.category.id === selectedCategory;
+    // Map category name to category id for filtering
+    const categoryMapping: { [key: string]: string } = {
+      "Feedback Calling Agents": "feedback",
+      "Marketing Campaign Agents": "marketing"
+    };
+    const agentCategoryId = categoryMapping[agent.category] || agent.category.toLowerCase();
+    const matchesCategory = selectedCategory === "all" || agentCategoryId === selectedCategory;
     const matchesSearch = agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          agent.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          agent.language.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -68,12 +90,38 @@ const AgentLibrary = () => {
     });
   };
 
-  const getFlagEmoji = (countryCode: string) => {
+  const getFlagEmoji = (countryCode: string | undefined) => {
+    if (!countryCode) return "🌍"; // Default globe emoji if no country code
     const codePoints = countryCode
       .toUpperCase()
       .split('')
       .map(char => 127397 + char.charCodeAt(0));
     return String.fromCodePoint(...codePoints);
+  };
+
+  // Helper function to get country code from country name
+  const getCountryCode = (countryName: string): string => {
+    const countryMapping: { [key: string]: string } = {
+      "United States": "US",
+      "United Kingdom": "GB",
+      "Canada": "CA",
+      "Australia": "AU",
+      "India": "IN",
+      "Germany": "DE",
+      "France": "FR",
+      "Spain": "ES",
+      "Italy": "IT",
+      "Netherlands": "NL",
+      "Brazil": "BR",
+      "Mexico": "MX",
+      "Japan": "JP",
+      "China": "CN",
+      "South Korea": "KR",
+      "Singapore": "SG",
+      "UAE": "AE",
+      "South Africa": "ZA"
+    };
+    return countryMapping[countryName] || "US"; // Default to US if not found
   };
 
   const getIconComponent = (iconName: string) => {
@@ -289,10 +337,10 @@ const AgentLibrary = () => {
                           <CardTitle className="text-lg mb-2 line-clamp-2 leading-tight">{agent.name}</CardTitle>
                           <div className="flex items-center gap-2 mb-2">
                             <Badge variant="secondary" className="text-xs flex-shrink-0">
-                              {agent.category.name.split(' ')[0]}
+                              {agent.category.split(' ')[0]}
                             </Badge>
                             <div className="flex items-center gap-1 text-sm text-muted-foreground flex-shrink-0">
-                              <span className="text-lg">{getFlagEmoji(agent.countryCode)}</span>
+                              <span className="text-lg">{getFlagEmoji(getCountryCode(agent.country))}</span>
                               <span>{agent.language}</span>
                             </div>
                           </div>
@@ -384,9 +432,9 @@ const AgentLibrary = () => {
               <div className="bg-muted p-3 rounded-lg">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-medium">{selectedAgent.name}</span>
-                  <span className="text-lg">{getFlagEmoji(selectedAgent.countryCode)}</span>
+                  <span className="text-lg">{getFlagEmoji(getCountryCode(selectedAgent.country))}</span>
                 </div>
-                <p className="text-sm text-muted-foreground">{selectedAgent.language} • {selectedAgent.category.name}</p>
+                <p className="text-sm text-muted-foreground">{selectedAgent.language} • {selectedAgent.category}</p>
               </div>
             )}
 
@@ -529,7 +577,7 @@ const AgentLibrary = () => {
                     <Target className="h-4 w-4 text-gray-500" />
                     <div>
                       <span className="text-sm text-gray-500">Category:</span>
-                      <p className="font-medium">{selectedAgent?.category.name || "N/A"}</p>
+                      <p className="font-medium">{selectedAgent?.category || "N/A"}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
