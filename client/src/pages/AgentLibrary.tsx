@@ -328,22 +328,7 @@ const AgentLibrary = () => {
                           </div>
                         </div>
 
-                        {/* Capabilities */}
-                        <div className="min-h-[60px]">
-                          <p className="text-xs text-muted-foreground mb-2">Capabilities:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {agent.capabilities.slice(0, 3).map((capability, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {capability}
-                              </Badge>
-                            ))}
-                            {agent.capabilities.length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{agent.capabilities.length - 3} more
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
+                        {/* Capabilities section removed as requested */}
 
                         {/* Personality */}
                         <div className="text-xs min-h-[40px]">
