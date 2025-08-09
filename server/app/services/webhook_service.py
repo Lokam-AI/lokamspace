@@ -102,19 +102,24 @@ class WebhookService:
             
             if not status:
                 return {"status": "error", "message": "No status found in webhook data"}
+            
+            # If VAPI sends a terminal 'ended' here, skip updating.
+            # The end-of-call report will set the final status (Completed/Missed/etc.).
+            if status.lower() == "ended":
+                logger.info("Skipping 'ended' status-update to allow end-of-call-report to set final status")
+                return {"status": "success", "message": "Skipped 'ended' status update", "call_id": call_id}
                 
             # Map VAPI status to our system's status
             status_mapping = {
                 "queued": "Ready",
                 "ringing": "Ringing",
                 "in-progress": "In Progress",
-                "ended": "Completed",
                 "failed": "Failed",
                 "no-answer": "Missed",
                 "busy": "Missed"
             }
             
-            our_status = status_mapping.get(status.lower(), "In Progress")
+            our_status = status_mapping.get(status.lower(), call.status or "In Progress")
             
             # Update call status
             call.status = our_status
@@ -196,6 +201,13 @@ class WebhookService:
             ended_reason_val = (call.ended_reason or "").lower()
             if "voicemail" in ended_reason_val:
                 call.status = "Missed"
+
+            elif "customer-busy" in ended_reason_val:
+                call.status = "Missed"
+                
+            elif "customer-did-not-answer" in ended_reason_val:
+                call.status = "Missed"
+
             else:
                 call.status = "Completed"
             
