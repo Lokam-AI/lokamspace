@@ -102,19 +102,24 @@ class WebhookService:
             
             if not status:
                 return {"status": "error", "message": "No status found in webhook data"}
+            
+            # If VAPI sends a terminal 'ended' here, skip updating.
+            # The end-of-call report will set the final status (Completed/Missed/etc.).
+            if status.lower() == "ended":
+                logger.info("Skipping 'ended' status-update to allow end-of-call-report to set final status")
+                return {"status": "success", "message": "Skipped 'ended' status update", "call_id": call_id}
                 
             # Map VAPI status to our system's status
             status_mapping = {
                 "queued": "Ready",
                 "ringing": "Ringing",
                 "in-progress": "In Progress",
-                "ended": "Completed",
                 "failed": "Failed",
                 "no-answer": "Missed",
                 "busy": "Missed"
             }
             
-            our_status = status_mapping.get(status.lower(), "In Progress")
+            our_status = status_mapping.get(status.lower(), call.status or "In Progress")
             
             # Update call status
             call.status = our_status
@@ -192,8 +197,20 @@ class WebhookService:
             call.duration_ms = data.get("durationMs")
             call.duration_sec = data.get("durationSeconds") or (int((call.end_time - call.start_time).total_seconds()) if call.start_time and call.end_time else None)
             
-            # Update status to completed
-            call.status = "Completed"
+            # Update status based on ended reason
+            ended_reason_val = (call.ended_reason or "").lower()
+            if "voicemail" in ended_reason_val:
+                call.status = "Missed"
+                
+            #keeping the below for now, but we should remove it once we have a better way to handle this
+            elif "customer-busy" in ended_reason_val:
+                call.status = "Missed"
+                
+            elif "customer-did-not-answer" in ended_reason_val:
+                call.status = "Missed"
+
+            else:
+                call.status = "Completed"
             
             # Extract and save transcript messages from message -> artifact -> messages
             messages = []
@@ -226,6 +243,29 @@ class WebhookService:
         except Exception as e:
             await db.rollback()
             logger.error(f"Error processing call report: {str(e)}")
+            # Attempt to mark the call as Failed in case of processing errors
+            try:
+                extracted_id = None
+                if 'call_id' in locals() and call_id:
+                    extracted_id = call_id
+                else:
+                    if "call" in data and isinstance(data["call"], dict):
+                        assistant_overrides = data["call"].get("assistantOverrides", {})
+                        variable_values = assistant_overrides.get("variableValues", {})
+                        if "call_id" in variable_values:
+                            try:
+                                extracted_id = int(variable_values["call_id"])
+                            except (ValueError, TypeError):
+                                extracted_id = None
+                if extracted_id:
+                    result = await db.execute(select(Call).where(Call.id == extracted_id))
+                    call_to_fail = result.scalar_one_or_none()
+                    if call_to_fail:
+                        call_to_fail.status = "Failed"
+                        await db.commit()
+            except Exception as e2:
+                await db.rollback()
+                logger.error(f"Failed to mark call as Failed after exception: {str(e2)}")
             return {"status": "error", "message": str(e)}
     
     async def save_transcripts(
