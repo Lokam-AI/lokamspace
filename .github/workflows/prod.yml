@@ -55,7 +55,6 @@ jobs:
         alembic upgrade head
       env:
         DATABASE_URL: ${{ env.DATABASE_URL }}
-      continue-on-error: true
 
     - name: Log in to Amazon ECR
       run: |
