@@ -19,6 +19,8 @@ class OpenAIService:
             "Content-Type": "application/json"
         }
         # Load prompt templates on initialization
+        # Default to version 1, can be overridden by config file
+        self._default_prompt_version = 1
         self._prompt_templates = self._load_prompt_templates()
 
     def _load_prompt_templates(self) -> Dict[int, str]:
@@ -37,6 +39,13 @@ class OpenAIService:
             
             # Extract prompt templates from the JSON structure
             prompts = {}
+            # Update default prompt version if provided
+            if 'default_version' in config:
+                try:
+                    self._default_prompt_version = int(config['default_version'])
+                    logger.debug(f"Default prompt version set to {self._default_prompt_version}")
+                except (TypeError, ValueError) as e:
+                    logger.warning(f"Invalid default_version in prompts config: {config.get('default_version')}. Error: {e}")
             if 'prompts' in config:
                 for version_str, prompt_data in config['prompts'].items():
                     try:
@@ -61,14 +70,17 @@ class OpenAIService:
             return {}
 
     def _get_prompt_template(self, version: Optional[int] = None) -> str:
-        """Get prompt template for specified version or default to version 1."""
+        """Get prompt template for specified version or default to configured version."""
         if version is None:
-            version = 1  # Default to version 1
+            version = getattr(self, "_default_prompt_version", 1)
         
         if version in self._prompt_templates:
             return self._prompt_templates[version]
         
-        # Fallback to version 1 if specified version doesn't exist
+        # Fallback to configured default, then to 1
+        if getattr(self, "_default_prompt_version", None) in self._prompt_templates:
+            logger.warning(f"Prompt version {version} not found, falling back to default version {self._default_prompt_version}")
+            return self._prompt_templates[self._default_prompt_version]
         if 1 in self._prompt_templates:
             logger.warning(f"Prompt version {version} not found, falling back to version 1")
             return self._prompt_templates[1]
@@ -141,8 +153,6 @@ class OpenAIService:
                 }
             }
         }
-
-
 
         try:
             async with httpx.AsyncClient() as client:
