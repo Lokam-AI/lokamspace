@@ -172,6 +172,8 @@ export const DemoCallTab = ({ campaigns, onViewDetails }: DemoCallTabProps) => {
         return "secondary";
       case "failed":
         return "destructive";
+      case "missed":
+        return "outline";
       default:
         return "secondary";
     }
