@@ -192,8 +192,12 @@ class WebhookService:
             call.duration_ms = data.get("durationMs")
             call.duration_sec = data.get("durationSeconds") or (int((call.end_time - call.start_time).total_seconds()) if call.start_time and call.end_time else None)
             
-            # Update status to completed
-            call.status = "Completed"
+            # Update status based on ended reason
+            ended_reason_val = (call.ended_reason or "").lower()
+            if "voicemail" in ended_reason_val:
+                call.status = "Missed"
+            else:
+                call.status = "Completed"
             
             # Extract and save transcript messages from message -> artifact -> messages
             messages = []
@@ -226,6 +230,29 @@ class WebhookService:
         except Exception as e:
             await db.rollback()
             logger.error(f"Error processing call report: {str(e)}")
+            # Attempt to mark the call as Failed in case of processing errors
+            try:
+                extracted_id = None
+                if 'call_id' in locals() and call_id:
+                    extracted_id = call_id
+                else:
+                    if "call" in data and isinstance(data["call"], dict):
+                        assistant_overrides = data["call"].get("assistantOverrides", {})
+                        variable_values = assistant_overrides.get("variableValues", {})
+                        if "call_id" in variable_values:
+                            try:
+                                extracted_id = int(variable_values["call_id"])
+                            except (ValueError, TypeError):
+                                extracted_id = None
+                if extracted_id:
+                    result = await db.execute(select(Call).where(Call.id == extracted_id))
+                    call_to_fail = result.scalar_one_or_none()
+                    if call_to_fail:
+                        call_to_fail.status = "Failed"
+                        await db.commit()
+            except Exception as e2:
+                await db.rollback()
+                logger.error(f"Failed to mark call as Failed after exception: {str(e2)}")
             return {"status": "error", "message": str(e)}
     
     async def save_transcripts(
