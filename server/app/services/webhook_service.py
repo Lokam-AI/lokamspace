@@ -201,7 +201,8 @@ class WebhookService:
             ended_reason_val = (call.ended_reason or "").lower()
             if "voicemail" in ended_reason_val:
                 call.status = "Missed"
-
+                
+            #keeping the below for now, but we should remove it once we have a better way to handle this
             elif "customer-busy" in ended_reason_val:
                 call.status = "Missed"
                 
