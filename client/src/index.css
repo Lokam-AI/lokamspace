@@ -215,6 +215,42 @@
   }
 }
 
+/* Enhanced gradient text support */
+.gradient-text {
+  background: linear-gradient(90deg, rgb(255, 46, 46) 0%, rgb(238, 123, 22) 36.2773%, rgb(138, 67, 225) 69.7515%, rgb(213, 16, 252) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent; /* fallback */
+}
+
+/* Smooth animations */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Hide scrollbars for cleaner look */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Enhanced focus states for accessibility */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+}
+
 /* Utility Classes for Design System */
 @layer utilities {
   .text-primary {
