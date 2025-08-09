@@ -50,10 +50,8 @@ jobs:
 
     - name: Run Alembic migrations
       run: |
-        echo "DATABASE_URL: $DATABASE_URL"
         echo "DATABASE_URL: $ENVIRONMENT"
         cd server
-        alembic revision --autogenerate -m "Auto-generate migration"
         alembic upgrade head
       env:
         DATABASE_URL: ${{ env.DATABASE_URL }}
