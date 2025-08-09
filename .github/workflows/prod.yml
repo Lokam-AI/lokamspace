@@ -48,6 +48,17 @@ jobs:
           echo "DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}" >> $GITHUB_ENV
         fi
 
+    - name: Run Alembic migrations
+      run: |
+        echo "DATABASE_URL: $DATABASE_URL"
+        echo "DATABASE_URL: $ENVIRONMENT"
+        cd server
+        alembic revision --autogenerate -m "Auto-generate migration"
+        alembic upgrade head
+      env:
+        DATABASE_URL: ${{ env.DATABASE_URL }}
+      continue-on-error: true
+
     - name: Log in to Amazon ECR
       run: |
         aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
@@ -87,7 +98,7 @@ jobs:
         else
           SERVICE_TYPE="Other"
         fi
-          
+        
         if [ "$ENVIRONMENT" = "prod" ]; then
           SLACK_URL=${{ secrets.SLACK_WEBHOOK_URL }}
           STATUS_MSG="✅ *Production deployment completed successfully!*"
@@ -95,7 +106,7 @@ jobs:
           SLACK_URL=${{ secrets.SLACK_WEBHOOK_URL }}
           STATUS_MSG="🚀 *Development deployment completed successfully!*"
         fi
-
+        
         curl -X POST -H 'Content-type: application/json' \
           --data "{
             \"text\": \"$STATUS_MSG\n*Repository:* $REPO_NAME\n*Environment:* $ENVIRONMENT\n*Branch:* ${{ github.ref_name }}\n*Commit Message:* $COMMIT_MSG\n*Author:* $AUTHOR_NAME\n*Service:* $SERVICE_TYPE\"

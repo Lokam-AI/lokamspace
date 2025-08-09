@@ -1,32 +1,41 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useCallAnalysisCharts, useCallTrends } from "@/hooks/useMetrics";
 
-export const CallAnalysisCharts = () => {
-  // Updated data with only 3 call types: Feedback Calls, Bookings, Inquiries
-  const reasonCallEndedData = [
-    { reason: "Customer Ended", count: 45, color: "#3b82f6" },
-    { reason: "Assistant Ended", count: 32, color: "#10b981" },
-    { reason: "Transfer Failed", count: 18, color: "#f59e0b" },
-    { reason: "Error", count: 12, color: "#ef4444" },
-    { reason: "Timeout", count: 8, color: "#8b5cf6" },
-    { reason: "Other", count: 5, color: "#6b7280" }
-  ];
+interface CallAnalysisChartsProps {
+  startDate?: string;
+  endDate?: string;
+  groupBy?: string;
+  filterType?: string;
+}
 
-  // Updated data with only the 3 call types
-  const avgDurationByTypeData = [
-    { type: "Feedback Calls", duration: 4.2, color: "#3b82f6" },
-    { type: "Bookings", duration: 3.8, color: "#10b981" },
-    { type: "Inquiries", duration: 2.9, color: "#f59e0b" }
-  ];
+export const CallAnalysisCharts = ({ 
+  startDate, 
+  endDate, 
+  groupBy, 
+  filterType 
+}: CallAnalysisChartsProps) => {
+  // Build API parameters based on props
+  const apiParams = {
+    ...(startDate && endDate ? { start_date: startDate, end_date: endDate } : { date_range: '30d' }),
+    ...(groupBy && { group_by: groupBy }),
+    ...(filterType && filterType !== 'All Types' && { filter_type: filterType })
+  };
 
-  // Updated cost breakdown with only the 3 call types
-  const costBreakdownData = [
-    { type: "Feedback Calls", cost: 52.3, percentage: 45 },
-    { type: "Bookings", cost: 38.7, percentage: 33 },
-    { type: "Inquiries", cost: 25.8, percentage: 22 }
-  ];
+  // Fetch call analysis charts data from API
+  const { data: chartsData, isLoading: chartsLoading, error: chartsError } = useCallAnalysisCharts(apiParams);
+  
+  // Fetch call trends data for daily distribution
+  const { data: trendsData, isLoading: trendsLoading, error: trendsError } = useCallTrends(apiParams);
 
-  const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))'];
+  // Use API data or fallback to empty arrays
+  const reasonCallEndedData = chartsData?.reason_call_ended || [];
+  const avgDurationByTypeData = chartsData?.avg_duration_by_type || [];
+  const costBreakdownData = chartsData?.cost_breakdown || [];
+  const dailyDistributionData = trendsData?.trends || [];
+
+  const COLORS = ['#3b82f6', '#f97316', '#10b981'];
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -62,6 +71,48 @@ export const CallAnalysisCharts = () => {
     return null;
   };
 
+  // Loading skeleton
+  if (chartsLoading || trendsLoading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="shadow-lg border-border bg-card rounded-xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b border-border">
+              <Skeleton className="h-6 w-48" />
+            </CardHeader>
+            <CardContent className="p-6">
+              <Skeleton className="h-80 w-full" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  // Error state
+  if (chartsError || trendsError) {
+    const error = chartsError || trendsError;
+    console.error('Call analysis charts error:', error);
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <Card className="lg:col-span-2 shadow-lg border-border bg-card rounded-xl overflow-hidden">
+          <CardContent className="p-6">
+            <div className="text-center py-8">
+              <p className="text-foreground-secondary mb-2">Failed to load call analysis data</p>
+              <p className="text-sm text-foreground-secondary">Please try again later</p>
+              <details className="mt-4 text-left">
+                <summary className="text-sm cursor-pointer">Error details (click to expand)</summary>
+                <pre className="text-xs mt-2 p-2 bg-muted rounded text-red-600 overflow-auto">
+                  {error instanceof Error ? error.message : String(error)}
+                </pre>
+              </details>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Reason Call Ended */}
@@ -91,7 +142,11 @@ export const CallAnalysisCharts = () => {
                   stroke="hsl(var(--border))"
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))" />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                  {reasonCallEndedData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -126,7 +181,11 @@ export const CallAnalysisCharts = () => {
                   stroke="hsl(var(--border))"
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="duration" radius={[4, 4, 0, 0]} fill="hsl(var(--secondary))" />
+                <Bar dataKey="duration" radius={[4, 4, 0, 0]}>
+                  {avgDurationByTypeData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -190,6 +249,59 @@ export const CallAnalysisCharts = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Daily Distribution - Full Width */}
+      <Card className="lg:col-span-2 shadow-lg border-border bg-card rounded-xl overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b border-border">
+          <CardTitle className="text-xl font-semibold text-foreground">Daily Call Distribution</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="h-96">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={dailyDistributionData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+                barCategoryGap={dailyDistributionData.length > 15 ? "5%" : "30%"}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 10, fill: 'hsl(var(--foreground-secondary))' }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  stroke="hsl(var(--border))"
+                  tickFormatter={(value) => {
+                    // Format date to show day and month (e.g., "15 Aug")
+                    const date = new Date(value);
+                    return `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })}`;
+                  }}
+                  interval={0} // Show all ticks for all days
+                />
+                <YAxis
+                  label={{ value: 'Number of Calls', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: 'hsl(var(--foreground-secondary))' } }}
+                  tick={{ fontSize: 12, fill: 'hsl(var(--foreground-secondary))' }}
+                  stroke="hsl(var(--border))"
+                />
+                <Tooltip
+                  formatter={(value, name) => [value, name === 'demo_calls' ? 'Demo Calls' : 'Service Calls']}
+                  labelFormatter={(label) => {
+                    const date = new Date(label);
+                    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                  }}
+                />
+                <Legend 
+                  verticalAlign="top"
+                  wrapperStyle={{ paddingBottom: 20 }}
+                  formatter={(value) => value === 'demo_calls' ? 'Demo Calls' : 'Service Calls'}
+                />
+                <Bar dataKey="demo_calls" stackId="a" name="demo_calls" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="service_calls" stackId="a" name="service_calls" fill="#10b981" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>

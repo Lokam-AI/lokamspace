@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { MetricsGrid } from "@/components/MetricsGrid";
 import { InsightsPanels } from "@/components/InsightsPanels";
 import { RecentFeedbackCalls } from "@/components/dashboard/RecentFeedbackCalls";
+import RecentActivities from "@/components/dashboard/RecentActivities";
 import { CallDetailPanel } from "@/components/calls/CallDetailPanel";
 import { DateFilterDropdown } from "@/components/dashboard/DateFilterDropdown";
 import { Call } from "@/pages/Calls";
@@ -16,12 +17,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useCallsSummaryMetricsWithTrends } from "@/api/queries/calls";
 import { getFeedbackInsights, FeedbackInsights } from "@/api/endpoints/analytics";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
   const [currentFilter, setCurrentFilter] = useState("This Month");
   const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   
   // Get the metrics data for PDF export
   const { data: summaryData } = useCallsSummaryMetricsWithTrends();
@@ -30,6 +33,25 @@ const Dashboard = () => {
   const [feedbackInsights, setFeedbackInsights] = useState<FeedbackInsights | null>(null);
   const [isLoadingInsights, setIsLoadingInsights] = useState(true);
   const [insightsError, setInsightsError] = useState<string | null>(null);
+
+  // Get greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
+
+  // Get user's first name
+  const getFirstName = (fullName: string): string => {
+    if (!fullName || typeof fullName !== 'string') {
+      return 'User';
+    }
+    const nameParts = fullName.trim().split(' ');
+    return nameParts[0] || 'User';
+  };
+
+  const userFirstName = user?.full_name ? getFirstName(user.full_name) : (user?.email || "User");
   
   const handleViewDetails = (call: Call) => {
     setSelectedCall(call);
@@ -115,7 +137,10 @@ const Dashboard = () => {
               {/* Dashboard Section */}
               <div className="space-y-8">
                 <div className="flex items-center justify-between pt-4">
-                  <h1 className="text-2xl font-bold text-foreground">Overview</h1>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">My Workspace</p>
+                    <h1 className="text-2xl font-bold text-foreground">{getGreeting()}, {userFirstName}</h1>
+                  </div>
                   <DateFilterDropdown 
                     onFilterChange={handleFilterChange} 
                     onExport={handleExport}
@@ -137,68 +162,7 @@ const Dashboard = () => {
                     />
                   </div>
                   <div className="h-full">
-                    {/* Quick Stats */}
-                    <Card className="h-full shadow-lg transform transition-transform hover:scale-105">
-                      <CardHeader>
-                        <CardTitle className="text-lg">Recent Activity</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-destructive/10 rounded-lg border border-destructive/20 h-16 shadow-md transform transition-transform hover:scale-105">
-                          <div className="flex items-center space-x-3">
-                            <AlertTriangle className="h-5 w-5 text-destructive" />
-                            <div>
-                              <p className="font-medium text-sm text-foreground">New Detractor</p>
-                              <p className="text-sm text-foreground-secondary">NPS Score: 3</p>
-                            </div>
-                          </div>
-                          <Badge variant="destructive">New</Badge>
-                        </div>
-                        
-                        <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg border border-success/20 h-16 shadow-md transform transition-transform hover:scale-105">
-                          <div className="flex items-center space-x-3">
-                            <Phone className="h-5 w-5 text-success" />
-                            <div>
-                              <p className="font-medium text-sm text-foreground">Call Completed</p>
-                              <p className="text-sm text-foreground-secondary">Customer #1234</p>
-                            </div>
-                          </div>
-                          <Badge variant="secondary">5 min ago</Badge>
-                        </div>
-
-                        <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20 h-16 shadow-md transform transition-transform hover:scale-105">
-                          <div className="flex items-center space-x-3">
-                            <BarChart3 className="h-5 w-5 text-primary" />
-                            <div>
-                              <p className="font-medium text-sm text-foreground">Weekly Report</p>
-                              <p className="text-sm text-foreground-secondary">85% completion rate</p>
-                            </div>
-                          </div>
-                          <Badge>Ready</Badge>
-                        </div>
-
-                        <div className="flex items-center justify-between p-3 bg-warning/10 rounded-lg border border-warning/20 h-16 shadow-md transform transition-transform hover:scale-105">
-                          <div className="flex items-center space-x-3">
-                            <Users className="h-5 w-5 text-warning" />
-                            <div>
-                              <p className="font-medium text-sm text-foreground">New Promoter</p>
-                              <p className="text-sm text-foreground-secondary">NPS Score: 9</p>
-                            </div>
-                          </div>
-                          <Badge variant="secondary">15 min ago</Badge>
-                        </div>
-
-                        <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg border border-success/20 h-16 shadow-md transform transition-transform hover:scale-105">
-                          <div className="flex items-center space-x-3">
-                            <TrendingUp className="h-5 w-5 text-success" />
-                            <div>
-                              <p className="font-medium text-sm text-foreground">DMS Integration</p>
-                              <p className="text-sm text-foreground-secondary">14 service records fetched</p>
-                            </div>
-                          </div>
-                          <Badge variant="outline">1 hour ago</Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <RecentActivities />
                   </div>
                 </div>
               </div>

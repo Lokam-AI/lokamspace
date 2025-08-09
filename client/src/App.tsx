@@ -15,6 +15,8 @@ import Metrics from "./pages/Metrics";
 import Calls from "./pages/Calls";
 import Bookings from "./pages/Bookings";
 import Inquiries from "./pages/Inquiries";
+import APIKeys from "./pages/APIKeys";
+import AgentLibrary from "./pages/AgentLibrary";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -93,6 +95,22 @@ const App = () => (
               element={
                 <PrivateRoute>
                   <Inquiries />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/api-keys"
+              element={
+                <PrivateRoute>
+                  <APIKeys />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/agent-library"
+              element={
+                <PrivateRoute>
+                  <AgentLibrary />
                 </PrivateRoute>
               }
             />

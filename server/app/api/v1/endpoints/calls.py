@@ -5,6 +5,7 @@ Call API endpoints.
 from typing import Any, List, Optional, Dict
 from uuid import UUID
 import logging
+import os
 from datetime import date
 from sqlalchemy import select, and_
 
@@ -17,6 +18,8 @@ from app.schemas import CallCreate, CallResponse, CallUpdate, CSVTemplateRespons
 from app.schemas.demo_call import DemoCallCreate, DemoCallResponse
 from app.schemas.call import CallDetailResponse
 from app.services.call_service import CallService
+from app.call_initiator.worker import CallInitiatorWorker
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -809,4 +812,66 @@ async def bulk_upload_calls(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Failed to process bulk upload: {str(e)}"
+        )
+
+
+@router.post("/initiate-worker", status_code=status.HTTP_200_OK)
+async def initiate_call_worker(
+    access_token: str = Query(..., description="Access token for call initiator"),
+    db: AsyncSession = Depends(get_tenant_db),
+) -> Any:
+    """
+    Initiate the call initiator worker to process queued calls.
+    
+    Args:
+        access_token: Access token for authentication
+        db: Database session
+        
+    Returns:
+        Dict with success status and processing statistics
+    """
+    try:
+        # Validate access token
+        expected_token = settings.CALL_INITIATOR_ACCESS_TOKEN
+        print(expected_token)
+        if not expected_token:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Call initiator access token not configured"
+            )
+        
+        if access_token != expected_token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid access token"
+            )
+        
+        # Create worker instance
+        worker = CallInitiatorWorker()
+        
+        # Run a single processing cycle
+        stats = await worker.run_single_cycle()
+        
+        # Check if there was an error
+        if "error" in stats:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Call initiator worker failed: {stats['error']}"
+            )
+        
+        # Return success response with statistics
+        return {
+            "success": True,
+            "message": "Call initiator worker completed successfully",
+            "statistics": stats
+        }
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        # Handle any other exceptions
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to initiate call worker: {str(e)}"
         ) 

@@ -48,6 +48,11 @@ from app.schemas.organization import (
     OrganizationResponse,
     OrganizationSettingsUpdate,
 )
+from app.schemas.activity import (
+    ActivityBase,
+    ActivityResponse,
+    RecentActivitiesResponse,
+)
 from app.schemas.service_record import (
     ServiceRecordBase,
     ServiceRecordCreate,
@@ -80,6 +85,8 @@ from app.schemas.transcript import (
     TranscriptSegment,
 )
 from app.schemas.user import UserBase, UserCreate, UserUpdate, UserDB, UserResponse
+from app.schemas.api_key import ApiKeyCreate, ApiKeyUpdate, ApiKeyResponse, ApiKeySecret
+from app.schemas.feedback_call import FeedbackCallRequest, FeedbackCallResponse, FeedbackCall
 
 __all__ = [
     # Auth schemas
@@ -172,4 +179,20 @@ __all__ = [
     "KnowledgeFileCreate",
     "KnowledgeFileUpdate",
     "KnowledgeFileResponse",
+
+    # Activity schemas
+    "ActivityBase",
+    "ActivityResponse",
+    "RecentActivitiesResponse",
+    
+    # API Key schemas
+    "ApiKeyCreate",
+    "ApiKeyUpdate",
+    "ApiKeyResponse",
+    "ApiKeySecret",
+    
+    # Feedback Call schemas
+    "FeedbackCallRequest",
+    "FeedbackCallResponse", 
+    "FeedbackCall",
 ]

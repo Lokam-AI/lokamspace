@@ -34,12 +34,19 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Build database URL from environment variables
-host = os.getenv('DB_HOST', 'localhost')
-port = os.getenv('DB_PORT', '5432')
-user = os.getenv('DB_USER', 'autopulse')
-password = os.getenv('DB_PASSWORD', 'autopulse')
-database = os.getenv('DB_NAME', 'autopulse')
-db_url = f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{database}"
+db_url_from_env = os.getenv('DATABASE_URL')
+
+if db_url_from_env:
+    db_url = db_url_from_env
+else:
+    # Fallback to building the URL from individual variables for local development
+    host = os.getenv('DB_HOST', 'localhost')
+    port = os.getenv('DB_PORT', '5432')
+    user = os.getenv('DB_USER', 'autopulse')
+    password = os.getenv('DB_PASSWORD', 'autopulse')
+    database = os.getenv('DB_NAME', 'autopulse')
+    db_url = f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{database}"
+
 
 # Set SQLAlchemy URL
 config.set_main_option('sqlalchemy.url', db_url)

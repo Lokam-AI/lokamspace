@@ -105,6 +105,7 @@ class VAPIService:
         service_type: str = "Feedback Call",
         organization_name: str = "Demo Organization",
         location: str = "Demo Location",
+        google_review_link: Optional[str] = None,
         call_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
@@ -140,6 +141,9 @@ class VAPIService:
                 "is_demo": "true"
             }
         }
+
+        if google_review_link:
+            assistant_overrides["variableValues"]["google_review_link"] = google_review_link
 
         if call_id:
             assistant_overrides["variableValues"]["call_id"] = str(call_id)

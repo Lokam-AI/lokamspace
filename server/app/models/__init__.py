@@ -24,6 +24,7 @@ from .audit_log import AuditLog
 from .role import Role
 from .call_feedback import CallFeedback
 from .knowledge_file import KnowledgeFile
+from .api_key import ApiKey
 
 # For Alembic discovery
 __all__ = [
@@ -48,4 +49,5 @@ __all__ = [
     "Role",
     "CallFeedback",
     "KnowledgeFile",
+    "ApiKey",
 ]
