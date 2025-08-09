@@ -2,8 +2,9 @@ import { useState, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Card } from "../components/ui/card";
+import { motion } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
+import { AuthLayout } from "../components/auth";
 import LokamLogo from "../../assets/LOKAM_PRIMARY_LOGO_BLACK.svg";
 
 export default function SignUp() {
@@ -67,28 +68,53 @@ export default function SignUp() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <Card className="w-full max-w-md p-8 space-y-6 bg-white shadow-lg rounded-lg">
-        <div className="flex justify-center mb-6">
-          <img src={LokamLogo} alt="Lokam Logo" className="h-16" />
+    <AuthLayout variant="signup">
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.4 }}
+        className="space-y-6"
+      >
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <motion.img 
+            src={LokamLogo} 
+            alt="Lokam Logo" 
+            className="h-12"
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          />
         </div>
         
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">Create your account</h1>
-          <p className="text-sm text-gray-500 mt-2">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold text-gray-900">Create your account</h1>
+          <p className="text-gray-600">
             Join LokamSpace to manage your feedback calls and campaigns
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Form */}
+        <motion.form 
+          onSubmit={handleSubmit} 
+          className="space-y-4"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+        >
           {(error || formError) && (
-            <div className="p-3 bg-red-100 border border-red-300 text-red-700 rounded">
+            <motion.div 
+              className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+            >
               {error || formError}
-            </div>
+            </motion.div>
           )}
 
           <div className="space-y-2">
-            <label htmlFor="fullName" className="text-sm font-medium">
+            <label htmlFor="fullName" className="text-sm font-medium text-gray-700">
               Full Name
             </label>
             <Input
@@ -98,11 +124,12 @@ export default function SignUp() {
               onChange={handleChange}
               placeholder="John Doe"
               required
+              className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">
+            <label htmlFor="email" className="text-sm font-medium text-gray-700">
               Email
             </label>
             <Input
@@ -113,11 +140,12 @@ export default function SignUp() {
               onChange={handleChange}
               placeholder="john@company.com"
               required
+              className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium">
+            <label htmlFor="password" className="text-sm font-medium text-gray-700">
               Password
             </label>
             <Input
@@ -128,11 +156,12 @@ export default function SignUp() {
               onChange={handleChange}
               placeholder="••••••••"
               required
+              className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="confirmPassword" className="text-sm font-medium">
+            <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
               Confirm Password
             </label>
             <Input
@@ -143,11 +172,12 @@ export default function SignUp() {
               onChange={handleChange}
               placeholder="••••••••"
               required
+              className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="organizationName" className="text-sm font-medium">
+            <label htmlFor="organizationName" className="text-sm font-medium text-gray-700">
               Organization Name (Optional)
             </label>
             <Input
@@ -156,25 +186,33 @@ export default function SignUp() {
               value={formData.organizationName}
               onChange={handleChange}
               placeholder="Your Company"
+              className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Creating Account..." : "Sign Up"}
+          <Button 
+            type="submit" 
+            className="w-full h-12 bg-black hover:bg-gray-800 text-white font-medium transition-colors" 
+            disabled={loading}
+          >
+            {loading ? "Creating Account..." : "Create Account"}
           </Button>
-        </form>
+        </motion.form>
 
-        <div className="text-center text-sm">
+        {/* Footer */}
+        <div className="text-center text-sm text-gray-600">
           Already have an account?{" "}
-          <a href="/login" className="text-blue-600 hover:underline">
+          <a href="/login" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
             Sign in
           </a>
         </div>
 
-        <div className="text-center text-xs mt-4 text-gray-500">
-          <span>Terms of Use</span> | <span>Privacy Policy</span>
+        <div className="text-center text-xs text-gray-500 pt-4 border-t border-gray-100">
+          <a href="#" className="hover:text-gray-700 transition-colors">Terms of Use</a>
+          {" | "}
+          <a href="#" className="hover:text-gray-700 transition-colors">Privacy Policy</a>
         </div>
-      </Card>
-    </div>
+      </motion.div>
+    </AuthLayout>
   );
 }
